@@ -198,7 +198,7 @@ export default function DashboardLayout({
               clients: data.clients || [],
               collaborators: data.collaborators || [],
               quoteTemplates: (data.quoteTemplates || []).map(migrateTemplate),
-              categories: data.categories && data.categories.length > 0 ? data.categories : initialCategories,
+              categories: data.categories !== undefined ? data.categories : initialCategories,
               appSettings: loadedSettings,
             };
         } catch (e) {
@@ -636,17 +636,24 @@ export default function DashboardLayout({
   const cycleTaskFormSize = useCallback(() => setTaskFormSize(c => c === 'default' ? 'large' : c === 'large' ? 'fullscreen' : 'default'), []);
   
   const handleClearAllData = () => {
-    setAppData(initialAppData);
-    Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('freelance-flow-')) {
-            localStorage.removeItem(key);
-        }
-    });
-    toast({
-        title: T.clearAllData,
-        description: T.clearAllDataDesc,
-    });
-    setTimeout(() => window.location.reload(), 1500);
+    const emptyData: AppData = {
+      tasks: [],
+      quotes: [],
+      collaboratorQuotes: [],
+      clients: [],
+      collaborators: [],
+      quoteTemplates: [],
+      categories: [],
+      appSettings: defaultSettings,
+    };
+    setAppData(emptyData);
+    localStorage.setItem(storageKey, JSON.stringify(emptyData));
+    // Also clear other potential keys
+    localStorage.removeItem('freelance-flow-filters');
+    localStorage.removeItem('freelance-flow-last-backup');
+    localStorage.removeItem('freelance-flow-notes');
+    toast({ title: T.clearAllData, description: T.clearAllDataDesc });
+    setTimeout(() => window.location.reload(), 1000);
   };
 
   const handleExport = () => {
@@ -655,6 +662,9 @@ export default function DashboardLayout({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.download = `freelance-flow-backup-${new Date().toISOString().split('T')[0]}.json`;
+    link.href = url;
+    link.setAttribute('aria-label', 'Download backup JSON');
+    link.setAttribute('title', 'Download backup JSON');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

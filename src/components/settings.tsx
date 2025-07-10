@@ -91,6 +91,8 @@ const defaultSettings: Omit<AppSettings, 'theme' | 'statusColors' | 'stickyNoteC
 };
 
 export default function SettingsPage() {
+    // Chuyển đổi chuỗi HSL từ "180 100% 25.1%" thành "180, 100%, 25.1%"
+    const toCssHsl = (hsl: string) => hsl.replace(/(\d+)\s+/g, '$1, ').trim();
     const dashboardContext = useDashboard();
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -286,8 +288,14 @@ export default function SettingsPage() {
                                                     className={cn("flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer","peer-data-[state=checked]:border-primary")}
                                                 >
                                                     <div className="flex gap-2 w-full h-8">
-                                                      <div className="w-1/2 rounded" style={{ backgroundColor: `hsl(${theme.colors.primary})` }} />
-                                                      <div className="w-1/2 rounded border" style={{ backgroundColor: `hsl(${getThemeBackgroundColorHsl(theme.colors.primary)})` }} />
+                                                        <div
+                                                            className="w-1/2 rounded"
+                                                            style={{ backgroundColor: `hsl(var(--primary))` }}
+                                                        />
+                                                        <div
+                                                            className="w-1/2 rounded border"
+                                                            style={{ backgroundColor: `hsl(var(--accent))` }}
+                                                        />
                                                     </div>
                                                     <span className="mt-2 font-semibold">{theme.name}</span>
                                                 </Label>

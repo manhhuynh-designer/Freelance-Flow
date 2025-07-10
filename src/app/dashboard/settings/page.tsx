@@ -66,13 +66,7 @@ import { useDashboard } from '@/contexts/dashboard-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { StatusSettings } from '@/components/status-settings';
-import { getThemeBackgroundColorHsl, getContrastingTextColor, hexToRgb } from "@/lib/colors";
-import styles from "./SettingsColors.module.css";
-// Helper to map a color string to a safe CSS class name
-function colorToClass(color: string, prefix: string) {
-  // Remove non-alphanumeric for class safety
-  return `${prefix}-${color.replace(/[^a-zA-Z0-9]/g, '')}`;
-}
+import { getThemeBackgroundColorHsl, getContrastingTextColor } from "@/lib/colors";
 
 import { WIDGETS } from '@/lib/widgets';
 
@@ -90,23 +84,6 @@ const predefinedThemes: { name: string; colors: ThemeSettings }[] = [
 ];
 
 // (Removed duplicate declaration)
-
-// Now that both arrays are defined, initialize the color class maps
-const themeColorClasses: Record<string, { primary: string; accent: string }> = Object.fromEntries(
-  predefinedThemes.map(theme => [
-    theme.name,
-    {
-      primary: colorToClass(theme.colors.primary, 'theme-primary-bg'),
-      accent: colorToClass(getThemeBackgroundColorHsl(theme.colors.primary), 'theme-accent-bg'),
-    }
-  ])
-);
-const statusColorClasses: Record<string, string[]> = Object.fromEntries(
-  predefinedStatusColors.map(preset => [
-    preset.name,
-    Object.values(preset.colors).map(color => colorToClass(color, 'status-color-bg'))
-  ])
-);
 
 const defaultSettings: Omit<AppSettings, 'theme' | 'statusColors' | 'stickyNoteColor' | 'dashboardColumns' | 'statusSettings' | 'widgets'> = {
     trashAutoDeleteDays: 30,
@@ -340,12 +317,13 @@ function SettingsPageContent() {
                                                     className={cn("flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer","peer-data-[state=checked]:border-primary")}
                                                 >
                                                     <div className="flex gap-2 w-full h-8">
-                                                      {/* Move dynamic inline styles to CSS variables for lint compliance */}
                                                       <div
-                                                        className={`w-1/2 rounded ${themeColorClasses[theme.name]?.primary || ''}`}
+                                                        className="w-1/2 rounded"
+                                                        style={{ backgroundColor: `hsl(${theme.colors.primary})` }}
                                                       />
                                                       <div
-                                                        className={`w-1/2 rounded border ${themeColorClasses[theme.name]?.accent || ''}`}
+                                                        className="w-1/2 rounded border"
+                                                        style={{ backgroundColor: getThemeBackgroundColorHsl(theme.colors.primary) }}
                                                       />
                                                     </div>
                                                     <span className="mt-2 font-semibold">{theme.name}</span>
