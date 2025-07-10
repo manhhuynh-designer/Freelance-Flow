@@ -1,0 +1,10 @@
+.theme-primary-bg {
+  background-color: var(--theme-primary-bg);
+}
+.theme-accent-bg {
+  background-color: var(--theme-accent-bg);
+  border: 1px solid var(--theme-accent-bg-border, #e5e7eb);
+}
+.status-color-bg {
+  background-color: var(--status-color-bg);
+}

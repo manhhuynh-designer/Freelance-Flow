@@ -2,13 +2,25 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { LayoutGrid, MessageCircle, Puzzle } from "lucide-react";
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuSkeleton } from "@/components/ui/sidebar";
 import { i18n } from "@/lib/i18n";
 import { useDashboard } from "@/contexts/dashboard-context";
 
+import { Suspense } from 'react';
+
 export function SidebarNavigation() {
+    return (
+        <Suspense fallback={<SidebarMenu><SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem><SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem><SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem></SidebarMenu>}>
+            <SidebarMenuNavigationSuspense />
+        </Suspense>
+    );
+}
+
+function SidebarMenuNavigationSuspense() {
+    // Only import useSearchParams here, inside Suspense
+    const { useSearchParams } = require('next/navigation');
     const dashboardContext = useDashboard();
     const pathname = usePathname();
     const searchParams = useSearchParams();

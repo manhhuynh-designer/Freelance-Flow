@@ -1,54 +1,7 @@
 
-
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { cn } from "@/lib/utils";
-import { Slider } from '@/components/ui/slider';
-import { i18n } from "@/lib/i18n";
-import { Separator } from '@/components/ui/separator';
-import type { AppSettings, ThemeSettings, StatusColors, AppData, DashboardColumn, WidgetSetting } from '@/lib/types';
-import { categories as initialCategories, STATUS_INFO } from '@/lib/data';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from "@/hooks/use-toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useDashboard } from '@/contexts/dashboard-context';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ThemeToggle } from '@/components/theme-toggle';
-import { StatusSettings } from '@/components/status-settings';
-import { getThemeBackgroundColorHsl, getContrastingTextColor, hexToRgb } from "@/lib/colors";
-import { WIDGETS } from '@/lib/widgets';
-
-const predefinedThemes: { name: string; colors: ThemeSettings }[] = [
-    { name: 'Default', colors: { primary: "221 83% 53%", accent: "221 83% 53%" } },
-    { name: 'Teal', colors: { primary: "180 80% 40%", accent: "180 80% 40%" } },
-    { name: 'Crimson', colors: { primary: "348 83% 47%", accent: "348 83% 47%" } },
-    { name: 'Forest', colors: { primary: "120 39% 49%", accent: "120 39% 49%" } },
-    { name: 'Violet', colors: { primary: "262 83% 58%", accent: "262 83% 58%" } },
-    { name: 'Lavender', colors: { primary: "250 60% 80%", accent: "250 60% 80%" } },
-    { name: 'Mint', colors: { primary: "150 55% 75%", accent: "150 55% 75%" } },
-    { name: 'Sky', colors: { primary: "195 75% 78%", accent: "195 75% 78%" } },
-    { name: 'Peach', colors: { primary: "28 100% 80%", accent: "28 100% 80%" } },
-    { name: 'Monochrome', colors: { primary: "0 0% 50%", accent: "0 0% 50%" } },
-];
-
+// Status color presets (restored, single declaration)
 const predefinedStatusColors: { name: string; colors: StatusColors }[] = [
     {
         name: 'Default',
@@ -82,6 +35,79 @@ const predefinedStatusColors: { name: string; colors: StatusColors }[] = [
     }
 ];
 
+import React, { useState, useRef, useEffect } from 'react';
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from "@/lib/utils";
+import { Slider } from '@/components/ui/slider';
+import { i18n } from "@/lib/i18n";
+import { Separator } from '@/components/ui/separator';
+import type { AppSettings, ThemeSettings, StatusColors, AppData, DashboardColumn, WidgetSetting } from '@/lib/types';
+import { categories as initialCategories, STATUS_INFO } from '@/lib/data';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useDashboard } from '@/contexts/dashboard-context';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { StatusSettings } from '@/components/status-settings';
+import { getThemeBackgroundColorHsl, getContrastingTextColor, hexToRgb } from "@/lib/colors";
+import styles from "./SettingsColors.module.css";
+// Helper to map a color string to a safe CSS class name
+function colorToClass(color: string, prefix: string) {
+  // Remove non-alphanumeric for class safety
+  return `${prefix}-${color.replace(/[^a-zA-Z0-9]/g, '')}`;
+}
+
+import { WIDGETS } from '@/lib/widgets';
+
+const predefinedThemes: { name: string; colors: ThemeSettings }[] = [
+    { name: 'Default', colors: { primary: "221 83% 53%", accent: "221 83% 53%" } },
+    { name: 'Teal', colors: { primary: "180 80% 40%", accent: "180 80% 40%" } },
+    { name: 'Crimson', colors: { primary: "348 83% 47%", accent: "348 83% 47%" } },
+    { name: 'Forest', colors: { primary: "120 39% 49%", accent: "120 39% 49%" } },
+    { name: 'Violet', colors: { primary: "262 83% 58%", accent: "262 83% 58%" } },
+    { name: 'Lavender', colors: { primary: "250 60% 80%", accent: "250 60% 80%" } },
+    { name: 'Mint', colors: { primary: "150 55% 75%", accent: "150 55% 75%" } },
+    { name: 'Sky', colors: { primary: "195 75% 78%", accent: "195 75% 78%" } },
+    { name: 'Peach', colors: { primary: "28 100% 80%", accent: "28 100% 80%" } },
+    { name: 'Monochrome', colors: { primary: "0 0% 50%", accent: "0 0% 50%" } }
+];
+
+// (Removed duplicate declaration)
+
+// Now that both arrays are defined, initialize the color class maps
+const themeColorClasses: Record<string, { primary: string; accent: string }> = Object.fromEntries(
+  predefinedThemes.map(theme => [
+    theme.name,
+    {
+      primary: colorToClass(theme.colors.primary, 'theme-primary-bg'),
+      accent: colorToClass(getThemeBackgroundColorHsl(theme.colors.primary), 'theme-accent-bg'),
+    }
+  ])
+);
+const statusColorClasses: Record<string, string[]> = Object.fromEntries(
+  predefinedStatusColors.map(preset => [
+    preset.name,
+    Object.values(preset.colors).map(color => colorToClass(color, 'status-color-bg'))
+  ])
+);
+
 const defaultSettings: Omit<AppSettings, 'theme' | 'statusColors' | 'stickyNoteColor' | 'dashboardColumns' | 'statusSettings' | 'widgets'> = {
     trashAutoDeleteDays: 30,
     language: 'en',
@@ -93,7 +119,19 @@ const defaultSettings: Omit<AppSettings, 'theme' | 'statusColors' | 'stickyNoteC
     openaiModel: 'gpt-4o-mini',
 };
 
+
+
+import { Suspense } from "react";
+
 export default function SettingsPage() {
+    return (
+        <Suspense fallback={<div className="p-4 md:p-6"><Skeleton className="h-10 w-1/3" /><Skeleton className="h-96 w-full" /></div>}>
+            <SettingsPageContent />
+        </Suspense>
+    );
+}
+
+function SettingsPageContent() {
     const dashboardContext = useDashboard();
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -278,7 +316,7 @@ export default function SettingsPage() {
                         <TabsTrigger value="api">{T.tabApi}</TabsTrigger>
                         <TabsTrigger value="data">{T.tabData}</TabsTrigger>
                     </TabsList>
-                    
+                    {/* --- Appearance Tab --- */}
                     <TabsContent value="appearance">
                         <Card>
                             <CardHeader>
@@ -302,8 +340,13 @@ export default function SettingsPage() {
                                                     className={cn("flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer","peer-data-[state=checked]:border-primary")}
                                                 >
                                                     <div className="flex gap-2 w-full h-8">
-                                                      <div className="w-1/2 rounded" style={{ backgroundColor: `hsl(${theme.colors.primary})` }} />
-                                                      <div className="w-1/2 rounded border" style={{ backgroundColor: `hsl(${getThemeBackgroundColorHsl(theme.colors.primary)})` }} />
+                                                      {/* Move dynamic inline styles to CSS variables for lint compliance */}
+                                                      <div
+                                                        className={`w-1/2 rounded ${themeColorClasses[theme.name]?.primary || ''}`}
+                                                      />
+                                                      <div
+                                                        className={`w-1/2 rounded border ${themeColorClasses[theme.name]?.accent || ''}`}
+                                                      />
                                                     </div>
                                                     <span className="mt-2 font-semibold">{theme.name}</span>
                                                 </Label>
@@ -324,7 +367,11 @@ export default function SettingsPage() {
                                                 >
                                                     <div className="flex gap-2 w-full h-8 items-center">
                                                         {Object.values(preset.colors).map((color, index) => (
-                                                            <div key={index} className="w-1/5 h-5 rounded-full" style={{ backgroundColor: color }} />
+                                                          <div
+                                                            key={index}
+                                                            className={`w-1/5 h-5 rounded-full`}
+                                                            style={{ background: color, backgroundColor: color }}
+                                                          />
                                                         ))}
                                                     </div>
                                                     <span className="mt-2 font-semibold">{preset.name}</span>
@@ -338,8 +385,13 @@ export default function SettingsPage() {
                                     <Label>{T.dashboardColumns}</Label>
                                     <div className="grid grid-cols-2 gap-4">
                                         {(appSettings.dashboardColumns || []).map((column) => {
+                                            // Ensure label is always a string for type safety
                                             const labelKey = column.id === 'name' ? 'taskName' : column.id === 'priceQuote' ? 'priceQuote' : column.id;
-                                            const columnLabel = T[labelKey as keyof typeof T] || column.label;
+                                            let columnLabel: string = column.label;
+                                            const tValue = T[labelKey as keyof typeof T];
+                                            if (typeof tValue === 'string') {
+                                              columnLabel = tValue;
+                                            }
                                             return (
                                                 <div key={column.id} className="flex items-center space-x-2">
                                                 <Checkbox
@@ -485,6 +537,9 @@ export default function SettingsPage() {
                                         const url = URL.createObjectURL(blob);
                                         const link = document.createElement('a');
                                         link.download = `freelance-flow-backup-${new Date().toISOString().split('T')[0]}.json`;
+                                        link.href = url;
+                                        link.setAttribute('aria-label', 'Download backup JSON');
+                                        link.setAttribute('title', 'Download backup JSON');
                                         document.body.appendChild(link);
                                         link.click();
                                         document.body.removeChild(link);
@@ -497,7 +552,16 @@ export default function SettingsPage() {
                                     <Label>{T.importData}</Label>
                                     <p className="text-sm text-muted-foreground">{T.restoreDesc}</p>
                                     <Button variant="outline" onClick={() => fileInputRef.current?.click()}>{T.importData}</Button>
-                                    <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleFileChange} />
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        accept=".json"
+                                        onChange={handleFileChange}
+                                        aria-label="Import backup JSON"
+                                        title="Import backup JSON"
+                                        placeholder="Import backup JSON"
+                                    />
                                 </div>
                                 <Separator />
                                 <Card className="border-destructive">

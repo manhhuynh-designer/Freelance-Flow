@@ -1,0 +1,15 @@
+.statusButtonSelected {
+  /* This will be dynamically set via style prop for backgroundColor */
+}
+.statusButtonUnselected {
+  opacity: 0.3;
+  transition: opacity 0.2s;
+}
+.statusButtonUnselected:hover {
+  opacity: 0.75;
+}
+.statusDot {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+}

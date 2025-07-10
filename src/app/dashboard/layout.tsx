@@ -1,9 +1,24 @@
 
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, ReactNode, Suspense } from "react";
+
+import { useState, useMemo, useEffect, useCallback, ReactNode } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { Suspense } from 'react';
+
+// Place helper at top-level, after all imports, before main component
+function SidebarTrashMenuItem({ T }: { T: any }) {
+  const { useSearchParams } = require('next/navigation');
+  const searchParams = useSearchParams();
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={searchParams.get('view') === 'trash'}>
+        <Link href="/dashboard?view=trash"><Trash2 />{T.trash}</Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
 import { useTheme } from 'next-themes';
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -100,7 +115,6 @@ export default function DashboardLayout({
 
   const { toast } = useToast();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { resolvedTheme } = useTheme();
   
   const T = appData.appSettings.language ? i18n[appData.appSettings.language] : i18n.en;
@@ -149,7 +163,7 @@ export default function DashboardLayout({
                 const defaultColMap = new Map(defaultCols.map(c => [c.id, c]));
                 
                 const newCols: DashboardColumn[] = [];
-                loadedCols.forEach(col => {
+                loadedCols.forEach((col: DashboardColumn) => {
                     if (defaultColMap.has(col.id)) {
                         newCols.push(col);
                     }
@@ -165,11 +179,11 @@ export default function DashboardLayout({
                 loadedSettings.statusSettings = defaultSettings.statusSettings;
             }
             const defaultWidgetMap = new Map((defaultSettings.widgets || []).map(w => [w.id, w]));
-            const loadedWidgets = (loadedSettings.widgets || []).map(w => {
+            const loadedWidgets = (loadedSettings.widgets || []).map((w: any) => {
                 const defaultWidget = defaultWidgetMap.get(w.id);
                 return { ...defaultWidget, ...w };
             });
-            const loadedWidgetIds = new Set(loadedWidgets.map(w => w.id));
+            const loadedWidgetIds = new Set(loadedWidgets.map((w: any) => w.id));
             defaultSettings.widgets.forEach(defaultWidget => {
                 if (!loadedWidgetIds.has(defaultWidget.id)) {
                     loadedWidgets.push(defaultWidget);
@@ -254,7 +268,7 @@ export default function DashboardLayout({
     root.style.setProperty('--primary-foreground', getContrastingForegroundHsl(primaryColor));
     root.style.setProperty('--accent-foreground', getContrastingForegroundHsl(appData.appSettings.theme.accent));
     
-    const currentTheme = resolvedTheme || 'light';
+    const currentTheme = (resolvedTheme === 'dark' ? 'dark' : 'light') as 'light' | 'dark';
     const sidebarBg = getSidebarBackgroundColorHsl(primaryColor, currentTheme);
     root.style.setProperty('--sidebar-background', sidebarBg);
 
@@ -335,20 +349,36 @@ export default function DashboardLayout({
     const calculateTotal = (sections: QuoteSection[] = []) => sections.reduce((total, section) => 
         total + section.items.reduce((sectionTotal, item) => sectionTotal + ((item.quantity || 1) * (item.unitPrice || 0)), 0), 0);
     
-    const quoteTotal = calculateTotal(sections);
-    const collaboratorQuoteTotal = calculateTotal(collaboratorSections || []);
+    // Ensure all items have a string id
+    const normalizedSections = (sections || []).map(section => ({
+      ...section,
+      items: (section.items || []).map((item, idx) => ({
+        ...item,
+        id: typeof item.id === 'string' && item.id ? item.id : `item-${Date.now()}-${idx}`,
+      })),
+    }));
+    const normalizedCollaboratorSections = (collaboratorSections || []).map(section => ({
+      ...section,
+      items: (section.items || []).map((item, idx) => ({
+        ...item,
+        id: typeof item.id === 'string' && item.id ? item.id : `collab-item-${Date.now()}-${idx}`,
+      })),
+    }));
+
+    const quoteTotal = calculateTotal(normalizedSections);
+    const collaboratorQuoteTotal = calculateTotal(normalizedCollaboratorSections);
 
     const taskData = { ...taskDetails, startDate: dates.from, deadline: dates.to };
 
     const newQuoteId = `quote-${Date.now()}`;
-    const newQuote: Quote = { id: newQuoteId, sections, total: quoteTotal, columns: quoteColumns };
+    const newQuote: Quote = { id: newQuoteId, sections: normalizedSections, total: quoteTotal, columns: quoteColumns };
     
     let newCollabId: string | undefined = undefined;
     let newCollabQuote: Quote | undefined = undefined;
 
     if (collaboratorSections && collaboratorSections.length > 0) {
         newCollabId = `collab-quote-${Date.now()}`;
-        newCollabQuote = { id: newCollabId, sections: collaboratorSections, total: collaboratorQuoteTotal, columns: collaboratorQuoteColumns };
+        newCollabQuote = { id: newCollabId, sections: normalizedCollaboratorSections, total: collaboratorQuoteTotal, columns: collaboratorQuoteColumns };
     }
     
     const newTask: Task = { id: `task-${Date.now()}`, ...taskData, quoteId: newQuoteId, collaboratorQuoteId: newCollabId } as Task;
@@ -734,11 +764,9 @@ export default function DashboardLayout({
                                       <Link href="/dashboard/settings"><Cog />{T.settings}</Link>
                                     </SidebarMenuButton>
                                   </SidebarMenuItem>
-                                  <SidebarMenuItem>
-                                    <SidebarMenuButton asChild isActive={searchParams.get('view') === 'trash'}>
-                                      <Link href="/dashboard?view=trash"><Trash2 />{T.trash}</Link>
-                                    </SidebarMenuButton>
-                                  </SidebarMenuItem>
+                                  <Suspense fallback={<SidebarMenuItem><SidebarMenuButton asChild isActive={false}><Link href="/dashboard?view=trash"><Trash2 />{T.trash}</Link></SidebarMenuButton></SidebarMenuItem>}>
+                                    <SidebarTrashMenuItem T={T} />
+                                  </Suspense>
                                 </SidebarMenu>
                               </SidebarGroupContent>
                             </SidebarGroup>

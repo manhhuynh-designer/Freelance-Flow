@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from './ui/card';
 import {
@@ -52,19 +52,50 @@ import { Skeleton } from "./ui/skeleton";
 import { PaginationControls } from "./pagination-controls";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
+
+import { Suspense } from "react";
+import styles from "./DashboardContentColors.module.css";
+
 export default function DashboardContent() {
-  const { 
-    tasks, quotes, collaboratorQuotes, clients, collaborators, appSettings,
-    handleEditTask,
-    handleTaskStatusChange, handleDeleteTask, handleRestoreTask, 
-    handlePermanentDeleteTask, handleAddClientAndSelect, quoteTemplates, categories,
-    handleEmptyTrash,
-  } = useDashboard() || {};
+    return (
+        <Suspense fallback={<div className="space-y-4"><Skeleton className="h-[250px] w-full" /><Skeleton className="h-[400px] w-full" /></div>}>
+            <DashboardContentSearchParamsWrapper />
+        </Suspense>
+    );
+}
+
+
+// This wrapper ensures useSearchParams is only used inside a Suspense boundary
+function DashboardContentSearchParamsWrapper() {
+  // Only import useSearchParams here, inside Suspense
+  const { useSearchParams } = require('next/navigation');
+  const searchParams = useSearchParams();
+  return <DashboardContentInner searchParams={searchParams} />;
+}
+
+import type { ReadonlyURLSearchParams } from 'next/navigation';
+
+function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSearchParams }) {
+  const context = useDashboard();
+  const tasks = context?.tasks ?? [];
+  const quotes = context?.quotes ?? [];
+  const collaboratorQuotes = context?.collaboratorQuotes ?? [];
+  const clients = context?.clients ?? [];
+  const collaborators = context?.collaborators ?? [];
+  const appSettings = context?.appSettings;
+  const handleEditTask = context?.handleEditTask ?? (() => {});
+  const handleTaskStatusChange = context?.handleTaskStatusChange ?? (() => {});
+  const handleDeleteTask = context?.handleDeleteTask ?? (() => {});
+  const handleRestoreTask = context?.handleRestoreTask ?? (() => {});
+  const handlePermanentDeleteTask = context?.handlePermanentDeleteTask ?? (() => {});
+  const handleAddClientAndSelect = context?.handleAddClientAndSelect ?? (() => { return { id: '', name: '' }; });
+  const quoteTemplates = context?.quoteTemplates ?? [];
+  const categories = context?.categories ?? [];
+  const handleEmptyTrash = context?.handleEmptyTrash ?? (() => {});
   
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const FILTERS_STORAGE_KEY = 'freelance-flow-filters';
 
@@ -92,7 +123,7 @@ export default function DashboardContent() {
 
   const defaultStatuses = useMemo(() => STATUS_INFO.map(s => s.id), []);
 
-  const selectedStatuses = useMemo(() => {
+  const selectedStatuses: string[] = useMemo(() => {
     if (statusFilter === null) return defaultStatuses;
     if (statusFilter === 'none') return [];
     return statusFilter.split(',');
@@ -117,8 +148,10 @@ export default function DashboardContent() {
   // Syncs URL search params to localStorage whenever they change.
   useEffect(() => {
     if (view === 'trash') return;
-    const currentParams = new URLSearchParams(Array.from(searchParams.entries()));
-    currentParams.delete('page');
+    const currentParams = new URLSearchParams();
+    searchParams.forEach((value, key) => {
+      if (key !== 'page') currentParams.set(key, value);
+    });
     const paramsString = currentParams.toString();
 
     if (paramsString) {
@@ -185,7 +218,10 @@ export default function DashboardContent() {
   }, [filteredTasks, page, limit]);
 
   const updateSearchParam = (name: string, value: string | null) => {
-    const current = new URLSearchParams(Array.from(searchParams.entries()));
+    const current = new URLSearchParams();
+    searchParams.forEach((v, k) => {
+      current.set(k, v);
+    });
     if (value === null) {
       current.delete(name);
     } else {
@@ -198,11 +234,11 @@ export default function DashboardContent() {
   }
 
   const handleStatusFilterChange = (statusId: string, checked: boolean) => {
-      let newActiveStatuses;
+      let newActiveStatuses: string[];
       if (checked) {
           newActiveStatuses = [...new Set([...selectedStatuses, statusId])];
       } else {
-          newActiveStatuses = selectedStatuses.filter(id => id !== statusId);
+          newActiveStatuses = selectedStatuses.filter((id: string) => id !== statusId);
       }
       const sortedNew = [...newActiveStatuses].sort();
       const sortedDefault = [...defaultStatuses].sort();
@@ -220,7 +256,10 @@ export default function DashboardContent() {
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
     setDate(range);
-    const current = new URLSearchParams(Array.from(searchParams.entries()));
+    const current = new URLSearchParams();
+    searchParams.forEach((v, k) => {
+      current.set(k, v);
+    });
     if (range?.from) current.set('startDate', format(range.from, 'yyyy-MM-dd')); else current.delete('startDate');
     if (range?.to) current.set('endDate', format(range.to, 'yyyy-MM-dd')); else current.delete('endDate');
     current.delete('page');
@@ -235,7 +274,10 @@ export default function DashboardContent() {
   };
   
   const handlePageChange = (newPage: number) => {
-    const current = new URLSearchParams(Array.from(searchParams.entries()));
+    const current = new URLSearchParams();
+    searchParams.forEach((v, k) => {
+      current.set(k, v);
+    });
     current.set('page', String(newPage));
     const search = current.toString();
     const query = search ? `?${search}` : "";
@@ -243,7 +285,10 @@ export default function DashboardContent() {
   };
 
   const handleLimitChange = (newLimit: number) => {
-    const current = new URLSearchParams(Array.from(searchParams.entries()));
+    const current = new URLSearchParams();
+    searchParams.forEach((v, k) => {
+      current.set(k, v);
+    });
     current.set('limit', String(newLimit));
     current.delete('page');
     const search = current.toString();
@@ -252,37 +297,41 @@ export default function DashboardContent() {
   };
 
   const FiltersComponent = ({ inSheet = false }: { inSheet?: boolean }) => (
-    <div className={cn("grid gap-4", inSheet ? "grid-cols-2" : "md:grid-cols-3 lg:grid-cols-5")}>
-        <div className={cn("flex flex-col justify-between", inSheet ? "col-span-1" : "md:col-span-1 lg:col-span-1")}>
-            <label className="text-sm font-medium text-muted-foreground block mb-2">{T.status}</label>
-            <TooltipProvider>
-              <div className="grid grid-cols-5 gap-1">
-                {STATUS_INFO.map(status => {
-                  const isSelected = selectedStatuses.includes(status.id);
-                  return (
-                    <Tooltip key={status.id} delayDuration={100}>
-                      <TooltipTrigger asChild>
-                          <button
-                              onClick={() => handleStatusFilterChange(status.id, !isSelected)}
-                              onDoubleClick={() => handleStatusDoubleClick(status.id)}
-                              style={{ backgroundColor: isSelected ? appSettings.statusColors[status.id] : undefined }}
+    <div className={cn("grid gap-4", inSheet ? "grid-cols-2" : "md:grid-cols-3 lg:grid-cols-5")}> 
+        <div className={cn("flex flex-col justify-between", inSheet ? "col-span-1" : "md:col-span-1 lg:col-span-1")}> 
+            <label className="text-sm font-medium text-muted-foreground block mb-2">{T.status}</label> 
+            <TooltipProvider> 
+              <div className="grid grid-cols-5 gap-1"> 
+                {STATUS_INFO.map(status => { 
+                  const isSelected = selectedStatuses.includes(status.id); 
+                  const swatchStyle = { backgroundColor: appSettings.statusColors[status.id] };
+                  return ( 
+                    <Tooltip key={status.id} delayDuration={100}> 
+                      <TooltipTrigger asChild> 
+                          <button 
+                              onClick={() => handleStatusFilterChange(status.id, !isSelected)} 
+                              onDoubleClick={() => handleStatusDoubleClick(status.id)} 
+                              style={swatchStyle}
                               className={cn(
-                                  "w-full aspect-square rounded-full transition-opacity duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                                  !isSelected && "opacity-30 hover:opacity-75"
+                                styles.statusSwatch,
+                                isSelected ? styles.selected : styles.unselected,
+                                "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                               )}
-                              aria-label={T.statuses[status.id]}
-                          >
-                            <span style={{ backgroundColor: !isSelected ? appSettings.statusColors[status.id] : undefined }} className="block w-full h-full rounded-full"/>
-                          </button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                          <p>{T.statuses[status.id]}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  )
-                })}
-              </div>
-            </TooltipProvider>
+                              aria-label={T.statuses[status.id]} 
+                          > 
+                            <span 
+                              className="block w-full h-full rounded-full"
+                            /> 
+                          </button> 
+                      </TooltipTrigger> 
+                      <TooltipContent> 
+                          <p>{T.statuses[status.id]}</p> 
+                      </TooltipContent> 
+                    </Tooltip> 
+                  ) 
+                })} 
+              </div> 
+            </TooltipProvider> 
         </div>
           <div className="flex flex-col justify-between">
             <label className="text-sm font-medium text-muted-foreground block mb-2">{T.category}</label>

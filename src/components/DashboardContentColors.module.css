@@ -1,0 +1,18 @@
+.statusSwatch {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 9999px;
+  transition: opacity 0.2s;
+}
+
+.statusSwatch.selected {
+  opacity: 1;
+}
+
+.statusSwatch.unselected {
+  opacity: 0.3;
+}
+
+.statusSwatch.unselected:hover {
+  opacity: 0.75;
+}

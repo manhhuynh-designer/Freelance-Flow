@@ -1,11 +1,22 @@
 
 "use client";
 
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { i18n } from '@/lib/i18n';
+import { Suspense } from 'react';
 
 export function PageTitle() {
+  return (
+    <Suspense fallback={<>Dashboard</>}>
+      <PageTitleSuspense />
+    </Suspense>
+  );
+}
+
+function PageTitleSuspense() {
+  // Only import useSearchParams here, inside Suspense
+  const { useSearchParams } = require('next/navigation');
   const dashboardContext = useDashboard();
   const pathname = usePathname();
   const searchParams = useSearchParams();
