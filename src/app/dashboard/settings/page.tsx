@@ -70,17 +70,17 @@ import { getThemeBackgroundColorHsl, getContrastingTextColor } from "@/lib/color
 
 import { WIDGETS } from '@/lib/widgets';
 
-const predefinedThemes: { name: string; colors: ThemeSettings }[] = [
-    { name: 'Default', colors: { primary: "221 83% 53%", accent: "221 83% 53%" } },
-    { name: 'Teal', colors: { primary: "180 80% 40%", accent: "180 80% 40%" } },
-    { name: 'Crimson', colors: { primary: "348 83% 47%", accent: "348 83% 47%" } },
-    { name: 'Forest', colors: { primary: "120 39% 49%", accent: "120 39% 49%" } },
-    { name: 'Violet', colors: { primary: "262 83% 58%", accent: "262 83% 58%" } },
-    { name: 'Lavender', colors: { primary: "250 60% 80%", accent: "250 60% 80%" } },
-    { name: 'Mint', colors: { primary: "150 55% 75%", accent: "150 55% 75%" } },
-    { name: 'Sky', colors: { primary: "195 75% 78%", accent: "195 75% 78%" } },
-    { name: 'Peach', colors: { primary: "28 100% 80%", accent: "28 100% 80%" } },
-    { name: 'Monochrome', colors: { primary: "0 0% 50%", accent: "0 0% 50%" } }
+const predefinedThemes: { name: string; colors: ThemeSettings & { background: string } }[] = [
+    { name: 'Default', colors: { primary: "#2A5EE5", accent: "#ffffff", background: "#f5f6fa" } },
+    { name: 'Teal', colors: { primary: "#14B8B8", accent: "#109393", background: "#e6f7f7" } },
+    { name: 'Crimson', colors: { primary: "#DC2638", accent: "#C01D2E", background: "#fff5f6" } },
+    { name: 'Forest', colors: { primary: "#52A852", accent: "#438A43", background: "#f3f9f3" } },
+    { name: 'Violet', colors: { primary: "#6C28E3", accent: "#561EC5", background: "#f7f5fa" } },
+    { name: 'Lavender', colors: { primary: "#B5A6F9", accent: "#9885F7", background: "#f8f7fc" } },
+    { name: 'Mint', colors: { primary: "#A6F2CF", accent: "#81EAB8", background: "#f5fcf8" } },
+    { name: 'Sky', colors: { primary: "#A5DEF9", accent: "#82CBF6", background: "#f5fbfd" } },
+    { name: 'Peach', colors: { primary: "#FFC999", accent: "#FFB366", background: "#fff8f3" } },
+    { name: 'Monochrome', colors: { primary: "#353B41", accent: "#F2f2f2", background: "#f4f4f4" } }
 ];
 
 // (Removed duplicate declaration)
@@ -316,16 +316,10 @@ function SettingsPageContent() {
                                                     htmlFor={theme.name}
                                                     className={cn("flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer","peer-data-[state=checked]:border-primary")}
                                                 >
-                                                    <div className="flex gap-2 w-full h-8">
-                                                      <div
-                                                        className="w-1/2 rounded"
-                                                        style={{ backgroundColor: `hsl(${theme.colors.primary})` }}
-                                                      />
-                                                      <div
-                                                        className="w-1/2 rounded border"
-                                                        style={{ backgroundColor: getThemeBackgroundColorHsl(theme.colors.primary) }}
-                                                      />
-                                                    </div>
+                                                    <div
+                                                      className="w-full h-8 rounded"
+                                                      style={{ backgroundColor: theme.colors.primary }}
+                                                    />
                                                     <span className="mt-2 font-semibold">{theme.name}</span>
                                                 </Label>
                                             </div>

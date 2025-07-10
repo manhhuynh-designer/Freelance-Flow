@@ -56,8 +56,8 @@ import { WIDGETS } from "@/lib/widgets";
 
 const defaultSettings: AppSettings = {
     theme: {
-        primary: "221 83% 53%",
-        accent: "221 83% 53%",
+        primary: "#2A5EE5", // Default theme primary
+        accent: "#FFFFFF",  // Default theme accent
     },
     statusColors: {
         todo: '#a855f7',
@@ -261,19 +261,46 @@ export default function DashboardLayout({
     if (!isDataLoaded) return;
     
     const root = window.document.documentElement;
-    const primaryColor = appData.appSettings.theme.primary;
+
+    // Convert HEX to HSL string for CSS variables and helper functions
+    const primaryHex = appData.appSettings.theme.primary;
+    const accentHex = appData.appSettings.theme.accent;
+
+    let primaryHsl = '221 83% 53%'; // Default fallback
+    let accentHsl = '221 83% 45%'; // Default fallback
+
+    try {
+      const [pr, pg, pb] = hexToRgb(primaryHex);
+      const [ph, ps, pl] = rgbToHsl(pr, pg, pb);
+      primaryHsl = `${ph} ${ps}% ${pl}%`;
+    } catch (e) {
+      console.error("Invalid primary theme color (reverting to default):", primaryHex, e);
+    }
+
+    try {
+      const [ar, ag, ab] = hexToRgb(accentHex);
+      const [ah, as, al] = rgbToHsl(ar, ag, ab);
+      accentHsl = `${ah} ${as}% ${al}%`;
+    } catch (e) {
+      console.error("Invalid accent theme color (reverting to default):", accentHex, e);
+    }
     
-    root.style.setProperty('--primary', primaryColor);
-    root.style.setProperty('--accent', appData.appSettings.theme.accent);
-    root.style.setProperty('--primary-foreground', getContrastingForegroundHsl(primaryColor));
-    root.style.setProperty('--accent-foreground', getContrastingForegroundHsl(appData.appSettings.theme.accent));
+    root.style.setProperty('--primary', primaryHsl);
+    root.style.setProperty('--accent', accentHsl);
+    root.style.setProperty('--primary-foreground', getContrastingForegroundHsl(primaryHsl));
+    root.style.setProperty('--accent-foreground', getContrastingForegroundHsl(accentHsl));
     
     const currentTheme = (resolvedTheme === 'dark' ? 'dark' : 'light') as 'light' | 'dark';
-    const sidebarBg = getSidebarBackgroundColorHsl(primaryColor, currentTheme);
+    const sidebarBg = getSidebarBackgroundColorHsl(primaryHsl, currentTheme);
     root.style.setProperty('--sidebar-background', sidebarBg);
 
     if (currentTheme === 'light') {
-        root.style.setProperty('--background', getThemeBackgroundColorHsl(primaryColor));
+        // If accent is white, force a white background for a cleaner look.
+        if (accentHex.toUpperCase() === '#FFFFFF') {
+            root.style.setProperty('--background', '0 0% 100%');
+        } else {
+            root.style.setProperty('--background', getThemeBackgroundColorHsl(primaryHsl));
+        }
     } else {
         root.style.removeProperty('--background');
     }
