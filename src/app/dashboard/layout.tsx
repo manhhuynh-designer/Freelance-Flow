@@ -1,4 +1,3 @@
-
 "use client";
 
 
@@ -34,7 +33,7 @@ import { Expand, Shrink, PlusCircle, Users, FileText, Briefcase, Settings, Downl
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarSeparator, SidebarTrigger, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuSkeleton } from "@/components/ui/sidebar";
 import { initialAppData, categories as initialCategories, STATUS_INFO } from '@/lib/data';
-import type { Task, Quote, Client, QuoteColumn, QuoteTemplate, Collaborator, AppData, Category, DashboardColumn, AppSettings, QuoteSection } from '@/lib/types';
+import type { Task, Quote, Client, QuoteColumn, QuoteTemplate, Collaborator, AppData, Category, DashboardColumn, AppSettings, QuoteSection, QuoteItem } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { ClientManager } from "@/components/client-manager";
 import { CollaboratorManager } from "@/components/collaborator-manager";
@@ -205,17 +204,6 @@ export default function DashboardLayout({
             console.error("Failed to parse data from localStorage", e);
         }
     }
-
-    const storedSettings = localStorage.getItem('freelance-flow-settings');
-    if (storedSettings) {
-        try {
-            const parsedSettings = JSON.parse(storedSettings);
-            if (parsedSettings.googleModel === 'gemini-1.5-flash-latest') {
-                parsedSettings.googleModel = 'gemini-1.5-flash';
-            }
-            loadedData.appSettings = { ...loadedData.appSettings, ...parsedSettings };
-        } catch(e) { console.error("Failed to parse settings from localStorage", e); }
-    }
     
     setAppData(loadedData);
     
@@ -377,19 +365,19 @@ export default function DashboardLayout({
         total + section.items.reduce((sectionTotal, item) => sectionTotal + ((item.quantity || 1) * (item.unitPrice || 0)), 0), 0);
     
     // Ensure all items have a string id
-    const normalizedSections = (sections || []).map(section => ({
+    const normalizedSections: QuoteSection[] = (sections || []).map(section => ({
       ...section,
       items: (section.items || []).map((item, idx) => ({
         ...item,
-        id: typeof item.id === 'string' && item.id ? item.id : `item-${Date.now()}-${idx}`,
-      })),
+        id: item.id || `item-${Date.now()}-${idx}`, // Ensure id is always a string
+      })) as QuoteItem[],
     }));
-    const normalizedCollaboratorSections = (collaboratorSections || []).map(section => ({
+    const normalizedCollaboratorSections: QuoteSection[] = (collaboratorSections || []).map(section => ({
       ...section,
       items: (section.items || []).map((item, idx) => ({
         ...item,
-        id: typeof item.id === 'string' && item.id ? item.id : `collab-item-${Date.now()}-${idx}`,
-      })),
+        id: item.id || `collab-item-${Date.now()}-${idx}`, // Ensure id is always a string
+      })) as QuoteItem[],
     }));
 
     const quoteTotal = calculateTotal(normalizedSections);
@@ -432,8 +420,23 @@ export default function DashboardLayout({
     const calculateTotal = (sections: QuoteSection[] = []) => sections.reduce((total, section) => 
         total + section.items.reduce((sectionTotal, item) => sectionTotal + ((item.quantity || 1) * (item.unitPrice || 0)), 0), 0);
     
-    const quoteTotal = calculateTotal(sections);
-    const collaboratorQuoteTotal = calculateTotal(collaboratorSections || []);
+    const normalizedSections: QuoteSection[] = (sections || []).map(section => ({
+      ...section,
+      items: (section.items || []).map((item, idx) => ({
+        ...item,
+        id: item.id || `item-${Date.now()}-${idx}`, // Ensure id is always a string
+      })) as QuoteItem[],
+    }));
+    const normalizedCollaboratorSections: QuoteSection[] = (collaboratorSections || []).map(section => ({
+      ...section,
+      items: (section.items || []).map((item, idx) => ({
+        ...item,
+        id: item.id || `collab-item-${Date.now()}-${idx}`, // Ensure id is always a string
+      })) as QuoteItem[],
+    }));
+
+    const quoteTotal = calculateTotal(normalizedSections);
+    const collaboratorQuoteTotal = calculateTotal(normalizedCollaboratorSections || []);
 
     const taskData = { ...taskDetails, startDate: dates.from, deadline: dates.to };
     
@@ -445,7 +448,7 @@ export default function DashboardLayout({
         
         const newQuotes = prev.quotes.map(q => 
             q.id === taskToUpdate!.quoteId 
-                ? { ...q, sections: sections, total: quoteTotal, columns: quoteColumns } 
+                ? { ...q, sections: normalizedSections, total: quoteTotal, columns: quoteColumns } 
                 : q
         );
         
@@ -454,12 +457,12 @@ export default function DashboardLayout({
             if (taskToUpdate.collaboratorQuoteId) {
                 newCollaboratorQuotes = newCollaboratorQuotes.map(q => 
                     q.id === taskToUpdate!.collaboratorQuoteId 
-                        ? { ...q, sections: collaboratorSections, total: collaboratorQuoteTotal, columns: collaboratorQuoteColumns } 
+                        ? { ...q, sections: normalizedCollaboratorSections, total: collaboratorQuoteTotal, columns: collaboratorQuoteColumns } 
                         : q
                 );
             } else {
                 const newId = `collab-quote-${Date.now()}`;
-                newCollaboratorQuotes.push({ id: newId, sections: collaboratorSections, total: collaboratorQuoteTotal, columns: collaboratorQuoteColumns });
+                newCollaboratorQuotes.push({ id: newId, sections: normalizedCollaboratorSections, total: collaboratorQuoteTotal, columns: collaboratorQuoteColumns });
                 updatedTask.collaboratorQuoteId = newId;
             }
         } else if (taskToUpdate.collaboratorQuoteId) {
@@ -491,7 +494,7 @@ export default function DashboardLayout({
         let newClients = [...prev.clients];
         let clientId: string;
         const clientName = newTaskData.clientName;
-        const existingClient = prev.clients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
+        const existingClient = newClients.find(c => c.name.toLowerCase() === clientName.toLowerCase());
         
         if (existingClient) {
             clientId = existingClient.id;
@@ -508,9 +511,9 @@ export default function DashboardLayout({
           const defaultQuoteColumns: QuoteColumn[] = [
               { id: 'description', name: T.description, type: 'text' },
               { id: 'quantity', name: T.quantity, type: 'number' },
-              { id: 'unitPrice', name: `${T.unitPrice} (${appData.appSettings.currency})`, type: 'number' },
+              { id: 'unitPrice', name: `${T.currency} (${appData.appSettings.currency})`, type: 'number' },
           ];
-          const newQuoteItems: QuoteSection['items'] = newTaskData.quoteItems.map((item: any, index: number) => ({ ...item, id: `item-ai-${Date.now()}-${index}`, customFields: {} }));
+          const newQuoteItems: QuoteItem[] = newTaskData.quoteItems.map((item: any, index: number) => ({ ...item, id: `item-ai-${Date.now()}-${index}`, customFields: {} }));
           const total = newQuoteItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
           newQuotes.push({ id: newQuoteId, sections: [{id: 'section-ai-1', name: T.untitledSection, items: newQuoteItems}], total, columns: defaultQuoteColumns });
         } else {
@@ -529,7 +532,7 @@ export default function DashboardLayout({
           quoteId: newQuoteId,
         };
 
-        if(isNaN(newTask.startDate.getTime()) || isNaN(newTask.deadline.getTime())) {
+        if(isNaN((newTask.startDate as Date).getTime()) || isNaN((newTask.deadline as Date).getTime())) {
           toast({variant: 'destructive', title: "AI Action Failed", description: "The AI returned an invalid date, so the task could not be created."})
           return prev;
         }
@@ -764,116 +767,116 @@ export default function DashboardLayout({
                       <div className="flex h-full flex-col">
                         <div className="flex-1">
                           <SidebarGroup>
-                              <SidebarGroupLabel>{T.views}</SidebarGroupLabel>
-                              <SidebarGroupContent>
-                                  <Suspense fallback={<SidebarMenu><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /></SidebarMenu>}>
-                                      <SidebarNavigation />
-                                  </Suspense>
-                              </SidebarGroupContent>
-                          </SidebarGroup>
-                          <SidebarSeparator />
-                          <SidebarGroup>
-                              <SidebarGroupLabel>{T.manage}</SidebarGroupLabel>
-                              <SidebarGroupContent>
-                              <SidebarMenu>
-                                  <SidebarMenuItem><Dialog open={isClientManagerOpen} onOpenChange={setIsClientManagerOpen}><DialogTrigger asChild><SidebarMenuButton><Users />{T.manageClients}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.clientManagement}</DialogTitle></DialogHeader><ClientManager clients={appData.clients} tasks={appData.tasks} onAddClient={e => handleAddClientAndSelect(e)} onEditClient={(id, data) => setAppData(prev => ({...prev, clients: prev.clients.map(c => c.id === id ? {id, ...data} : c)}))} onDeleteClient={(id) => setAppData(prev => ({...prev, clients: prev.clients.filter(c => c.id !== id)}))} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
-                                  <SidebarMenuItem><Dialog open={isCollaboratorManagerOpen} onOpenChange={setIsCollaboratorManagerOpen}><DialogTrigger asChild><SidebarMenuButton><Briefcase />{T.manageCollaborators}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.collaboratorManagement}</DialogTitle></DialogHeader><CollaboratorManager collaborators={appData.collaborators} tasks={appData.tasks} onAddCollaborator={(data) => setAppData(prev => ({...prev, collaborators: [...prev.collaborators, {id: `collaborator-${Date.now()}`, ...data}]}))} onEditCollaborator={(id, data) => setAppData(prev => ({...prev, collaborators: prev.collaborators.map(c => c.id === id ? {...c, ...data} : c)}))} onDeleteCollaborator={(id) => setAppData(prev => ({...prev, collaborators: prev.collaborators.filter(c => c.id !== id)}))} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
-                                  <SidebarMenuItem><Dialog open={isCategoryManagerOpen} onOpenChange={setIsCategoryManagerOpen}><DialogTrigger asChild><SidebarMenuButton><LayoutGrid />{T.manageCategories}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.categoryManagement}</DialogTitle></DialogHeader><CategoryManager categories={appData.categories} tasks={appData.tasks} onAddCategory={(data) => setAppData(prev => ({...prev, categories: [...prev.categories, {id: `cat-${Date.now()}`, ...data}]}))} onEditCategory={(id, data) => setAppData(prev => ({...prev, categories: prev.categories.map(c => c.id === id ? {id, ...data} : c)}))} onDeleteCategory={(id) => setAppData(prev => ({...prev, categories: prev.categories.filter(c => c.id !== id)}))} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
-                                  <SidebarMenuItem>
-                                    <Dialog open={isTemplateManagerOpen} onOpenChange={setIsTemplateManagerOpen}>
-                                      <DialogTrigger asChild><SidebarMenuButton><FileText />{T.manageTemplates}</SidebarMenuButton></DialogTrigger>
-                                      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>{T.quoteTemplateManagement}</DialogTitle></DialogHeader><QuoteTemplateManager templates={appData.quoteTemplates} onAddTemplate={(values, columns) => setAppData(prev => ({...prev, quoteTemplates: [...prev.quoteTemplates, {id: `template-${Date.now()}`, name: values.name, sections: values.sections, columns}]}))} onEditTemplate={(template) => setAppData(prev => ({...prev, quoteTemplates: prev.quoteTemplates.map(t => t.id === template.id ? template : t)}))} onDeleteTemplate={(id) => setAppData(prev => ({...prev, quoteTemplates: prev.quoteTemplates.filter(t => t.id !== id)}))} language={appData.appSettings.language} settings={appData.appSettings} /></DialogContent>
-                                    </Dialog>
-                                  </SidebarMenuItem>
-                              </SidebarMenu>
-                              </SidebarGroupContent>
-                          </SidebarGroup>
-                          <SidebarSeparator />
-                          {sidebarWidgets}
-                        </div>
-                        <div className="mt-auto">
-                          <SidebarSeparator />
+                               <SidebarGroupLabel>{T.views}</SidebarGroupLabel>
+                               <SidebarGroupContent>
+                                   <Suspense fallback={<SidebarMenu><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /></SidebarMenu>}>
+                                       <SidebarNavigation />
+                                   </Suspense>
+                               </SidebarGroupContent>
+                           </SidebarGroup>
+                           <SidebarSeparator />
                            <SidebarGroup>
-                              <SidebarGroupContent>
-                                <SidebarMenu>
-                                  <SidebarMenuItem>
-                                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/settings'}>
-                                      <Link href="/dashboard/settings"><Cog />{T.settings}</Link>
-                                    </SidebarMenuButton>
-                                  </SidebarMenuItem>
-                                  <Suspense fallback={<SidebarMenuItem><SidebarMenuButton asChild isActive={false}><Link href="/dashboard?view=trash"><Trash2 />{T.trash}</Link></SidebarMenuButton></SidebarMenuItem>}>
-                                    <SidebarTrashMenuItem T={T} />
-                                  </Suspense>
-                                </SidebarMenu>
-                              </SidebarGroupContent>
-                            </SidebarGroup>
-                        </div>
-                      </div>
-                  </SidebarContent>
-                </Sidebar>
-                <SidebarInset className="flex flex-col h-svh">
-                  <header className="flex items-center justify-between p-4 border-b">
-                    <div className="flex items-center gap-4">
-                      <SidebarTrigger />
-                      <h1 className="text-2xl font-bold font-headline">
-                        <Suspense fallback={null}>
-                            <PageTitle />
-                        </Suspense>
-                      </h1>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="text-xs text-muted-foreground hidden sm:block text-right">
-                           <div>{T.lastBackup}: {backupStatusText}</div>
-                        </div>
-                        <TooltipProvider delayDuration={100}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" onClick={handleExport}>
-                                    <Download className="h-4 w-4" />
-                                    <span className="sr-only">{T.backupData}</span>
-                                </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                <p>{T.backupData}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                               <SidebarGroupLabel>{T.manage}</SidebarGroupLabel>
+                               <SidebarGroupContent>
+                               <SidebarMenu>
+                                   <SidebarMenuItem><Dialog open={isClientManagerOpen} onOpenChange={setIsClientManagerOpen}><DialogTrigger asChild><SidebarMenuButton><Users />{T.manageClients}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.clientManagement}</DialogTitle></DialogHeader><ClientManager clients={appData.clients} tasks={appData.tasks} onAddClient={e => handleAddClientAndSelect(e)} onEditClient={(id, data) => setAppData(prev => ({...prev, clients: prev.clients.map(c => c.id === id ? {id, ...data} : c)}))} onDeleteClient={(id) => setAppData(prev => ({...prev, clients: prev.clients.filter(c => c.id !== id)}))} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
+                                   <SidebarMenuItem><Dialog open={isCollaboratorManagerOpen} onOpenChange={setIsCollaboratorManagerOpen}><DialogTrigger asChild><SidebarMenuButton><Briefcase />{T.manageCollaborators}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.collaboratorManagement}</DialogTitle></DialogHeader><CollaboratorManager collaborators={appData.collaborators} tasks={appData.tasks} onAddCollaborator={(data) => setAppData(prev => ({...prev, collaborators: [...prev.collaborators, {id: `collaborator-${Date.now()}`, ...data}]}))} onEditCollaborator={(id, data) => setAppData(prev => ({...prev, collaborators: prev.collaborators.map(c => c.id === id ? {...c, ...data} : c)}))} onDeleteCollaborator={(id) => setAppData(prev => ({...prev, collaborators: prev.collaborators.filter(c => c.id !== id)}))} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
+                                   <SidebarMenuItem><Dialog open={isCategoryManagerOpen} onOpenChange={setIsCategoryManagerOpen}><DialogTrigger asChild><SidebarMenuButton><LayoutGrid />{T.manageCategories}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.categoryManagement}</DialogTitle></DialogHeader><CategoryManager categories={appData.categories} tasks={appData.tasks} onAddCategory={(data) => setAppData(prev => ({...prev, categories: [...prev.categories, {id: `cat-${Date.now()}`, ...data}]}))} onEditCategory={(id, data) => setAppData(prev => ({...prev, categories: prev.categories.map(c => c.id === id ? {id, ...data} : c)}))} onDeleteCategory={(id) => setAppData(prev => ({...prev, categories: prev.categories.filter(c => c.id !== id)}))} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
+                                   <SidebarMenuItem>
+                                     <Dialog open={isTemplateManagerOpen} onOpenChange={setIsTemplateManagerOpen}>
+                                       <DialogTrigger asChild><SidebarMenuButton><FileText />{T.manageTemplates}</SidebarMenuButton></DialogTrigger>
+                                       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>{T.quoteTemplateManagement}</DialogTitle></DialogHeader><QuoteTemplateManager templates={appData.quoteTemplates} onAddTemplate={(values, columns) => setAppData(prev => ({...prev, quoteTemplates: [...prev.quoteTemplates, {id: `template-${Date.now()}`, name: values.name, sections: values.sections, columns}]}))} onEditTemplate={(template) => setAppData(prev => ({...prev, quoteTemplates: prev.quoteTemplates.map(t => t.id === template.id ? template : t)}))} onDeleteTemplate={(id) => setAppData(prev => ({...prev, quoteTemplates: prev.quoteTemplates.filter(t => t.id !== id)}))} language={appData.appSettings.language} settings={appData.appSettings} /></DialogContent>
+                                     </Dialog>
+                                   </SidebarMenuItem>
+                               </SidebarMenu>
+                               </SidebarGroupContent>
+                           </SidebarGroup>
+                           <SidebarSeparator />
+                           {sidebarWidgets}
+                         </div>
+                         <div className="mt-auto">
+                           <SidebarSeparator />
+                            <SidebarGroup>
+                               <SidebarGroupContent>
+                                 <SidebarMenu>
+                                   <SidebarMenuItem>
+                                     <SidebarMenuButton asChild isActive={pathname === '/dashboard/settings'}>
+                                       <Link href="/dashboard/settings"><Cog />{T.settings}</Link>
+                                     </SidebarMenuButton>
+                                   </SidebarMenuItem>
+                                   <Suspense fallback={<SidebarMenuItem><SidebarMenuButton asChild isActive={false}><Link href="/dashboard?view=trash"><Trash2 />{T.trash}</Link></SidebarMenuButton></SidebarMenuItem>}>
+                                     <SidebarTrashMenuItem T={T} />
+                                   </Suspense>
+                                 </SidebarMenu>
+                               </SidebarGroupContent>
+                             </SidebarGroup>
+                         </div>
+                       </div>
+                   </SidebarContent>
+                 </Sidebar>
+                 <SidebarInset className="flex flex-col h-svh">
+                   <header className="flex items-center justify-between p-4 border-b">
+                     <div className="flex items-center gap-4">
+                       <SidebarTrigger />
+                       <h1 className="text-2xl font-bold font-headline">
+                         <Suspense fallback={null}>
+                             <PageTitle />
+                         </Suspense>
+                       </h1>
+                     </div>
+                     <div className="flex items-center gap-2">
+                         <div className="text-xs text-muted-foreground hidden sm:block text-right">
+                            <div>{T.lastBackup}: {backupStatusText}</div>
+                         </div>
+                         <TooltipProvider delayDuration={100}>
+                             <Tooltip>
+                                 <TooltipTrigger asChild>
+                                 <Button variant="outline" size="icon" onClick={handleExport}>
+                                     <Download className="h-4 w-4" />
+                                     <span className="sr-only">{T.backupData}</span>
+                                 </Button>
+                                 </TooltipTrigger>
+                                 <TooltipContent>
+                                 <p>{T.backupData}</p>
+                                 </TooltipContent>
+                             </Tooltip>
+                         </TooltipProvider>
 
-                        <Dialog open={isTaskFormOpen} onOpenChange={setIsTaskFormOpen}>
-                            <DialogTrigger asChild><Button size="icon" className="sm:hidden"><PlusCircle className="h-4 w-4" /><span className="sr-only">{T.addTask}</span></Button></DialogTrigger>
-                            <DialogTrigger asChild><Button className="hidden sm:inline-flex"><PlusCircle className="mr-2 h-4 w-4" />{T.addTask}</Button></DialogTrigger>
-                            <DialogContent className={cn("max-h-[90vh] overflow-y-auto", {"sm:max-w-2xl md:max-w-5xl":"default"===taskFormSize,"sm:max-w-4xl md:max-w-7xl":"large"===taskFormSize,"w-screen h-screen max-w-none max-h-none rounded-none border-0":"fullscreen"===taskFormSize})}>
-                                <Button variant="ghost" size="icon" className="absolute left-4 top-4 h-6 w-6" onClick={cycleTaskFormSize}>
-                                    {"fullscreen"===taskFormSize?<Shrink className="h-4 w-4" />:<Expand className="h-4 w-4" />}
-                                    <span className="sr-only">Toggle dialog size</span>
-                                </Button>
-                                <DialogHeader className="text-center pt-6 sm:px-10"><DialogTitle>{T.createTask}</DialogTitle><DialogDescription>{T.createTaskDesc}</DialogDescription></DialogHeader>
-                                <div className="p-1"><CreateTaskForm setOpen={setIsTaskFormOpen} onSubmit={handleAddTask} clients={appData.clients} onAddClient={handleAddClientAndSelect} quoteTemplates={appData.quoteTemplates} collaborators={appData.collaborators} settings={appData.appSettings} categories={appData.categories} /></div>
-                            </DialogContent>
-                        </Dialog>
-                    </div>
-                  </header>
-                  <main className={cn("flex-1 min-h-0", pathname === '/dashboard/chat' || pathname === '/dashboard/settings' || pathname === '/dashboard/widgets' ? 'flex flex-col p-0' : 'flex flex-col p-4')}>
-                    {showInstallPrompt && (
-                        <Alert className="mb-4 relative">
-                            <Download className="h-4 w-4" />
-                            <AlertTitle>{T.installPWA}</AlertTitle>
-                            <AlertDescription>{T.installPWADesc}</AlertDescription>
-                            <div className="mt-2 flex gap-2">
-                                {installPromptEvent && (
-                                    <Button onClick={handleInstallClick} size="sm">{T.installPWAButton}</Button>
-                                )}
-                                <Button variant="outline" size="sm" onClick={() => { localStorage.setItem('hidePwaInstallPrompt', 'true'); setShowInstallPrompt(false); }}>
-                                    {T.dismiss}
-                                </Button>
-                            </div>
-                        </Alert>
-                    )}
-                    {isDataLoaded ? children : <div className="h-full w-full flex items-center justify-center"><Skeleton className="h-full w-full" /></div>}
-                  </main>
-                </SidebarInset>
-                {pathname !== '/dashboard/chat' && <QuickChat />}
-              </SidebarProvider>
-        </DashboardContext.Provider>
+                         <Dialog open={isTaskFormOpen} onOpenChange={setIsTaskFormOpen}>
+                             <DialogTrigger asChild><Button size="icon" className="sm:hidden"><PlusCircle className="h-4 w-4" /><span className="sr-only">{T.addTask}</span></Button></DialogTrigger>
+                             <DialogTrigger asChild><Button className="hidden sm:inline-flex"><PlusCircle className="mr-2 h-4 w-4" />{T.addTask}</Button></DialogTrigger>
+                             <DialogContent className={cn("max-h-[90vh] overflow-y-auto", {"sm:max-w-2xl md:max-w-5xl":"default"===taskFormSize,"sm:max-w-4xl md:max-w-7xl":"large"===taskFormSize,"w-screen h-screen max-w-none max-h-none rounded-none border-0":"fullscreen"===taskFormSize})}>
+                                 <Button variant="ghost" size="icon" className="absolute left-4 top-4 h-6 w-6" onClick={cycleTaskFormSize}>
+                                     {"fullscreen"===taskFormSize?<Shrink className="h-4 w-4" />:<Expand className="h-4 w-4" />}
+                                     <span className="sr-only">Toggle dialog size</span>
+                                 </Button>
+                                 <DialogHeader className="text-center pt-6 sm:px-10"><DialogTitle>{T.createTask}</DialogTitle><DialogDescription>{T.createTaskDesc}</DialogDescription></DialogHeader>
+                                 <div className="p-1"><CreateTaskForm setOpen={setIsTaskFormOpen} onSubmit={handleAddTask} clients={appData.clients} onAddClient={handleAddClientAndSelect} quoteTemplates={appData.quoteTemplates} collaborators={appData.collaborators} settings={appData.appSettings} categories={appData.categories} /></div>
+                             </DialogContent>
+                         </Dialog>
+                     </div>
+                   </header>
+                   <main className={cn("flex-1 min-h-0", pathname === '/dashboard/chat' || pathname === '/dashboard/settings' || pathname === '/dashboard/widgets' ? 'flex flex-col p-0' : 'flex flex-col p-4')}>
+                     {showInstallPrompt && (
+                         <Alert className="mb-4 relative">
+                             <Download className="h-4 w-4" />
+                             <AlertTitle>{T.installPWA}</AlertTitle>
+                             <AlertDescription>{T.installPWADesc}</AlertDescription>
+                             <div className="mt-2 flex gap-2">
+                                 {installPromptEvent && (
+                                     <Button onClick={handleInstallClick} size="sm">{T.installPWAButton}</Button>
+                                 )}
+                                 <Button variant="outline" size="sm" onClick={() => { localStorage.setItem('hidePwaInstallPrompt', 'true'); setShowInstallPrompt(false); }}>
+                                     {T.dismiss}
+                                 </Button>
+                             </div>
+                         </Alert>
+                     )}
+                     {isDataLoaded ? children : <div className="h-full w-full flex items-center justify-center"><Skeleton className="h-full w-full" /></div>}
+                   </main>
+                 </SidebarInset>
+                 {pathname !== '/dashboard/chat' && <QuickChat />}
+               </SidebarProvider>
+         </DashboardContext.Provider>
   );
 }
