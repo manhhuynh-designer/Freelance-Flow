@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useTransition } from "react";
@@ -127,7 +126,7 @@ export function QuoteSuggestion({ taskDescription, taskCategory, settings, onApp
               <ul className="space-y-1 text-sm text-muted-foreground">
                 {suggestion.map((item, index) => (
                   <li key={index} className="flex justify-between items-center gap-2">
-                    <span className="flex-1">{item.description} (x{item.quantity})</span>
+                    <span className="flex-1">{item.description}</span>
                     <span className="font-mono text-foreground whitespace-nowrap">{item.unitPrice.toLocaleString('vi-VN')} VND</span>
                   </li>
                 ))}

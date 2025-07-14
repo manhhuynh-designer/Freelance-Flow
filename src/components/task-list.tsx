@@ -70,7 +70,7 @@ export function TaskList({
                       const columnLabel = T[labelKey as keyof typeof T] || col.label;
                       return (
                           <TableHead key={col.id} className={col.id === 'priceQuote' ? 'text-right' : ''}>
-                              {columnLabel}
+                              {typeof columnLabel === 'string' ? columnLabel : JSON.stringify(columnLabel)}
                           </TableHead>
                       );
                   })}

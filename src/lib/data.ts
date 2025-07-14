@@ -161,7 +161,7 @@ export const initialQuoteTemplates: QuoteTemplate[] = [
         { id: 'description', name: 'Item Description', type: 'text' },
         { id: 'quantity', name: 'Quantity', type: 'number' },
         { id: 'unitPrice', name: 'Unit Price (VND)', type: 'number' },
-        { id: 'custom_1688888888888', name: 'Est. Hours', type: 'number', sumTotal: true },
+        { id: 'custom_1688888888888', name: 'Est. Hours', type: 'number', calculation: { type: 'sum' } },
     ],
     sections: [{
         id: 'section_tpl_2_1',

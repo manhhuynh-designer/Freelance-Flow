@@ -1,9 +1,79 @@
-
 "use client";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { i18n } from "@/lib/i18n";
+import { Card } from "@/components/ui/card";
+import { useEffect, useRef } from "react";
+// LinkPreview: fetches page title and favicon for a given URL
+function LinkPreview({ url, fallback, maxLength = 40 }: { url: string; fallback?: string; maxLength?: number }) {
+  const [title, setTitle] = React.useState<string>("");
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [error, setError] = React.useState<boolean>(false);
+  const [favicon, setFavicon] = React.useState<string>("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(false);
+    setTitle("");
+    setFavicon("");
+    // Use a public CORS proxy for demo (production: use backend API)
+    fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (cancelled) return;
+        // Parse title from HTML
+        const match = data.contents.match(/<title>(.*?)<\/title>/i);
+        let pageTitle = match ? match[1] : url;
+        if (pageTitle.length > maxLength) pageTitle = pageTitle.slice(0, maxLength) + "...";
+        setTitle(pageTitle);
+        // Try to get favicon
+        try {
+          const dom = document.createElement("html");
+          dom.innerHTML = data.contents;
+          const iconLink = dom.querySelector('link[rel~="icon"]');
+          let iconHref = iconLink?.getAttribute("href") || "";
+          if (iconHref && !iconHref.startsWith("http")) {
+            const u = new URL(url);
+            iconHref = u.origin + (iconHref.startsWith("/") ? iconHref : "/" + iconHref);
+          }
+          setFavicon(iconHref || `https://www.google.com/s2/favicons?domain=${url}`);
+        } catch {
+          setFavicon(`https://www.google.com/s2/favicons?domain=${url}`);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError(true);
+          setLoading(false);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [url, maxLength]);
+
+  const domain = (() => {
+    try { return new URL(url).hostname; } catch { return url; }
+  })();
+
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted transition group text-left w-full">
+      {favicon ? (
+        <img src={favicon} alt="favicon" className="w-4 h-4 rounded" onError={e => { (e.target as HTMLImageElement).src = `https://www.google.com/s2/favicons?domain=${url}`; }} />
+      ) : null}
+      <span className="truncate max-w-[180px]" title={title || domain}>
+        {loading ? "Loading..." : error ? (fallback || domain) : (title || domain)}
+      </span>
+      <span className="text-xs text-muted-foreground hidden group-hover:inline">{domain}</span>
+    </a>
+  );
+}
+import { FileText } from "lucide-react";
+import { Pencil, Link as LinkIcon, Folder, Expand, Shrink, Copy, Trash2, ArchiveRestore, Briefcase, ChevronDown, Calendar, Building2 } from "lucide-react";
+
 
 import React, { useState, useMemo, useCallback } from "react";
 import { format, differenceInDays } from "date-fns";
-import { Pencil, Link as LinkIcon, Folder, Expand, Shrink, Copy, Trash2, ArchiveRestore, Briefcase, ChevronDown } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -13,7 +83,7 @@ import {
   TableHead,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { Task, Client, Category, Quote, StatusInfo, QuoteColumn, QuoteTemplate, Collaborator, AppSettings, QuoteSection } from "@/lib/types";
+import type { Task, Client, Category, Quote, StatusInfo, QuoteColumn, QuoteTemplate, Collaborator, AppSettings, QuoteSection, ColumnCalculationType, QuoteItem } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +117,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { STATUS_INFO } from '@/lib/data';
 import { useToast } from "@/hooks/use-toast";
-import { i18n } from "@/lib/i18n";
+
 import { Separator } from "./ui/separator";
 import { getContrastingTextColor } from "@/lib/colors";
 
@@ -77,6 +147,8 @@ type TaskListItemProps = {
 };
 
 
+
+
 export function TaskListItem({ 
   task, 
   client, 
@@ -100,8 +172,17 @@ export function TaskListItem({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editDialogSize, setEditDialogSize] = useState('default');
   const { toast } = useToast();
-  
-  const T = i18n[settings.language];
+
+  // Ensure T is always reactive to language changes
+  const T = useMemo(() => {
+    console.log('Language changed to:', settings.language); // Debug log
+    const lang = (i18n as any)[settings.language];
+    if (!lang) {
+      console.warn('Language not found, falling back to vi');
+      return { ...i18n.vi };
+    }
+    return { ...lang };
+  }, [settings.language]);
   const StatusIcon = status?.icon;
   const statusSetting = (settings.statusSettings || []).find(s => s.id === task.status);
   const subStatusLabel = statusSetting?.subStatuses.find(ss => ss.id === task.subStatusId)?.label;
@@ -111,8 +192,7 @@ export function TaskListItem({
   
   const defaultColumns: QuoteColumn[] = [
     { id: 'description', name: T.description, type: 'text' },
-    { id: 'quantity', name: T.quantity, type: 'number' },
-    { id: 'unitPrice', name: `${T.unitPrice} (${settings.currency})`, type: 'number', sumTotal: false },
+    { id: 'unitPrice', name: `${T.unitPrice} (${settings.currency})`, type: 'number', calculation: { type: 'sum' } },
   ];
 
   const category = useMemo(() => (categories || []).find(c => c.id === task.categoryId), [task.categoryId, categories]);
@@ -121,8 +201,208 @@ export function TaskListItem({
     return collaborators.find(c => c.id === task.collaboratorId);
   }, [task.collaboratorId, collaborators]);
 
-  const totalQuote = useMemo(() => quote?.sections?.reduce((acc, section) => acc + (section.items?.reduce((itemAcc, item) => itemAcc + ((item.quantity || 1) * (item.unitPrice || 0)), 0) || 0), 0) ?? 0, [quote]);
-  const totalCollabQuote = useMemo(() => collaboratorQuote?.sections?.reduce((acc, section) => acc + (section.items?.reduce((itemAcc, item) => itemAcc + ((item.quantity || 1) * (item.unitPrice || 0)), 0) || 0), 0) ?? 0, [collaboratorQuote]);
+  // Helper function to calculate row value with formula support
+  const calculateRowValue = useCallback((item: QuoteItem, column: QuoteColumn, allColumns: QuoteColumn[]) => {
+    if (column.rowFormula) {
+      try {
+        const rowVals: Record<string, number> = {};
+        allColumns.forEach(c => {
+          if (c.type === 'number' && c.id !== column.id) {
+            const val = c.id === 'unitPrice'
+              ? Number(item.unitPrice) || 0
+              : Number(item.customFields?.[c.id]) || 0;
+            rowVals[c.id] = val;
+          }
+        });
+        
+        let expr = column.rowFormula;
+        Object.entries(rowVals).forEach(([cid, val]) => {
+          expr = expr.replaceAll(cid, val.toString());
+        });
+        
+        const result = eval(expr);
+        return !isNaN(result) ? Number(result) : 0;
+      } catch {
+        return 0;
+      }
+    } else {
+      // Use normal value if no formula
+      if (column.id === 'unitPrice') {
+        return Number(item.unitPrice) || 0;
+      } else {
+        return Number(item.customFields?.[column.id]) || 0;
+      }
+    }
+  }, []);
+
+  const totalQuote = useMemo(() => {
+    if (!quote?.sections) return 0;
+    const priceColumn = (quote.columns || defaultColumns).find(col => col.id === 'unitPrice');
+    if (!priceColumn) return 0;
+    
+    return quote.sections.reduce((acc, section) => {
+      return acc + (section.items?.reduce((itemAcc, item) => {
+        return itemAcc + calculateRowValue(item, priceColumn, quote.columns || defaultColumns);
+      }, 0) || 0);
+    }, 0);
+  }, [quote, defaultColumns, calculateRowValue]);
+  
+  const totalCollabQuote = useMemo(() => {
+    if (!collaboratorQuote?.sections) return 0;
+    const unitPriceCol = (collaboratorQuote.columns || defaultColumns).find(col => col.id === 'unitPrice');
+    if (!unitPriceCol) return 0;
+    
+    return collaboratorQuote.sections.reduce((acc, section) => {
+      return acc + (section.items?.reduce((itemAcc, item) => {
+        return itemAcc + calculateRowValue(item, unitPriceCol, collaboratorQuote.columns || defaultColumns);
+      }, 0) || 0);
+    }, 0);
+  }, [collaboratorQuote, defaultColumns, calculateRowValue]);
+  // Enhanced calculation results that match QuoteManager structure
+  const calculationResults = useMemo(() => {
+    if (!quote?.sections) return [];
+    
+    const results: Array<{
+      id: string;
+      name: string;
+      calculation: string;
+      result: number | string;
+      type: ColumnCalculationType;
+    }> = [];
+
+    // Process each column with calculations
+    (quote.columns || defaultColumns).filter(col => 
+      col.calculation && col.calculation.type && col.calculation.type !== 'none' && col.type === 'number'
+    ).forEach(col => {
+      if (!col.calculation) return; // Type guard
+
+      const allValues = quote.sections!.flatMap((section) => 
+        (section.items || []).map((item) => calculateRowValue(item, col, quote.columns || defaultColumns))
+          .filter((v: number) => !isNaN(v))
+      );
+
+      let result: number | string = 0;
+      let calculation = '';
+      const calcType = col.calculation.type;
+
+      switch (calcType) {
+        case 'sum':
+          result = allValues.reduce((acc, val) => acc + val, 0);
+          calculation = 'Sum';
+          break;
+        case 'average':
+          result = allValues.length ? allValues.reduce((acc, val) => acc + val, 0) / allValues.length : 0;
+          calculation = 'Average';
+          break;
+        case 'min':
+          result = allValues.length ? Math.min(...allValues) : 0;
+          calculation = 'Min';
+          break;
+        case 'max':
+          result = allValues.length ? Math.max(...allValues) : 0;
+          calculation = 'Max';
+          break;
+        case 'custom':
+          try {
+            if (col.calculation.formula) {
+              // Simple eval for custom formulas - in production, use a proper expression parser
+              const formula = col.calculation.formula.replace(/values/g, JSON.stringify(allValues));
+              result = eval(formula) || 0;
+            } else {
+              result = 0;
+            }
+          } catch {
+            result = 0;
+          }
+          calculation = 'Custom';
+          break;
+        default:
+          return;
+      }
+
+      results.push({
+        id: col.id,
+        name: col.name,
+        calculation,
+        result,
+        type: calcType
+      });
+    });
+
+    return results;
+  }, [quote, defaultColumns, calculateRowValue, T]);
+
+  // Enhanced collaborator calculation results
+  const collaboratorCalculationResults = useMemo(() => {
+    if (!collaboratorQuote?.sections) return [];
+    
+    const results: Array<{
+      id: string;
+      name: string;
+      calculation: string;
+      result: number | string;
+      type: ColumnCalculationType;
+    }> = [];
+
+    (collaboratorQuote.columns || defaultColumns).filter(col => 
+      col.calculation && col.calculation.type && col.calculation.type !== 'none' && col.type === 'number'
+    ).forEach(col => {
+      if (!col.calculation) return;
+
+      const allValues = collaboratorQuote.sections!.flatMap((section) => 
+        (section.items || []).map((item) => calculateRowValue(item, col, collaboratorQuote.columns || defaultColumns))
+          .filter((v: number) => !isNaN(v))
+      );
+
+      let result: number | string = 0;
+      let calculation = '';
+      const calcType = col.calculation.type;
+
+      switch (calcType) {
+        case 'sum':
+          result = allValues.reduce((acc, val) => acc + val, 0);
+          calculation = 'Sum';
+          break;
+        case 'average':
+          result = allValues.length ? allValues.reduce((acc, val) => acc + val, 0) / allValues.length : 0;
+          calculation = 'Average';
+          break;
+        case 'min':
+          result = allValues.length ? Math.min(...allValues) : 0;
+          calculation = 'Min';
+          break;
+        case 'max':
+          result = allValues.length ? Math.max(...allValues) : 0;
+          calculation = 'Max';
+          break;
+        case 'custom':
+          try {
+            if (col.calculation.formula) {
+              const formula = col.calculation.formula.replace(/values/g, JSON.stringify(allValues));
+              result = eval(formula) || 0;
+            } else {
+              result = 0;
+            }
+          } catch {
+            result = 0;
+          }
+          calculation = 'Custom';
+          break;
+        default:
+          return;
+      }
+
+      results.push({
+        id: col.id,
+        name: col.name,
+        calculation,
+        result,
+        type: calcType
+      });
+    });
+
+    return results;
+  }, [collaboratorQuote, defaultColumns, calculateRowValue, T]);
 
 
   const getDeadlineColor = (deadline: Date): string => {
@@ -140,7 +420,7 @@ export function TaskListItem({
     return "text-deadline-safe";
   };
 
-  const deadlineColorClass = isValidDeadline ? getDeadlineColor(task.deadline) : "text-deadline-overdue font-semibold";
+  const deadlineColorClass = isValidDeadline ? getDeadlineColor(task.deadline as Date) : "text-deadline-overdue font-semibold";
 
   const handleTaskFormSubmit = (
     values: TaskFormValues, 
@@ -187,7 +467,7 @@ export function TaskListItem({
         fullClipboardString += `${itemRows.join('\n')}\n\n`;
     });
     
-    const grandTotal = quoteToCopy.sections.reduce((acc, section) => acc + (section.items?.reduce((itemAcc, item) => itemAcc + ((item.quantity || 1) * (item.unitPrice || 0)), 0) || 0), 0);
+    const grandTotal = quoteToCopy.sections.reduce((acc, section) => acc + (section.items?.reduce((itemAcc, item) => itemAcc + (item.unitPrice || 0), 0) || 0), 0);
     const grandTotalString = [...Array(Math.max(0, (quoteToCopy.columns || defaultColumns).length - 1)).fill(''), T.grandTotal, `${grandTotal.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} ${settings.currency}`].filter(Boolean).join('\t');
     fullClipboardString += `${grandTotalString}\n`;
 
@@ -207,7 +487,9 @@ export function TaskListItem({
   }, [toast, T, settings, defaultColumns]);
 
 
-  const renderQuoteTable = (title: string, quoteData: Quote | undefined) => (
+  const renderQuoteTable = (title: string, quoteData: Quote | undefined) => {
+    if (!quoteData) return null; // Add this check
+    return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <h4 className="font-semibold">{title}</h4>
@@ -234,19 +516,30 @@ export function TaskListItem({
                 {section.items.map((item, index) => (
                   <TableRow key={item.id || index}>
                     {(quoteData.columns || defaultColumns).map(col => {
-                      const value = ['description', 'quantity', 'unitPrice'].includes(col.id)
-                        ? item[col.id as keyof typeof item]
-                        : item.customFields?.[col.id];
-                      const displayValue = value ?? '';
+                      let displayValue: string | number = '';
+                      
+                      // Calculate value based on column type and formula
+                      if (col.type === 'number' && col.rowFormula) {
+                        // Use calculated value from formula
+                        displayValue = calculateRowValue(item, col, quoteData.columns || defaultColumns);
+                      } else {
+                        // Use regular value
+                        const value = col.id === 'description' || col.id === 'unitPrice'
+                          ? item[col.id as keyof QuoteItem]
+                          : item.customFields?.[col.id];
+                        displayValue = value ?? '';
+                      }
 
-                      let formattedValue: string | number = displayValue;
+                      let formattedValue: string = '';
                       if (typeof displayValue === 'number') {
                         formattedValue = displayValue.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US');
+                      } else {
+                        formattedValue = String(displayValue);
                       }
 
                       return (
                         <TableCell key={col.id} className={cn(col.type === 'number' && 'text-right')}>
-                          {String(formattedValue)}
+                          {formattedValue}
                         </TableCell>
                       );
                     })}
@@ -259,6 +552,7 @@ export function TaskListItem({
       ))}
     </div>
   );
+  }
   
   const visibleColumns = useMemo(() => (settings.dashboardColumns || []).filter(col => col.visible), [settings.dashboardColumns]);
 
@@ -321,7 +615,7 @@ export function TaskListItem({
         case 'category':
             return <span>{(category?.name && T.categories[category.id as keyof typeof T.categories]) || category?.name || ''}</span>;
         case 'deadline':
-            return <span className={deadlineColorClass}>{isValidDeadline ? format(task.deadline, "MMM dd, yyyy") : 'Invalid Date'}</span>;
+            return <span className={deadlineColorClass}>{isValidDeadline ? format(task.deadline, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}</span>;
         case 'status':
             return StatusIcon && status && (
               <DropdownMenu>
@@ -361,6 +655,9 @@ export function TaskListItem({
     }
   };
 
+  // Navigation bar state for details dialog
+  const [selectedNav, setSelectedNav] = React.useState<'timeline' | 'price' | 'collaborator' | 'analytics'>('timeline');
+
   return (
     <>
       <TableRow onClick={() => setIsDetailsOpen(true)} className="cursor-pointer">
@@ -381,124 +678,279 @@ export function TaskListItem({
         })}
       </TableRow>
 
+
+
+
+
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="sm:max-w-[425px] md:max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="w-[80vw] max-w-5xl h-[80vh] min-h-[600px] max-h-[90vh] flex flex-col">
+          {/* Visually hidden DialogTitle for accessibility */}
+          <span style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>
             <DialogTitle>{task.name}</DialogTitle>
-            <DialogDescription>
-              {client?.name} &bull; {(category?.name && T.categories[category.id as keyof typeof T.categories]) || category?.name || ''} &bull; {status?.name ? (statusSetting?.label || T.statuses[status.id]) : ''}
-              {subStatusLabel && ` (${subStatusLabel})`}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
-            <div>
-              <h4 className="font-semibold mb-2">{T.description}</h4>
-              <p className="text-sm text-muted-foreground">{task.description || T.noDescription}</p>
+          </span>
+          {/* --- HEADER: Project Info --- */}
+          <div className="flex flex-col gap-1 pb-2 border-b mb-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-2xl font-bold leading-tight truncate">{task.name}</span>
+              {StatusIcon && status && (
+                <Badge 
+                  style={{ 
+                    backgroundColor: settings.statusColors[task.status],
+                    color: getContrastingTextColor(settings.statusColors[task.status]) 
+                  }}
+                  className="flex items-center gap-1"
+                >
+                  <StatusIcon className="h-3 w-3" />
+                  {statusSetting?.label || T.statuses[status.id]}
+                  {subStatusLabel && <span className="text-xs opacity-80">({subStatusLabel})</span>}
+                </Badge>
+              )}
             </div>
-
-            {(task.briefLink || task.driveLink) && (
-                <div>
-                    <h4 className="font-semibold mb-2">{T.links}</h4>
-                    <div className="flex flex-wrap gap-2">
-                        {task.briefLink && (
-                            <Button asChild variant="outline" size="sm">
-                                <a href={task.briefLink} target="_blank" rel="noopener noreferrer">
-                                    <LinkIcon className="w-4 h-4 mr-2" />
-                                    {T.briefLink}
-                                </a>
-                            </Button>
-                        )}
-                        {task.driveLink && (
-                            <Button asChild variant="outline" size="sm">
-                                <a href={task.driveLink} target="_blank" rel="noopener noreferrer">
-                                    <Folder className="w-4 h-4 mr-2" />
-                                    {T.driveLink}
-                                </a>
-                            </Button>
-                        )}
-                    </div>
-                </div>
-            )}
-            
-            {assignedCollaborator && (
-                <div>
-                    <h4 className="font-semibold mb-2">{T.collaborator}</h4>
-                    <div className="flex flex-wrap gap-2">
-                        <Badge key={assignedCollaborator.id} variant="secondary" className="flex items-center gap-2">
-                            <Briefcase className="w-3 h-3" />
-                            {assignedCollaborator.name}
-                        </Badge>
-                    </div>
-                </div>
-            )}
-
-
-            <div>
-              <h4 className="font-semibold mb-2">{T.dates}</h4>
-              <p className="text-sm text-muted-foreground">
-                {isValidStartDate ? format(task.startDate, "PPP") : 'Invalid Date'} to {isValidDeadline ? format(task.deadline, "PPP") : 'Invalid Date'}
-              </p>
+            <div className="flex items-center gap-2 flex-wrap text-muted-foreground text-sm">
+              <span className="flex items-center gap-1">
+                <Building2 className="h-4 w-4" /> {client?.name}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="font-medium">{(category?.name && T.categories[category.id as keyof typeof T.categories]) || category?.name || ''}</span>
+              </span>
             </div>
-            
-            {quote && quote.sections && quote.sections.length > 0 && renderQuoteTable(T.priceQuote, quote)}
-            
-            {collaboratorQuote && collaboratorQuote.sections && collaboratorQuote.sections.length > 0 && (
-                renderQuoteTable(T.collaboratorCosts, collaboratorQuote)
-            )}
-            
-            {(totalQuote > 0 || totalCollabQuote > 0) && (
-              <div className="flex justify-end pt-4 mt-4 border-t">
-                  <div className="text-sm space-y-2 w-full max-w-xs">
-                      <div className="flex justify-between">
-                          <span className="text-muted-foreground">{T.grandTotal}</span>
-                          <span className="font-medium">{totalQuote.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
+          </div>
+
+          {/* --- NAVIGATION BAR --- */}
+          <nav className="flex gap-2 mb-2 border-b pb-2">
+            <button
+              className={cn(
+                "px-4 py-2 rounded-t text-sm font-medium transition border-b-2",
+                selectedNav === 'timeline' ? 'border-primary text-primary bg-muted' : 'border-transparent text-muted-foreground hover:text-primary'
+              )}
+              onClick={() => setSelectedNav('timeline')}
+              type="button"
+            >{T.overview ?? 'Overview'}</button>
+            <button
+              className={cn(
+                "px-4 py-2 rounded-t text-sm font-medium transition border-b-2",
+                selectedNav === 'price' ? 'border-primary text-primary bg-muted' : 'border-transparent text-muted-foreground hover:text-primary'
+              )}
+              onClick={() => setSelectedNav('price')}
+              type="button"
+            >{T.priceQuote ?? 'Price Quote'}</button>
+            <button
+              className={cn(
+                "px-4 py-2 rounded-t text-sm font-medium transition border-b-2",
+                selectedNav === 'collaborator' ? 'border-primary text-primary bg-muted' : 'border-transparent text-muted-foreground hover:text-primary'
+              )}
+              onClick={() => setSelectedNav('collaborator')}
+              type="button"
+              disabled={!collaboratorQuote || !collaboratorQuote.sections || collaboratorQuote.sections.length === 0}
+            >{T.collaboratorCosts ?? 'Collaborator Quote'}</button>
+          </nav>
+
+          {/* --- MAIN CONTENT: Scrollable, flush left --- */}
+          <div className="flex-1 min-h-0 max-h-full overflow-y-auto pr-2" style={{ scrollbarGutter: 'stable' }}>
+            {/* Timeline Section */}
+            {selectedNav === 'timeline' && (
+              <div className="space-y-4">
+                {/* Overview Card with Progress Bar */}
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    {T.overview ?? 'Overview'}
+                  </h4>
+                  <div className="space-y-3">
+                    {/* Progress visualization */}
+                    <div className="flex items-center justify-between text-sm">
+                      <div>
+                        <div className="font-medium">{T.startDate ?? 'Start Date'}</div>
+                        <div className="text-muted-foreground">
+                          {isValidStartDate ? format(task.startDate, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}
+                        </div>
                       </div>
-                      {totalCollabQuote > 0 && (
-                          <div className="flex justify-between">
-                              <span className="text-muted-foreground">{T.collaboratorCosts}</span>
-                              <span className="font-medium text-destructive">- {totalCollabQuote.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
-                          </div>
-                      )}
-                      <Separator/>
-                      <div className="flex justify-between items-center">
-                          <span className="text-lg font-bold">{T.netTotal}</span>
-                          <span className="text-2xl font-bold text-primary">{(totalQuote - totalCollabQuote).toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
+                      <div className="text-right">
+                        <div className="font-medium">{T.deadline ?? 'Deadline'}</div>
+                        <div className={cn("text-muted-foreground", deadlineColorClass)}>
+                          {isValidDeadline ? format(task.deadline, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}
+                        </div>
                       </div>
+                    </div>
+                    {/* Progress bar */}
+                    {isValidDeadline && isValidStartDate && (
+                      <div className="space-y-2">
+                        <Progress 
+                          value={Math.max(0, Math.min(100, 
+                            (differenceInDays(new Date(), new Date(task.startDate)) / 
+                             differenceInDays(new Date(task.deadline), new Date(task.startDate))) * 100
+                          ))} 
+                          className="h-2" 
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{T.progress ?? 'Progress'}</span>
+                          <span>
+                            {Math.max(0, differenceInDays(new Date(), new Date(task.startDate)))} / {" "}
+                            {differenceInDays(new Date(task.deadline), new Date(task.startDate))} {T.days ?? 'days'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
+                </Card>
+                {/* Description Card */}
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    {T.description}
+                  </h4>
+                  <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+                    {task.description || <em className="text-muted-foreground/70">{T.noDescription}</em>}
+                  </div>
+                </Card>
+                {/* Links & Collaborator Grid Layout */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Brief Links Card */}
+                  {Array.isArray(task.briefLink) && task.briefLink.length > 0 && (
+                    <Card className="p-4">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <LinkIcon className="h-4 w-4" />
+                        {T.briefLink ?? 'Brief'}
+                      </h4>
+                      <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
+                        {(task.briefLink || []).slice(0, 5).map((link, idx) => (
+                          <LinkPreview key={link+idx} url={link} />
+                        ))}
+                        {task.briefLink.length > 5 && (
+                          <span className="text-xs text-muted-foreground mt-1">+{task.briefLink.length - 5} more...</span>
+                        )}
+                      </div>
+                    </Card>
+                  )}
+                  {/* Storage Links Card */}
+                  {Array.isArray(task.driveLink) && task.driveLink.length > 0 && (
+                    <Card className="p-4">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <Folder className="h-4 w-4" />
+                        {T.driveLink ?? 'Storage'}
+                      </h4>
+                      <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
+                        {(task.driveLink || []).slice(0, 5).map((link, idx) => (
+                          <LinkPreview key={link+idx} url={link} />
+                        ))}
+                        {task.driveLink.length > 5 && (
+                          <span className="text-xs text-muted-foreground mt-1">+{task.driveLink.length - 5} more...</span>
+                        )}
+                      </div>
+                    </Card>
+                  )}
+                  {/* Collaborator Card */}
+                  {assignedCollaborator && (
+                    <Card className="p-4">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <Briefcase className="h-4 w-4" />
+                        {T.collaborator ?? 'Collaborator'}
+                      </h4>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-full">
+                          <span className="text-sm font-medium">{assignedCollaborator.name.charAt(0)}</span>
+                        </div>
+                        <div>
+                          <div className="font-medium">{assignedCollaborator.name}</div>
+                          {assignedCollaborator.specialty && (
+                            <div className="text-xs text-muted-foreground">{assignedCollaborator.specialty}</div>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+                </div>
               </div>
             )}
+            {/* Price Quote Section */}
+            {selectedNav === 'price' && (
+              <div className="space-y-4">
+                {quote && quote.sections && quote.sections.length > 0 ? (
+                  <>
+                    {renderQuoteTable(T.priceQuote, quote)}
+                    <div className="flex justify-end pt-4 mt-4 border-t">
+                      <div className="text-sm space-y-2 w-full max-w-xs">
+                        {calculationResults.map(calc => (
+                          <div key={calc.id} className="flex justify-between">
+                            <span className="font-medium">{calc.name} ({calc.calculation}):</span>
+                            <span>{typeof calc.result === 'number' ? calc.result.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US') : calc.result}</span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between mt-2 pt-2 border-t">
+                          <span className="font-semibold">{T.grandTotal}:</span>
+                          <span className="font-semibold">{totalQuote.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
+                        </div>
+                        <Separator/>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-muted-foreground text-center py-8">{T.noQuoteData ?? 'No quote data available.'}</div>
+                )}
+              </div>
+            )}
+            {/* Collaborator Quote Section */}
+            {selectedNav === 'collaborator' && (
+              <div className="space-y-4">
+                {collaboratorQuote && collaboratorQuote.sections && collaboratorQuote.sections.length > 0 ? (
+                  <>
+                    {renderQuoteTable(T.collaboratorCosts, collaboratorQuote)}
+                    <div className="flex justify-end pt-4 mt-4 border-t">
+                      <div className="text-sm space-y-2 w-full max-w-xs">
+                        {collaboratorCalculationResults.map(calc => (
+                          <div key={calc.id} className="flex justify-between">
+                            <span className="font-medium">{calc.name} ({calc.calculation}):</span>
+                            <span>{typeof calc.result === 'number' ? calc.result.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US') : calc.result}</span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between mt-2 pt-2 border-t">
+                          <span className="font-semibold">{T.collaboratorCosts}:</span>
+                          <span className="font-semibold">{totalCollabQuote.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
+                        </div>
+                        <Separator/>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-muted-foreground text-center py-8">{T.noCollaboratorQuoteData ?? 'No collaborator quote data available.'}</div>
+                )}
+              </div>
+            )}
+            {/* Analytics Section */}
+            {/* Analytics section removed as requested */}
+          </div>
 
-            <div className="flex justify-between items-center pt-4 border-t">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" className="bg-destructive/10 hover:bg-destructive/20 text-destructive border-2 border-destructive">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    {T.deleteTask}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{T.moveToTrash}?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {T.moveToTrashDescription}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{T.cancel}</AlertDialogCancel>
-                    <AlertDialogAction
-                      className={cn(buttonVariants({ variant: "destructive" }))}
-                      onClick={() => onDeleteTask(task.id)}
-                    >
-                      {T.confirmMoveToTrash}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              <Button variant="outline" size="sm" onClick={() => { setIsDetailsOpen(false); setIsEditDialogOpen(true); }}>
-                  <Pencil className="w-4 h-4 mr-2" />
-                  {T.editTask}
-              </Button>
-            </div>
+          {/* Actions (Delete/Edit) - always visible below main content */}
+          <div className="flex justify-between items-center pt-4 border-t mt-6">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="bg-destructive/10 hover:bg-destructive/20 text-destructive border-2 border-destructive">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {T.deleteTask}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{T.moveToTrash}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {T.moveToTrashDescription}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{T.cancel}</AlertDialogCancel>
+                  <AlertDialogAction
+                    className={cn(buttonVariants({ variant: "destructive" }))}
+                    onClick={() => onDeleteTask(task.id)}
+                  >
+                    {T.confirmMoveToTrash}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Button variant="outline" size="sm" onClick={() => { setIsDetailsOpen(false); setIsEditDialogOpen(true); }}>
+                <Pencil className="w-4 h-4 mr-2" />
+                {T.editTask}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

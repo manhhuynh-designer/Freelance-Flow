@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,9 +13,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PlusCircle, ClipboardPaste, FolderPlus, SplitSquareVertical } from "lucide-react";
 import React from "react";
-import type { QuoteTemplate, QuoteColumn, AppSettings, QuoteSection } from "@/lib/types";
+import type { QuoteTemplate, QuoteColumn, AppSettings, QuoteSection, ColumnCalculationType } from "@/lib/types";
 import {
     Dialog,
     DialogContent,
@@ -39,7 +45,7 @@ import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { i18n } from "@/lib/i18n";
-import { QuoteSectionComponent } from "./quote-section";
+import { QuoteSectionComponent } from "./quote-section-improved";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
@@ -51,7 +57,6 @@ const templateFormSchema = z.object({
     items: z.array(
         z.object({
             description: z.string().min(1, "Description cannot be empty."),
-            quantity: z.coerce.number().min(0, "Quantity must be at least 0.").optional().default(1),
             unitPrice: z.coerce.number().min(0, "Price cannot be negative.").default(0),
             customFields: z.record(z.any()).optional(),
         })
@@ -76,8 +81,7 @@ export function QuoteTemplateForm({ setOpen, onSubmit: onFormSubmit, templateToE
 
   const defaultColumns: QuoteColumn[] = [
     { id: 'description', name: T.description, type: 'text' },
-    { id: 'quantity', name: T.quantity, type: 'number' },
-    { id: 'unitPrice', name: `${T.unitPrice} (${settings.currency})`, type: 'number', sumTotal: false },
+    { id: 'unitPrice', name: `${T.unitPrice} (${settings.currency})`, type: 'number', calculation: { type: 'sum' } },
   ];
 
   const [columns, setColumns] = React.useState<QuoteColumn[]>(
@@ -90,7 +94,9 @@ export function QuoteTemplateForm({ setOpen, onSubmit: onFormSubmit, templateToE
   
   const [newColumnName, setNewColumnName] = React.useState("");
   const [newColumnType, setNewColumnType] = React.useState<QuoteColumn['type']>('text');
-  const [newColumnSum, setNewColumnSum] = React.useState(false);
+  const [newColumnCalculation, setNewColumnCalculation] = React.useState<ColumnCalculationType>('none');
+  const [newColumnDateFormat, setNewColumnDateFormat] = React.useState<'single' | 'range'>('single');
+  const [customFormula, setCustomFormula] = React.useState<string>('');
 
   const form = useForm<TemplateFormValues>({
     resolver: zodResolver(templateFormSchema),
@@ -105,7 +111,7 @@ export function QuoteTemplateForm({ setOpen, onSubmit: onFormSubmit, templateToE
         }
       : {
           name: "",
-          sections: [{ id: `section-${Date.now()}`, name: T.untitledSection, items: [{ description: "", quantity: 1, unitPrice: 0, customFields: {} }] }],
+          sections: [{ id: `section-${Date.now()}`, name: T.untitledSection, items: [{ description: "", unitPrice: 0, customFields: {} }] }],
         },
   });
 
@@ -123,7 +129,8 @@ export function QuoteTemplateForm({ setOpen, onSubmit: onFormSubmit, templateToE
     setEditingColumn(null);
     setNewColumnName("");
     setNewColumnType("text");
-    setNewColumnSum(false);
+    setNewColumnCalculation('none');
+    setCustomFormula('');
   }
 
   const handleAddColumn = () => {
@@ -133,12 +140,19 @@ export function QuoteTemplateForm({ setOpen, onSubmit: onFormSubmit, templateToE
           id: newId, 
           name: newColumnName.trim(), 
           type: newColumnType,
-          sumTotal: newColumnType === 'number' ? newColumnSum : undefined,
+          calculation: newColumnType === 'number' && newColumnCalculation !== 'none' ? {
+            type: newColumnCalculation,
+            formula: newColumnCalculation === 'custom' ? customFormula : undefined
+          } : undefined,
+          dateFormat: newColumnType === 'date' ? newColumnDateFormat : undefined
       }]);
       
       form.getValues('sections').forEach((section, sectionIndex) => {
         section.items.forEach((item, itemIndex) => {
-          form.setValue(`sections.${sectionIndex}.items.${itemIndex}.customFields.${newId}`, newColumnType === 'number' ? 0 : '');
+          form.setValue(`sections.${sectionIndex}.items.${itemIndex}.customFields.${newId}`, 
+            newColumnType === 'number' ? 0 : 
+            newColumnType === 'date' ? null : 
+            '');
         });
       });
       
@@ -150,7 +164,9 @@ export function QuoteTemplateForm({ setOpen, onSubmit: onFormSubmit, templateToE
     setEditingColumn(column);
     setNewColumnName(column.name);
     setNewColumnType(column.type);
-    setNewColumnSum(column.sumTotal || false);
+    setNewColumnCalculation(column.calculation?.type || 'none');
+    setCustomFormula(column.calculation?.formula || '');
+    setNewColumnDateFormat(column.dateFormat || 'single');
     setIsColumnDialogOpen(true);
   }
   
@@ -161,7 +177,11 @@ export function QuoteTemplateForm({ setOpen, onSubmit: onFormSubmit, templateToE
       ...c,
       name: newColumnName.trim(),
       type: newColumnType,
-      sumTotal: newColumnType === 'number' ? newColumnSum : undefined,
+      calculation: newColumnType === 'number' && newColumnCalculation !== 'none' ? {
+        type: newColumnCalculation,
+        formula: newColumnCalculation === 'custom' ? customFormula : undefined
+      } : undefined,
+      dateFormat: newColumnType === 'date' ? newColumnDateFormat : undefined
     } : c));
     
     if (editingColumn.type === 'text' && newColumnType === 'number') {
@@ -182,20 +202,16 @@ export function QuoteTemplateForm({ setOpen, onSubmit: onFormSubmit, templateToE
   const handleConfirmDeleteColumn = () => {
     if (!deletingColumn) return;
 
-    setColumns(prev => prev.filter(c => c.id !== deletingColumn.id));
-    
-    const sections = form.getValues('sections');
-    sections.forEach((section, sectionIndex) => {
+    setColumns(prev => prev.filter(c => c.id !== deletingColumn.id));      const sections = form.getValues('sections');
+      sections.forEach((section, sectionIndex) => {
         section.items.forEach((item, itemIndex) => {
-            if (deletingColumn.id === 'quantity') {
-                form.setValue(`sections.${sectionIndex}.items.${itemIndex}.quantity`, 1);
-            } else if (item.customFields) {
-                const newCustomFields = {...item.customFields};
-                delete newCustomFields[deletingColumn.id];
-                form.setValue(`sections.${sectionIndex}.items.${itemIndex}.customFields`, newCustomFields);
-            }
+          if (item.customFields) {
+            const newCustomFields = {...item.customFields};
+            delete newCustomFields[deletingColumn.id];
+            form.setValue(`sections.${sectionIndex}.items.${itemIndex}.customFields`, newCustomFields);
+          }
         });
-    });
+      });
 
     setDeletingColumn(null);
   }
@@ -215,64 +231,37 @@ export function QuoteTemplateForm({ setOpen, onSubmit: onFormSubmit, templateToE
   const handlePasteInSection = React.useCallback((sectionIndex: number, text: string) => {
     const rows = text.trim().split('\n').map(row => row.split('\t'));
     if (rows.length < 1) {
-      toast({ variant: 'destructive', title: "Clipboard is empty or has invalid format" });
+      toast({ variant: 'destructive', title: T.pasteFailed, description: "Clipboard is empty or has invalid format" });
       return;
     }
-  
+
     const headerRow = rows.shift()!;
-    let hasUnitPrice = false;
-  
     const newColumns: QuoteColumn[] = headerRow.map((header, index) => {
-      const lowerHeader = header.toLowerCase();
-      if (lowerHeader.includes('quantity') || lowerHeader.includes('số lượng')) return { id: 'quantity', name: header, type: 'number', sumTotal: false };
-      if (index === 0) return { id: 'description', name: header, type: 'text' };
-      if (!hasUnitPrice && index === headerRow.length - 1) {
-        hasUnitPrice = true;
-        return { id: 'unitPrice', name: header, type: 'number', sumTotal: false };
-      }
-      const isNumeric = rows.every(row => {
-          const cell = row[index] || '';
-          const sanitized = cell.replace(/\./g, '').replace(',', '.');
-          return cell.trim() === '' || !isNaN(parseFloat(sanitized));
-      });
-      return { id: `custom_${Date.now()}_${index}`, name: header, type: isNumeric ? 'number' : 'text', sumTotal: false };
+      const isNumeric = rows.every(row => !isNaN(parseFloat(row[index])));
+      return { id: `custom_${Date.now()}_${index}`, name: header, type: isNumeric ? 'number' : 'text' };
     });
-  
-    if (!hasUnitPrice && newColumns.length > 1) {
-        const lastColIndex = newColumns.length -1;
-        newColumns[lastColIndex].id = 'unitPrice';
-    }
-    
-    // Only update columns if it's the first section being pasted into.
-    if (sectionIndex === 0) {
-        setColumns(newColumns);
-    }
-  
+
     const newItems = rows.map(row => {
       const item: any = { customFields: {} };
       newColumns.forEach((col, index) => {
-        const cellValue = row[index] || '';
-        const value = col.type === 'number' ? parseFloat(cellValue.replace(/\./g, '').replace(',', '.')) || 0 : cellValue;
-        
-        if (['description', 'quantity', 'unitPrice'].includes(col.id)) {
-          item[col.id] = value;
-        } else if (col.id.startsWith('custom_')) {
-          item.customFields[col.id] = value;
-        }
+        item.customFields[col.id] = row[index];
       });
       return {
-        description: item.description ?? "",
-        quantity: item.quantity ?? 1,
-        unitPrice: item.unitPrice ?? 0,
-        customFields: item.customFields ?? {},
+        description: item.description || "",
+        unitPrice: parseFloat(item.unitPrice) || 0,
+        customFields: item.customFields || {},
       };
     });
-    
-    form.setValue(`sections.${sectionIndex}.items`, newItems);
+
+    const allSections = form.getValues('sections') || [];
+    if (allSections[sectionIndex]) {
+      allSections[sectionIndex].items = newItems;
+      form.setValue('sections', allSections);
+    }
 
     toast({
-        title: T.pastedFromClipboard,
-        description: `${newItems.length} items and ${newColumns.length} columns have been imported.`
+      title: T.pastedFromClipboard,
+      description: `${newItems.length} items and ${newColumns.length} columns have been imported.`
     });
   }, [T, toast, form]);
 
@@ -311,6 +300,13 @@ export function QuoteTemplateForm({ setOpen, onSubmit: onFormSubmit, templateToE
                       onEditColumn={handleStartEditColumn}
                       onDeleteColumn={setDeletingColumn}
                       onPaste={handlePasteInSection}
+                      onItemChange={form.setValue}
+                      onUpdateColumnCalculation={(colId, calculation) => {
+                        setColumns(cols => cols.map(c => c.id === colId ? { 
+                          ...c, 
+                          calculation: calculation as {type: ColumnCalculationType; formula?: string}
+                        } : c));
+                      }}
                   />
               ))}
             </div>
@@ -322,7 +318,7 @@ export function QuoteTemplateForm({ setOpen, onSubmit: onFormSubmit, templateToE
                           type="button"
                           variant="outline"
                           size="icon"
-                          onClick={() => appendSection({ id: `section-${Date.now()}`, name: T.untitledSection, items: [{ description: "", quantity: 1, unitPrice: 0, customFields: {} }] })}
+                          onClick={() => appendSection({ id: `section-${Date.now()}`, name: T.untitledSection, items: [{ description: "", unitPrice: 0, customFields: {} }] })}
                       >
                           <FolderPlus className="h-4 w-4" /><span className="sr-only">{T.addSection}</span>
                       </Button>
@@ -373,14 +369,52 @@ export function QuoteTemplateForm({ setOpen, onSubmit: onFormSubmit, templateToE
                             <RadioGroupItem value="number" id="type-number" />
                             <Label htmlFor="type-number" className="font-normal">Number</Label>
                         </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="date" id="type-date" />
+                            <Label htmlFor="type-date" className="font-normal">Ngày tháng</Label>
+                        </div>
                     </RadioGroup>
                 </div>
                 {newColumnType === 'number' && (
-                    <div className="flex items-center space-x-2 pl-1 pt-2">
-                        <Checkbox id="sum-total" checked={newColumnSum} onCheckedChange={(checked) => setNewColumnSum(Boolean(checked))} />
-                        <Label htmlFor="sum-total" className="text-sm font-normal">
-                            Calculate total for this column
-                        </Label>
+                    <div className="space-y-2">
+                        <Label className="text-sm font-medium">Calculation Logic</Label>
+                        <Select value={newColumnCalculation} onValueChange={(value) => setNewColumnCalculation(value as ColumnCalculationType)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select calculation type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">No calculation</SelectItem>
+                                <SelectItem value="sum">Sum total</SelectItem>
+                                <SelectItem value="average">Average</SelectItem>
+                                <SelectItem value="count">Count items</SelectItem>
+                                <SelectItem value="min">Minimum value</SelectItem>
+                                <SelectItem value="max">Maximum value</SelectItem>
+                                <SelectItem value="custom">Custom formula</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {newColumnCalculation === 'custom' && (
+                            <div className="mt-2">
+                                <Input
+                                    placeholder="Enter custom formula (e.g., SUM(A:A)*0.1)"
+                                    value={customFormula}
+                                    onChange={(e) => setCustomFormula(e.target.value)}
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
+                {newColumnType === 'date' && (
+                    <div className="space-y-2">
+                        <Label className="text-sm font-medium">Date Format</Label>
+                        <Select value={newColumnDateFormat} onValueChange={(value: 'single' | 'range') => setNewColumnDateFormat(value)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select date format" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="single">Single Date</SelectItem>
+                                <SelectItem value="range">Date Range</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 )}
             </div>

@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from './ui/card';
@@ -23,8 +22,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CalendarIcon, XCircle, Trash2, Filter } from "lucide-react";
-import { TaskList } from '@/components/task-list';
+import { CalendarIcon, XCircle, Trash2, Filter, Table, CalendarDays } from "lucide-react"; // Thêm CalendarDays và Table icon
+import { TaskList } from '@/components/task-list'; // Sẽ được thay thế bằng TableView
 import { STATUS_INFO } from '@/lib/data';
 import type { Task } from "@/lib/types";
 import { DateRange } from "react-day-picker";
@@ -52,9 +51,8 @@ import { Skeleton } from "./ui/skeleton";
 import { PaginationControls } from "./pagination-controls";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
-
-import { Suspense } from "react";
 import styles from "./DashboardContentColors.module.css";
+import { TableView } from './table-view'; // Import TableView mới
 
 export default function DashboardContent() {
     return (
@@ -74,6 +72,8 @@ function DashboardContentSearchParamsWrapper() {
 }
 
 import type { ReadonlyURLSearchParams } from 'next/navigation';
+
+type ViewMode = 'table' | 'calendar'; // Định nghĩa các chế độ xem
 
 function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSearchParams }) {
   const context = useDashboard();
@@ -98,6 +98,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   const pathname = usePathname();
 
   const FILTERS_STORAGE_KEY = 'freelance-flow-filters';
+  const VIEW_MODE_STORAGE_KEY = 'dashboardViewMode'; // Key để lưu chế độ xem
 
   // Fallback for when context is not yet available
   if (!appSettings || !tasks || !quotes || !clients || !collaborators || !quoteTemplates || !handlePermanentDeleteTask || !categories || !handleTaskStatusChange || !handleEmptyTrash || !handleEditTask) {
@@ -133,6 +134,21 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     from: startDateFilter ? new Date(startDateFilter) : undefined,
     to: endDateFilter ? new Date(endDateFilter) : undefined,
   });
+
+  // State để quản lý chế độ xem hiện tại
+  const [currentViewMode, setCurrentViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem(VIEW_MODE_STORAGE_KEY) as ViewMode) || 'table';
+    }
+    return 'table';
+  });
+
+  // Lưu chế độ xem vào localStorage mỗi khi nó thay đổi
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(VIEW_MODE_STORAGE_KEY, currentViewMode);
+    }
+  }, [currentViewMode]);
 
   // On mount or navigation, restore filters from localStorage if the URL has no filters.
   useEffect(() => {
@@ -467,6 +483,58 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     );
   }
 
+  const renderView = () => {
+    switch (currentViewMode) {
+      case 'table':
+        return (
+          <TableView
+            tasks={paginatedTasks}
+            quotes={quotes}
+            collaboratorQuotes={collaboratorQuotes}
+            clients={clients}
+            collaborators={collaborators}
+            categories={categories}
+            onEditTask={handleEditTask}
+            onTaskStatusChange={handleTaskStatusChange}
+            onDeleteTask={handleDeleteTask}
+            onAddClient={handleAddClientAndSelect}
+            quoteTemplates={quoteTemplates}
+            view={view}
+            onRestoreTask={handleRestoreTask}
+            onPermanentDeleteTask={handlePermanentDeleteTask}
+            settings={appSettings}
+          />
+        );
+      case 'calendar':
+        return (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            {/* Placeholder for Calendar View */}
+            <p>Chế độ xem Lịch sẽ ở đây.</p>
+          </div>
+        );
+      default:
+        return (
+          <TableView
+            tasks={paginatedTasks}
+            quotes={quotes}
+            collaboratorQuotes={collaboratorQuotes}
+            clients={clients}
+            collaborators={collaborators}
+            categories={categories}
+            onEditTask={handleEditTask}
+            onTaskStatusChange={handleTaskStatusChange}
+            onDeleteTask={handleDeleteTask}
+            onAddClient={handleAddClientAndSelect}
+            quoteTemplates={quoteTemplates}
+            view={view}
+            onRestoreTask={handleRestoreTask}
+            onPermanentDeleteTask={handlePermanentDeleteTask}
+            settings={appSettings}
+          />
+        );
+    }
+  };
+
   return (
     <div className="flex flex-col h-full gap-4">
       <div className="flex-shrink-0">
@@ -475,6 +543,24 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
             <Card>
                 <CardContent className="p-4">
                     <FiltersComponent />
+                    <div className="flex justify-end mt-4 space-x-2">
+                      <Button
+                        onClick={() => setCurrentViewMode('table')}
+                        variant={currentViewMode === 'table' ? 'default' : 'outline'}
+                        size="sm"
+                      >
+                        <Table className="mr-2 h-4 w-4" />
+                        {T.tableView}
+                      </Button>
+                      <Button
+                        onClick={() => setCurrentViewMode('calendar')}
+                        variant={currentViewMode === 'calendar' ? 'default' : 'outline'}
+                        size="sm"
+                      >
+                        <CalendarDays className="mr-2 h-4 w-4" />
+                        {T.calendarView}
+                      </Button>
+                    </div>
                 </CardContent>
             </Card>
         </div>
@@ -493,6 +579,24 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
                     </SheetHeader>
                     <div className="py-4">
                         <FiltersComponent inSheet={true} />
+                        <div className="flex justify-end mt-4 space-x-2">
+                          <Button
+                            onClick={() => setCurrentViewMode('table')}
+                            variant={currentViewMode === 'table' ? 'default' : 'outline'}
+                            size="sm"
+                          >
+                            <Table className="mr-2 h-4 w-4" />
+                            {T.tableView}
+                          </Button>
+                          <Button
+                            onClick={() => setCurrentViewMode('calendar')}
+                            variant={currentViewMode === 'calendar' ? 'default' : 'outline'}
+                            size="sm"
+                          >
+                            <CalendarDays className="mr-2 h-4 w-4" />
+                            {T.calendarView}
+                          </Button>
+                        </div>
                     </div>
                     <SheetFooter>
                         <SheetClose asChild>
@@ -506,23 +610,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
       
       <Card className="flex-1 flex flex-col min-h-0">
         <CardContent className="p-0 flex-1 overflow-y-auto">
-            <TaskList 
-              tasks={paginatedTasks} 
-              quotes={quotes}
-              collaboratorQuotes={collaboratorQuotes}
-              clients={clients}
-              collaborators={collaborators}
-              categories={categories}
-              onEditTask={handleEditTask}
-              onTaskStatusChange={handleTaskStatusChange}
-              onDeleteTask={handleDeleteTask}
-              onAddClient={handleAddClientAndSelect}
-              quoteTemplates={quoteTemplates}
-              view={view}
-              onRestoreTask={handleRestoreTask}
-              onPermanentDeleteTask={handlePermanentDeleteTask}
-              settings={appSettings}
-            />
+            {renderView()}
         </CardContent>
       </Card>
       

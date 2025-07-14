@@ -1,4 +1,388 @@
+"use client";
+// Vietnamese translations
+export const vi = {
+  overview: 'Tổng quan',
+  analytics: 'Phân tích',
+  collaboratorCosts: 'Chi phí cộng tác viên',
+  calculations: 'Tổng Kết',
+  addColumn: 'Thêm cột',
+  addItem: 'Thêm mục',
+  columnName: 'Tên cột',
+  columnType: 'Loại cột',
+  noCalculation: 'Không tính toán',
+  sum: 'Tổng',
+  average: 'Trung bình',
+  minimum: 'Nhỏ nhất',
+  maximum: 'Lớn nhất',
+  customFormula: 'Công thức tùy chỉnh',
+  cancel: 'Hủy',
+  saveChanges: 'Lưu thay đổi',
+  newItemPlaceholder: 'Mô tả mục mới...',
+  pasteTable: 'Dán bảng',
+  pasteFailed: 'Dán không thành công',
+  delete: 'Xóa',
+  // --- QUOTE SECTION IMPROVED: Add missing translation keys ---
+  quoteSection: 'Báo giá',
+  editColumn: 'Chỉnh sửa cột',
+  formula: 'Công thức',
+  clearFormula: 'Xóa',
+  variables: 'Các biến',
+  addRow: 'Thêm dòng',
+  remove: 'Xóa',
+  confirmDeleteColumn: 'Bạn có chắc muốn xóa cột này không?',
+  confirmDeleteRow: 'Bạn có chắc muốn xóa dòng này không?',
+  required: 'Bắt buộc',
+  duplicateColumnName: 'Tên cột bị trùng',
+  invalidFormula: 'Công thức không hợp lệ',
+  row: 'Dòng',
+  column: 'Cột',
+  value: 'Giá trị',
+  actions: 'Hành động',
+  formulaPlaceholder: 'Nhập công thức...',
+  selectVariable: 'Chọn biến',
+  invalidInput: 'Dữ liệu không hợp lệ',
+  editFormula: 'Chỉnh sửa công thức',
+  noColumns: 'Không có cột',
+  noRows: 'Không có dòng',
+  requiredField: 'Trường này là bắt buộc',
+  duplicate: 'Trùng lặp',
+  duplicateRow: 'Dòng bị trùng',
+  duplicateColumn: 'Cột bị trùng',
+  confirm: 'Xác nhận',
+  success: 'Thành công',
+  error: 'Lỗi',
+  info: 'Thông tin',
+  warning: 'Cảnh báo',
+  reset: 'Đặt lại',
+  undo: 'Hoàn tác',
+  redo: 'Làm lại',
+  copy: 'Sao chép',
+  paste: 'Dán',
+  cut: 'Cắt',
+  move: 'Di chuyển',
+  up: 'Lên',
+  down: 'Xuống',
+  left: 'Trái',
+  right: 'Phải',
+  insert: 'Chèn',
+  removeRow: 'Xóa dòng',
+  removeColumn: 'Xóa cột',
+  addVariable: 'Thêm biến',
+  variableName: 'Tên biến',
+  variableValue: 'Giá trị biến',
+  formulaHelp: 'Bạn có thể sử dụng các biến cột trong công thức.',
+  invalidVariable: 'Biến không hợp lệ',
+  duplicateVariable: 'Biến bị trùng',
+  noVariables: 'Không có biến',
+  selectColumn: 'Chọn cột',
+  selectRow: 'Chọn dòng',
+  selectAction: 'Chọn hành động',
+  confirmDelete: 'Bạn có chắc muốn xóa không?',
+  confirmReset: 'Bạn có chắc muốn đặt lại không?',
+  confirmUndo: 'Bạn có chắc muốn hoàn tác không?',
+  confirmRedo: 'Bạn có chắc muốn làm lại không?',
+  confirmCopy: 'Bạn có chắc muốn sao chép không?',
+  confirmPaste: 'Bạn có chắc muốn dán không?',
+  confirmCut: 'Bạn có chắc muốn cắt không?',
+  confirmMove: 'Bạn có chắc muốn di chuyển không?',
+  confirmInsert: 'Bạn có chắc muốn chèn không?',
+  confirmRemove: 'Bạn có chắc muốn xóa không?',
+  confirmAdd: 'Bạn có chắc muốn thêm không?',
+  confirmEdit: 'Bạn có chắc muốn chỉnh sửa không?',
+  confirmSave: 'Bạn có chắc muốn lưu không?',
+  confirmCancel: 'Bạn có chắc muốn hủy không?',
+  confirmClose: 'Bạn có chắc muốn đóng không?',
+  confirmOpen: 'Bạn có chắc muốn mở không?',
+  confirmSelect: 'Bạn có chắc muốn chọn không?',
+  confirmDeselect: 'Bạn có chắc muốn bỏ chọn không?',
+  confirmApply: 'Bạn có chắc muốn áp dụng không?',
+  confirmRemoveRow: 'Bạn có chắc muốn xóa dòng này không?',
+  confirmRemoveColumn: 'Bạn có chắc muốn xóa cột này không?',
+  confirmAddVariable: 'Bạn có chắc muốn thêm biến này không?',
+  confirmRemoveVariable: 'Bạn có chắc muốn xóa biến này không?',
+  confirmEditVariable: 'Bạn có chắc muốn chỉnh sửa biến này không?',
+  confirmSaveVariable: 'Bạn có chắc muốn lưu biến này không?',
+  confirmCancelVariable: 'Bạn có chắc muốn hủy biến này không?',
+  confirmCloseVariable: 'Bạn có chắc muốn đóng biến này không?',
+  confirmOpenVariable: 'Bạn có chắc muốn mở biến này không?',
+  confirmSelectVariable: 'Bạn có chắc muốn chọn biến này không?',
+  confirmDeselectVariable: 'Bạn có chắc muốn bỏ chọn biến này không?',
+  confirmApplyVariable: 'Bạn có chắc muốn áp dụng biến này không?'
+  ,text: 'Văn bản'
+  ,number: 'Số'
+  ,date: 'Ngày tháng'
+  ,calculationType: 'Loại tính toán'
+  ,unitPriceRowFormulaDesc: 'Sử dụng công thức cho cột Price (dùng giá trị các cột khác trên dòng)'
+  ,rowFormulaDesc: 'Công thức cho từng ô (dùng giá trị các cột khác trên dòng)'
+  ,unitPriceFormulaNote: 'Công thức sẽ tính giá Price tự động dựa trên giá trị các cột khác trong cùng dòng'
+  ,rowFormulaNote: 'Công thức sẽ tính giá trị ô tự động dựa trên giá trị các cột khác trong cùng dòng'
+  ,savePriceConfig: 'Lưu cấu hình Price'
+  ,configurePriceFormula: 'Cấu hình công thức Price'
+  ,errorInFormula: 'Lỗi trong công thức'
+  ,priceFormulaLabel: 'Công thức tính Price'
+  ,cellFormulaLabel: 'Công thức ô'
+  ,enterFormulaInstruction: 'Nhập công thức (sử dụng @ + tên cột):'
+  ,formulaExample: 'Ví dụ'
+  ,createNumberColumnsFirst: 'Tạo thêm cột số để sử dụng công thức'
+  ,howToUse: 'Cách sử dụng:'
+  ,useColumnReference: 'Sử dụng @tencot để tham chiếu đến cột khác'
+  ,useOperators: 'Có thể dùng phép tính: + - * / ( )'
+  ,dateFormat: 'Định dạng ngày'
+  ,selectFormat: 'Chọn định dạng'
+  ,singleDate: 'Một ngày'
+  ,dateRange: 'Khoảng ngày (từ - đến)'
+  ,moveLeft: 'Di chuyển trái'
+  ,moveRight: 'Di chuyển phải'
+  ,deleteColumn: 'Xóa cột'
+  ,columnOptions: 'Tùy chọn cột'
+  
+  // Quote Manager specific translations
+  ,selectVariableOrFormula: 'Chọn biến hoặc nhập công thức...'
+  ,default: 'Mặc định'
+  ,variablesAvailable: 'Kết quả tính toán có thể sử dụng'
+  ,noCalculationColumns: 'Chưa có cột nào thiết lập tính toán'
+  ,setupCalculationColumns: 'Hãy thiết lập phép tính cho cột để tạo biến sử dụng trong công thức'
+  ,variablesAutoSumHint: 'Biến cạnh nhau sẽ tự động cộng. Ví dụ: {QuantitySum}{PriceAvg} = QuantitySum + PriceAvg'
+  ,netTotal: 'Net Total'
+  ,netTotalDesc: 'Grand Total - Tổng collaborator'
+  ,sumByColumn: 'Tổng Theo Cột'
+  ,columns: 'cột'
+  ,otherCalculations: 'Phép Tính Khác'
+  ,calculationsCount: 'phép tính'
+  ,noCalculationColumnsMsg: 'Chưa có cột nào được thiết lập phép tính. Hãy thêm cột số và thiết lập phép tính để xem kết quả.'
+  ,grandTotaltit: 'Tổng kết & tính toán'
+  ,calculationsDesc: 'Tổng kết'
+  ,sections: 'Phân mục'
+  ,suggestions: 'Gợi ý AI'
+  ,addSection: 'Thêm phân mục'
+  ,templateApplied: 'Đã áp dụng mẫu'
+  ,templateAppliedDesc: 'Mẫu đã được áp dụng thành công'
+  ,columnAdded: 'Đã thêm cột'
+  ,hasBeenAdded: 'đã được thêm'
+  ,columnDeleted: 'Đã xóa cột'
+  ,hasBeenRemoved: 'đã được xóa'
+  ,pastedFromClipboard: 'Đã dán từ clipboard'
+  ,items: 'mục'
+  ,and: 'và'
+  ,haveBeenImported: 'đã được nhập.'
+  ,clipboardInvalidFormat: 'Clipboard trống hoặc định dạng không hợp lệ'
+  ,untitledSection: 'Phân mục không tên'
+  ,applyTemplate: 'Áp dụng mẫu'
+  ,applyTemplateWarning: 'Thao tác này sẽ thay thế tất cả các phân mục và mục hiện tại. Hành động này không thể hoàn tác.'
+  ,copyFromPriceQuote: 'Sao chép từ báo giá'
+  ,copyFromQuoteDesc: 'Sao chép cấu trúc và dữ liệu từ báo giá'
+  ,invalidFormulaResult: 'Công thức không hợp lệ hoặc không trả về số.'
+  ,briefLink: 'Brief'
+  ,driveLink: 'Lưu trữ'
+  ,noDescription: 'Không có mô tả'
+  ,noQuoteData: 'Không có dữ liệu báo giá'
+  ,noCollaboratorQuoteData: 'Không có dữ liệu báo giá cộng tác viên'
+  ,analyticsDesc: 'Các chỉ số và biểu đồ chính cho task này. (Biểu đồ sẽ có sớm)'
+  ,totalRevenue: 'Tổng Doanh Thu'
+  ,estimatedProfit: 'Lợi Nhuận Ước Tính'
+  ,daysTotal: 'Tổng Số Ngày'
+  ,quoteItems: 'Mục Báo Giá'
+  ,chartsPlaceholder: '[Biểu đồ sẽ được hiển thị ở đây]'
+  ,startDate: 'Ngày Bắt Đầu'
+  ,deadline: 'Hạn Chót'
+  ,progress: 'Tiến Độ'
+  ,days: 'ngày'
+  ,invalidDate: 'Ngày không hợp lệ'
+};
 
+// English translations (default)
+export const en = {
+  overview: 'Overview',
+  analytics: 'Analytics',
+  collaboratorCosts: 'Collaborator Quote',
+  addColumn: 'Add column',
+  addItem: 'Add item',
+  columnName: 'Column Name',
+  columnType: 'Column Type',
+  noCalculation: 'No calculation',
+  sum: 'Sum',
+  average: 'Average',
+  minimum: 'Minimum',
+  maximum: 'Maximum',
+  customFormula: 'Custom formula',
+  cancel: 'Cancel',
+  saveChanges: 'Save Changes',
+  newItemPlaceholder: 'New item description...',
+  pasteTable: 'Paste table',
+  pasteFailed: 'Failed to paste',
+  delete: 'Delete',
+  // --- QUOTE SECTION IMPROVED: Add missing translation keys ---
+  quoteSection: 'Quote Section',
+  editColumn: 'Edit Column',
+  formula: 'Formula',
+  clearFormula: 'Clear',
+  variables: 'Variables',
+  addRow: 'Add Row',
+  remove: 'Remove',
+  confirmDeleteColumn: 'Are you sure you want to delete this column?',
+  confirmDeleteRow: 'Are you sure you want to delete this row?',
+  required: 'Required',
+  duplicateColumnName: 'Duplicate column name',
+  invalidFormula: 'Invalid formula',
+  row: 'Row',
+  column: 'Column',
+  value: 'Value',
+  actions: 'Actions',
+  formulaPlaceholder: 'Enter formula...',
+  selectVariable: 'Select variable',
+  invalidInput: 'Invalid input',
+  editFormula: 'Edit Formula',
+  noColumns: 'No columns',
+  noRows: 'No rows',
+  requiredField: 'This field is required',
+  duplicate: 'Duplicate',
+  duplicateRow: 'Duplicate row',
+  duplicateColumn: 'Duplicate column',
+  confirm: 'Confirm',
+  success: 'Success',
+  error: 'Error',
+  info: 'Info',
+  warning: 'Warning',
+  reset: 'Reset',
+  undo: 'Undo',
+  redo: 'Redo',
+  copy: 'Copy',
+  paste: 'Paste',
+  cut: 'Cut',
+  move: 'Move',
+  up: 'Up',
+  down: 'Down',
+  left: 'Left',
+  right: 'Right',
+  insert: 'Insert',
+  removeRow: 'Remove Row',
+  removeColumn: 'Remove Column',
+  addVariable: 'Add Variable',
+  variableName: 'Variable Name',
+  variableValue: 'Variable Value',
+  formulaHelp: 'You can use column variables in your formula.',
+  invalidVariable: 'Invalid variable',
+  duplicateVariable: 'Duplicate variable',
+  noVariables: 'No variables',
+  selectColumn: 'Select column',
+  selectRow: 'Select row',
+  selectAction: 'Select action',
+  confirmDelete: 'Are you sure you want to delete?',
+  confirmReset: 'Are you sure you want to reset?',
+  confirmUndo: 'Are you sure you want to undo?',
+  confirmRedo: 'Are you sure you want to redo?',
+  confirmCopy: 'Are you sure you want to copy?',
+  confirmPaste: 'Are you sure you want to paste?',
+  confirmCut: 'Are you sure you want to cut?',
+  confirmMove: 'Are you sure you want to move?',
+  confirmInsert: 'Are you sure you want to insert?',
+  confirmRemove: 'Are you sure you want to remove?',
+  confirmAdd: 'Are you sure you want to add?',
+  confirmEdit: 'Are you sure you want to edit?',
+  confirmSave: 'Are you sure you want to save?',
+  confirmCancel: 'Are you sure you want to cancel?',
+  confirmClose: 'Are you sure you want to close?',
+  confirmOpen: 'Are you sure you want to open?',
+  confirmSelect: 'Are you sure you want to select?',
+  confirmDeselect: 'Are you sure you want to deselect?',
+  confirmApply: 'Are you sure you want to apply?',
+  confirmRemoveRow: 'Are you sure you want to remove this row?',
+  confirmRemoveColumn: 'Are you sure you want to remove this column?',
+  confirmAddVariable: 'Are you sure you want to add this variable?',
+  confirmRemoveVariable: 'Are you sure you want to remove this variable?',
+  confirmEditVariable: 'Are you sure you want to edit this variable?',
+  confirmSaveVariable: 'Are you sure you want to save this variable?',
+  confirmCancelVariable: 'Are you sure you want to cancel this variable?',
+  confirmCloseVariable: 'Are you sure you want to close this variable?',
+  confirmOpenVariable: 'Are you sure you want to open this variable?',
+  confirmSelectVariable: 'Are you sure you want to select this variable?',
+  confirmDeselectVariable: 'Are you sure you want to deselect this variable?',
+  confirmApplyVariable: 'Are you sure you want to apply this variable?'
+  ,text: 'Text'
+  ,number: 'Number'
+  ,date: 'Date'
+  ,calculationType: 'Calculation Type'
+  ,unitPriceRowFormulaDesc: 'Use formula for Price column (use values from other columns in the row)'
+  ,rowFormulaDesc: 'Formula for each cell (use values from other columns in the row)'
+  ,unitPriceFormulaNote: 'The formula will automatically calculate Price based on other columns in the same row'
+  ,rowFormulaNote: 'The formula will automatically calculate the cell value based on other columns in the same row'
+  ,savePriceConfig: 'Save Price Config'
+  ,configurePriceFormula: 'Configure Price Formula'
+  ,errorInFormula: 'Error in formula'
+  ,priceFormulaLabel: 'Price Formula'
+  ,cellFormulaLabel: 'Cell Formula'
+  ,enterFormulaInstruction: 'Enter formula (use @ + column name):'
+  ,formulaExample: 'Example'
+  ,createNumberColumnsFirst: 'Create number columns first to use formulas'
+  ,howToUse: 'How to use:'
+  ,useColumnReference: 'Use @columnname to reference other columns'
+  ,useOperators: 'Available operators: + - * / ( )'
+  ,dateFormat: 'Date Format'
+  ,selectFormat: 'Select format'
+  ,singleDate: 'Single date'
+  ,dateRange: 'Date range (from - to)'
+  ,moveLeft: 'Move Left'
+  ,moveRight: 'Move Right'
+  ,deleteColumn: 'Delete Column'
+  ,columnOptions: 'Column options'
+  
+  // Quote Manager specific translations
+  ,selectVariableOrFormula: 'Select variable or enter formula...'
+  ,default: 'Default'
+  ,variablesAvailable: 'Available calculation results'
+  ,noCalculationColumns: 'No columns have calculation set up'
+  ,setupCalculationColumns: 'Set up calculations for columns to create variables for use in formulas'
+  ,variablesAutoSumHint: 'Adjacent variables will be automatically added. Example: {QuantitySum}{PriceAvg} = QuantitySum + PriceAvg'
+  ,netTotal: 'Net Total'
+  ,netTotalDesc: 'Grand Total - Collaborator total'
+  ,sumByColumn: 'Sum by Column'
+  ,columns: 'columns'
+  ,otherCalculations: 'Other Calculations'
+  ,calculationsCount: 'calculations'
+  ,noCalculationColumnsMsg: 'No columns have calculations set up. Add number columns and set up calculations to see results.'
+  ,grandTotal: 'Grand Total'
+  ,grandTotaltit: 'Grand Total & Calculations'
+  ,calculationsDesc: 'Summary'
+  ,sections: 'Tables'
+  ,suggestions: 'AI Suggestions'
+  ,addSection: 'Add Section'
+  ,templateApplied: 'Template Applied'
+  ,templateAppliedDesc: 'Template has been applied successfully'
+  ,columnAdded: 'Column Added'
+  ,hasBeenAdded: 'has been added'
+  ,columnDeleted: 'Column Deleted'
+  ,hasBeenRemoved: 'has been removed'
+  ,pastedFromClipboard: 'Pasted from Clipboard'
+  ,items: 'items'
+  ,and: 'and'
+  ,haveBeenImported: 'have been imported.'
+  ,clipboardInvalidFormat: 'Clipboard is empty or has invalid format'
+  ,untitledSection: 'Untitled Section'
+  ,applyTemplate: 'Apply Template'
+  ,applyTemplateWarning: 'This will replace all current sections and items. This action cannot be undone.'
+  ,copyFromPriceQuote: 'Copy from Quote'
+  ,copyFromQuoteDesc: 'Copy structure and data from price quote'
+  ,invalidFormulaResult: 'Invalid formula or does not return a number.'
+  ,briefLink: 'Brief'
+  ,driveLink: 'Storage'
+  ,noDescription: 'No description available'
+  ,noQuoteData: 'No quote data available'
+  ,noCollaboratorQuoteData: 'No collaborator quote data available'
+  ,analyticsDesc: 'Key metrics and charts for this task. (Charts coming soon)'
+  ,totalRevenue: 'Total Revenue'
+  ,estimatedProfit: 'Estimated Profit'
+  ,daysTotal: 'Days Total'
+  ,quoteItems: 'Quote Items'
+  ,chartsPlaceholder: '[Charts will be displayed here]'
+  ,startDate: 'Start Date'
+  ,deadline: 'Deadline'
+  ,progress: 'Progress'
+  ,days: 'days'
+  ,invalidDate: 'Invalid Date'
+};
+
+// Simple language switcher (default to Vietnamese)
+export const T = vi;
 
 export const i18n = {
   en: {
@@ -95,6 +479,8 @@ export const i18n = {
     trashCan: 'Trash Can',
     addTask: 'Add Task',
     views: 'Views',
+    tableView: 'Table View', // Thêm khóa mới
+    calendarView: 'Calendar View', // Thêm khóa mới
     trash: 'Trash',
     manage: 'Manage',
     manageClients: 'Manage Clients',
@@ -129,7 +515,7 @@ export const i18n = {
     task: 'Task',
     description: 'Description',
     quantity: 'Quantity',
-    unitPrice: 'Unit Price',
+    unitPrice: 'Price',
     briefLink: 'Brief Link',
     driveLink: 'Drive Link',
     startDate: 'Start Date',
@@ -504,6 +890,8 @@ export const i18n = {
     trashCan: 'Thùng rác',
     addTask: 'Thêm công việc',
     views: 'Chế độ xem',
+    tableView: 'Chế độ xem Bảng', // Thêm khóa mới
+    calendarView: 'Chế độ xem Lịch', // Thêm khóa mới
     trash: 'Thùng rác',
     manage: 'Quản lý',
     manageClients: 'Quản lý khách hàng',
@@ -538,7 +926,7 @@ export const i18n = {
     task: 'Công việc',
     description: 'Mô tả',
     quantity: 'Số lượng',
-    unitPrice: 'Đơn giá',
+    unitPrice: 'Giá',
     briefLink: 'Link Brief',
     driveLink: 'Link Drive',
     startDate: 'Ngày bắt đầu',

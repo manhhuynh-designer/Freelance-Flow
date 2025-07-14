@@ -41,18 +41,7 @@ const formSchema = z.object({
   name: z.string().min(2, "Task name must be at least 2 characters."),
   description: z.string().optional(),
   briefLink: z.array(z.string().url({ message: "Please enter a valid URL." })).optional().default([]),
-  driveLink: z.array(z.string().refine(
-    (val) => {
-      // Accept http(s) and file:// links
-      try {
-        const url = new URL(val);
-        return url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'file:';
-      } catch {
-        return false;
-      }
-    },
-    { message: "Please enter a valid URL or local file link (file://)." }
-  )).optional().default([]),
+  driveLink: z.array(z.string().url({ message: "Please enter a valid URL." })).optional().default([]),
   clientId: z.string().min(1, "Please select a client."),
   collaboratorId: z.string().optional(),
   categoryId: z.string().min(1, "Please select a category."),
@@ -348,13 +337,13 @@ export function CreateTaskForm({
                   const links = field.value || [];
                   return (
                     <FormItem>
-                      <FormLabel>Storage Links</FormLabel>
+                      <FormLabel>{T.driveLink}</FormLabel>
                       <div className="space-y-2">
                         {links.map((_: string, idx: number) => (
                           <div key={idx} className="flex gap-2 items-center">
                             <Input
                               {...form.register(`driveLink.${idx}`)}
-                              placeholder="e.g., https://drive.google.com/drive/... or file:///C:/Users/yourfile.pdf"
+                              placeholder="e.g., https://drive.google.com/drive/..."
                             />
                             {idx > 0 && (
                               <Button

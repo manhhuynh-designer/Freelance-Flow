@@ -6,17 +6,22 @@ export type DashboardColumn = {
   visible: boolean;
 };
 
+export type ColumnCalculationType = 'none' | 'sum' | 'average' | 'min' | 'max' | 'custom';
 export type QuoteColumn = {
   id: string;
   name: string;
-  type: 'text' | 'number';
-  sumTotal?: boolean;
+  type: 'text' | 'number' | 'date';
+  dateFormat?: 'single' | 'range'; // cho date columns
+  calculation?: {
+    type: ColumnCalculationType;
+    formula?: string; // cho custom
+  };
+  rowFormula?: string; // công thức cho từng ô (per-row calculation)
 };
 
 export type QuoteItem = {
   id: string;
   description: string;
-  quantity: number;
   unitPrice: number;
   customFields?: Record<string, any>;
 };
@@ -54,8 +59,8 @@ export type Task = {
   subStatusId?: string;
   quoteId: string;
   collaboratorQuoteId?: string;
-  briefLink?: string;
-  driveLink?: string;
+  briefLink?: string[];
+  driveLink?: string[];
   deletedAt?: string;
 };
 
@@ -66,7 +71,7 @@ export type Client = {
   phone?: string;
   taxInfo?: string;
   type?: 'agency' | 'brand';
-  driveLink?: string;
+  driveLink?: string[];
 };
 
 export type Collaborator = {
