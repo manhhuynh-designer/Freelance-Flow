@@ -198,7 +198,8 @@ export function TaskListItem({
   const category = useMemo(() => (categories || []).find(c => c.id === task.categoryId), [task.categoryId, categories]);
 
   const assignedCollaborator = useMemo(() => {
-    return collaborators.find(c => c.id === task.collaboratorId);
+    if (!task.collaboratorId) return null;
+    return collaborators.find(c => c.id === task.collaboratorId) || null;
   }, [task.collaboratorId, collaborators]);
 
   // Helper function to calculate row value with formula support

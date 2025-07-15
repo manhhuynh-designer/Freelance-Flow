@@ -32,7 +32,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Expand, Shrink, PlusCircle, Users, FileText, Briefcase, Settings, Download, X, LayoutGrid, Cog, Puzzle, Trash2 } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarSeparator, SidebarTrigger, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuSkeleton } from "@/components/ui/sidebar";
-import { initialAppData, categories as initialCategories, STATUS_INFO } from '@/lib/data';
+import { initialAppData, categories as initialCategories, initialCollaborators, initialClients, STATUS_INFO } from '@/lib/data';
 import type { Task, Quote, Client, QuoteColumn, QuoteTemplate, Collaborator, AppData, Category, DashboardColumn, AppSettings, QuoteSection, QuoteItem } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { ClientManager } from "@/components/client-manager";
@@ -48,6 +48,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import Image from "next/image";
 import { differenceInDays } from "date-fns";
 import { DashboardContext } from '@/contexts/dashboard-context';
+import { CollaboratorDataService } from '@/lib/collaborator-data-service';
 import { PageTitle } from "@/components/page-title";
 import { SidebarNavigation } from "@/components/sidebar-navigation";
 import { DataRestoredNotification } from "@/components/data-restored-notification";
@@ -128,7 +129,8 @@ export default function DashboardLayout({
   useEffect(() => {
     const initializeData = async () => {
       const storedDataString = localStorage.getItem(storageKey);
-      let loadedData: AppData = initialAppData;
+      let loadedData: AppData | undefined;
+      let isFirstTimeUse = false;
 
       // Kiểm tra và khôi phục dữ liệu nếu bị mất từ localStorage backup
       const restoredData = BackupService.checkAndRestore();
@@ -153,9 +155,29 @@ export default function DashboardLayout({
         } catch (error) {
           console.warn('IndexedDB restore failed:', error);
         }
+        
+        // If no stored data at all, this is first time use
+        if (!storedDataString) {
+          isFirstTimeUse = true;
+          console.log('First time use detected, loading sample data');
+          loadedData = initialAppData;
+        } else {
+          // storedDataString === '{}' means data was explicitly cleared
+          console.log('Data was explicitly cleared, starting with empty state');
+          loadedData = {
+            tasks: [],
+            quotes: [],
+            collaboratorQuotes: [],
+            clients: [],
+            collaborators: [],
+            quoteTemplates: [],
+            categories: [],
+            appSettings: defaultSettings,
+          };
+        }
       }
 
-    if (storedDataString) {
+      if (storedDataString) {
           try {
               const data: any = JSON.parse(storedDataString);
               const trashAutoDeleteDays = data.appSettings?.trashAutoDeleteDays || 30;
@@ -220,22 +242,58 @@ export default function DashboardLayout({
               });
               loadedSettings.widgets = loadedWidgets;
 
+              // Check if this is a fresh start (no data) vs explicit clear (empty arrays)
+              const isFreshStart = !data.clients && !data.collaborators && !data.categories && !data.quoteTemplates;
+              const wasExplicitlyCleared = (data.clients?.length === 0 && data.collaborators?.length === 0 && data.categories?.length === 0);
+
               loadedData = {
                 tasks: parsedTasks,
                 quotes: (data.quotes || []).map(migrateQuote),
                 collaboratorQuotes: (data.collaboratorQuotes || []).map(migrateQuote),
-                clients: data.clients || [],
-                collaborators: data.collaborators || [],
+                clients: (isFreshStart && !wasExplicitlyCleared) ? initialClients : (data.clients || []),
+                collaborators: (isFreshStart && !wasExplicitlyCleared) ? initialCollaborators : (data.collaborators || []),
                 quoteTemplates: (data.quoteTemplates || []).map(migrateTemplate),
-                categories: data.categories !== undefined ? data.categories : initialCategories,
+                categories: (isFreshStart && !wasExplicitlyCleared) ? initialCategories : (data.categories || []),
                 appSettings: loadedSettings,
               };
+
+              // Ensure collaborator data integrity
+              const wasDataCleared = wasExplicitlyCleared;
+              loadedData = CollaboratorDataService.syncCollaboratorData(loadedData, wasDataCleared);
           } catch (e) {
               console.error("Failed to parse data from localStorage", e);
+              // If parsing fails, treat as first time use if we haven't set loadedData yet
+              if (!loadedData) {
+                console.log('Data parsing failed, falling back to sample data');
+                loadedData = initialAppData;
+                isFirstTimeUse = true;
+              }
           }
       }
       
-      setAppData(loadedData);
+      // If we still don't have loadedData (shouldn't happen), use empty state
+      if (!loadedData) {
+        console.warn('No data loaded, creating empty state');
+        loadedData = {
+          tasks: [],
+          quotes: [],
+          collaboratorQuotes: [],
+          clients: [],
+          collaborators: [],
+          quoteTemplates: [],
+          categories: [],
+          appSettings: defaultSettings,
+        };
+      }
+      
+      // Always ensure collaborator data integrity, even for default data
+      // Only restore initial data if this is truly a fresh start (not a cleared state)
+      const hasAnyStoredData = !!storedDataString && storedDataString !== '{}';
+      const shouldSkipInitialRestore = hasAnyStoredData && !isFirstTimeUse;
+      const finalData = loadedData!; // We know loadedData is defined by this point
+      const syncedData = CollaboratorDataService.syncCollaboratorData(finalData, shouldSkipInitialRestore);
+      
+      setAppData(syncedData);
       
       const storedBackupDate = localStorage.getItem(lastBackupKey);
       if (storedBackupDate) {
@@ -827,7 +885,7 @@ export default function DashboardLayout({
                                <SidebarGroupContent>
                                <SidebarMenu>
                                    <SidebarMenuItem><Dialog open={isClientManagerOpen} onOpenChange={setIsClientManagerOpen}><DialogTrigger asChild><SidebarMenuButton><Users />{T.manageClients}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.clientManagement}</DialogTitle></DialogHeader><ClientManager clients={appData.clients} tasks={appData.tasks} onAddClient={e => handleAddClientAndSelect(e)} onEditClient={(id, data) => setAppData(prev => ({...prev, clients: prev.clients.map(c => c.id === id ? {id, ...data} : c)}))} onDeleteClient={(id) => setAppData(prev => ({...prev, clients: prev.clients.filter(c => c.id !== id)}))} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
-                                   <SidebarMenuItem><Dialog open={isCollaboratorManagerOpen} onOpenChange={setIsCollaboratorManagerOpen}><DialogTrigger asChild><SidebarMenuButton><Briefcase />{T.manageCollaborators}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.collaboratorManagement}</DialogTitle></DialogHeader><CollaboratorManager collaborators={appData.collaborators} tasks={appData.tasks} onAddCollaborator={(data) => setAppData(prev => ({...prev, collaborators: [...prev.collaborators, {id: `collaborator-${Date.now()}`, ...data}]}))} onEditCollaborator={(id, data) => setAppData(prev => ({...prev, collaborators: prev.collaborators.map(c => c.id === id ? {...c, ...data} : c)}))} onDeleteCollaborator={(id) => setAppData(prev => ({...prev, collaborators: prev.collaborators.filter(c => c.id !== id)}))} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
+                                   <SidebarMenuItem><Dialog open={isCollaboratorManagerOpen} onOpenChange={setIsCollaboratorManagerOpen}><DialogTrigger asChild><SidebarMenuButton><Briefcase />{T.manageCollaborators}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.collaboratorManagement}</DialogTitle></DialogHeader><CollaboratorManager collaborators={appData.collaborators} tasks={appData.tasks} onAddCollaborator={(data) => setAppData(prev => ({...prev, collaborators: [...prev.collaborators, {id: `collab-${Date.now()}`, ...data}]}))} onEditCollaborator={(id, data) => setAppData(prev => ({...prev, collaborators: prev.collaborators.map(c => c.id === id ? {...c, ...data} : c)}))} onDeleteCollaborator={(id) => setAppData(prev => ({...prev, collaborators: prev.collaborators.filter(c => c.id !== id)}))} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
                                    <SidebarMenuItem><Dialog open={isCategoryManagerOpen} onOpenChange={setIsCategoryManagerOpen}><DialogTrigger asChild><SidebarMenuButton><LayoutGrid />{T.manageCategories}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.categoryManagement}</DialogTitle></DialogHeader><CategoryManager categories={appData.categories} tasks={appData.tasks} onAddCategory={(data) => setAppData(prev => ({...prev, categories: [...prev.categories, {id: `cat-${Date.now()}`, ...data}]}))} onEditCategory={(id, data) => setAppData(prev => ({...prev, categories: prev.categories.map(c => c.id === id ? {id, ...data} : c)}))} onDeleteCategory={(id) => setAppData(prev => ({...prev, categories: prev.categories.filter(c => c.id !== id)}))} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
                                    <SidebarMenuItem>
                                      <Dialog open={isTemplateManagerOpen} onOpenChange={setIsTemplateManagerOpen}>

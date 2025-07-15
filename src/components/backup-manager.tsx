@@ -9,6 +9,7 @@ import { BackupService } from '@/lib/backup-service';
 import { i18n } from "@/lib/i18n";
 import { useDashboard } from '@/contexts/dashboard-context';
 import { useToast } from "@/hooks/use-toast";
+import { CollaboratorDataService } from '@/lib/collaborator-data-service';
 import { Download, Upload, RefreshCw, Trash2, Clock, Shield } from 'lucide-react';
 import { 
   AlertDialog,
@@ -78,14 +79,20 @@ export function BackupManager() {
           deletedAt: task.deletedAt ? new Date(task.deletedAt).toISOString() : undefined,
         }));
 
-        setTasks(parsedTasks);
-        setQuotes(restoredData.quotes || []);
-        setCollaboratorQuotes(restoredData.collaboratorQuotes || []);
-        setClients(restoredData.clients || []);
-        setCollaborators(restoredData.collaborators || []);
-        setQuoteTemplates(restoredData.quoteTemplates || []);
-        setCategories(restoredData.categories || []);
-        setAppSettings(restoredData.appSettings);
+        // Sync collaborator data to ensure integrity using special import processing
+        const syncedData = CollaboratorDataService.processImportedData({
+          ...restoredData,
+          tasks: parsedTasks
+        });
+
+        setTasks(syncedData.tasks);
+        setQuotes(syncedData.quotes || []);
+        setCollaboratorQuotes(syncedData.collaboratorQuotes || []);
+        setClients(syncedData.clients || []);
+        setCollaborators(syncedData.collaborators);
+        setQuoteTemplates(syncedData.quoteTemplates || []);
+        setCategories(syncedData.categories || []);
+        setAppSettings(syncedData.appSettings);
 
         toast({
           title: "Data Restored",

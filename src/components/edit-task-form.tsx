@@ -229,8 +229,12 @@ export function EditTaskForm({
     defaultValues: {
       name: taskToEdit.name,
       description: taskToEdit.description || "",
-      briefLink: Array.isArray(taskToEdit.briefLink) ? taskToEdit.briefLink : (taskToEdit.briefLink ? [taskToEdit.briefLink] : []),
-      driveLink: Array.isArray(taskToEdit.driveLink) ? taskToEdit.driveLink : (taskToEdit.driveLink ? [taskToEdit.driveLink] : []),
+      briefLink: Array.isArray(taskToEdit.briefLink) 
+        ? (taskToEdit.briefLink.length > 0 ? taskToEdit.briefLink : [""]) 
+        : (taskToEdit.briefLink ? [taskToEdit.briefLink] : [""]),
+      driveLink: Array.isArray(taskToEdit.driveLink) 
+        ? (taskToEdit.driveLink.length > 0 ? taskToEdit.driveLink : [""]) 
+        : (taskToEdit.driveLink ? [taskToEdit.driveLink] : [""]),
       clientId: taskToEdit.clientId,
       collaboratorId: taskToEdit.collaboratorId || "",
       categoryId: taskToEdit.categoryId,
@@ -634,11 +638,13 @@ export function EditTaskForm({
                 name="briefLink"
                 render={({ field }) => {
                   const links = field.value || [];
+                  // Ensure we always have at least one field to show
+                  const linksToRender = links.length > 0 ? links : [""];
                   return (
                     <FormItem>
                       <FormLabel>{T.briefLink}</FormLabel>
                       <div className="space-y-2">
-                        {links.map((_: string, idx: number) => (
+                        {linksToRender.map((_: string, idx: number) => (
                           <div key={idx} className="flex gap-2 items-center">
                             <Input
                               {...form.register(`briefLink.${idx}`)}
@@ -663,12 +669,15 @@ export function EditTaskForm({
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             )}
-                            {idx === links.length - 1 && links.length < 5 && (
+                            {idx === linksToRender.length - 1 && linksToRender.length < 5 && (
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => form.setValue('briefLink', [...links, ""])}
+                                onClick={() => {
+                                  const currentLinks = form.getValues('briefLink') || [];
+                                  form.setValue('briefLink', [...currentLinks, ""]);
+                                }}
                                 title={T.addLink || "Thêm link"}
                               >
                                 <PlusCircle className="w-4 h-4" />
@@ -687,11 +696,13 @@ export function EditTaskForm({
                 name="driveLink"
                 render={({ field }) => {
                   const links = field.value || [];
+                  // Ensure we always have at least one field to show
+                  const linksToRender = links.length > 0 ? links : [""];
                   return (
                     <FormItem>
                       <FormLabel>Storage Links</FormLabel>
                       <div className="space-y-2">
-                        {links.map((_: string, idx: number) => (
+                        {linksToRender.map((_: string, idx: number) => (
                           <div key={idx} className="flex gap-2 items-center">
                             <Input
                               {...form.register(`driveLink.${idx}`)}
@@ -716,12 +727,15 @@ export function EditTaskForm({
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             )}
-                            {idx === links.length - 1 && links.length < 5 && (
+                            {idx === linksToRender.length - 1 && linksToRender.length < 5 && (
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => form.setValue('driveLink', [...links, ""])}
+                                onClick={() => {
+                                  const currentLinks = form.getValues('driveLink') || [];
+                                  form.setValue('driveLink', [...currentLinks, ""]);
+                                }}
                                 title={T.addLink || "Thêm link"}
                               >
                                 <PlusCircle className="w-4 h-4" />
@@ -743,18 +757,29 @@ export function EditTaskForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Client</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select client" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {(clients || []).map((client) => (
-                          <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder="Select client" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {(clients || []).map((client) => (
+                            <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setIsAddClientOpen(true)}
+                        title={T.addClient}
+                      >
+                        <PlusCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -880,6 +905,43 @@ export function EditTaskForm({
       <AlertDialog open={!!deletingColumn} onOpenChange={(isOpen) => !isOpen && setDeletingColumn(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{T.areYouSure}?</AlertDialogTitle><AlertDialogDescription>{T.deletePermanently} "{deletingColumn?.name}" column.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setDeletingColumn(null)}>{T.cancel}</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDeleteColumn}>{T.delete}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
       <Dialog open={isCollabColumnDialogOpen} onOpenChange={(isOpen) => !isOpen && handleCloseCollabColumnDialog()}><DialogContent><DialogHeader><DialogTitle>{editingCollabColumn ? T.edit + " " + T.collaborator + " Column" : T.add + " " + T.collaborator + " Column"}</DialogTitle><DialogDescription>{editingCollabColumn ? "Update your column details." : "Enter a name and type for your new column."}</DialogDescription></DialogHeader><div className="py-4 space-y-4"><div className="space-y-2"><Label htmlFor="new-collab-column-name">Column Name</Label><Input id="new-collab-column-name" value={newCollabColumnName} onChange={(e) => setNewCollabColumnName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}/></div><div className="space-y-2"><Label>Column Type</Label><RadioGroup value={newCollabColumnType} onValueChange={(value: QuoteColumn['type']) => setNewCollabColumnType(value)} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="text" id="collab-type-text" /><Label htmlFor="collab-type-text" className="font-normal">Text</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="number" id="collab-type-number" /><Label htmlFor="collab-type-number" className="font-normal">Number</Label></div></RadioGroup></div>{newCollabColumnType === 'number' && (<div className="flex items-center space-x-2 pl-1 pt-2"><Checkbox id="collab-sum-total" checked={newCollabColumnSum} onCheckedChange={(checked) => setNewCollabColumnSum(Boolean(checked))} /><Label htmlFor="collab-sum-total" className="text-sm font-normal">Calculate total for this column</Label></div>)}</div><DialogFooter><Button type="button" variant="ghost" onClick={handleCloseCollabColumnDialog}>{T.cancel}</Button><Button type="button" onClick={editingCollabColumn ? handleUpdateCollabColumn : handleAddCollabColumn}>{editingCollabColumn ? T.saveChanges : T.addColumn}</Button></DialogFooter></DialogContent></Dialog>
       <AlertDialog open={!!deletingCollabColumn} onOpenChange={(isOpen) => !isOpen && setDeletingCollabColumn(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{T.areYouSure}?</AlertDialogTitle><AlertDialogDescription>{T.deletePermanently} "{deletingCollabColumn?.name}" column.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setDeletingCollabColumn(null)}>{T.cancel}</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDeleteCollabColumn}>{T.delete}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{T.addClient}</DialogTitle>
+            <DialogDescription>
+              Enter a name for the new client.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              placeholder={T.clientNameRequired}
+              value={newClientName}
+              onChange={(e) => setNewClientName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newClientName.trim()) {
+                  handleAddNewClient();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => {
+              setIsAddClientOpen(false);
+              setNewClientName("");
+            }}>
+              {T.cancel}
+            </Button>
+            <Button 
+              type="button" 
+              onClick={handleAddNewClient}
+              disabled={!newClientName.trim()}
+            >
+              {T.addClient}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

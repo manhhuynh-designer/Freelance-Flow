@@ -67,6 +67,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDashboard } from '@/contexts/dashboard-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { CollaboratorDataService } from '@/lib/collaborator-data-service';
 import { StatusSettings } from '@/components/status-settings';
 import { LocalBackupManager } from '@/components/local-backup-manager';
 import { getThemeBackgroundColorHsl, getContrastingTextColor } from "@/lib/colors";
@@ -259,14 +260,21 @@ function SettingsPageContent() {
                 deadline: new Date(task.deadline),
                 deletedAt: task.deletedAt ? new Date(task.deletedAt).toISOString() : undefined,
             }));
-            setTasks(parsedTasks);
-            setQuotes(restoredData.quotes || []);
-            setCollaboratorQuotes(restoredData.collaboratorQuotes || []);
-            setClients(restoredData.clients || []);
-            setCollaborators(restoredData.collaborators || []);
-            setQuoteTemplates(restoredData.quoteTemplates || []);
-            setCategories(restoredData.categories || []);
-            setAppSettings(restoredData.appSettings || defaultSettings as AppSettings);
+
+            // Sync collaborator data to ensure integrity using special import processing
+            const syncedData = CollaboratorDataService.processImportedData({
+                ...restoredData,
+                tasks: parsedTasks
+            });
+
+            setTasks(syncedData.tasks);
+            setQuotes(syncedData.quotes || []);
+            setCollaboratorQuotes(syncedData.collaboratorQuotes || []);
+            setClients(syncedData.clients || []);
+            setCollaborators(syncedData.collaborators);
+            setQuoteTemplates(syncedData.quoteTemplates || []);
+            setCategories(syncedData.categories || []);
+            setAppSettings(syncedData.appSettings || defaultSettings as AppSettings);
             
             setIsConfirmRestoreOpen(false);
             setRestoredData(null);
