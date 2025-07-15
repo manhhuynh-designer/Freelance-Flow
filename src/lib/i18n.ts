@@ -20,7 +20,42 @@ export const vi = {
   newItemPlaceholder: 'Mô tả mục mới...',
   pasteTable: 'Dán bảng',
   pasteFailed: 'Dán không thành công',
+  pasteInstructions: 'Sao chép dữ liệu bảng của bạn (từ Excel, Google Sheets, v.v.) và dán vào đây bằng Ctrl+V:',
+  pasteHere: 'Dán dữ liệu bảng của bạn vào đây...',
+  pasteExample: 'Ví dụ: Mỗi dòng trên một dòng mới, các cột được phân tách bằng tab',
   delete: 'Xóa',
+  deleteSection: 'Xóa phần',
+  sectionName: 'Tên phần',
+  confirmDeleteSection: 'Xóa phần?',
+  confirmDeleteSectionDesc: 'Bạn có chắc chắn muốn xóa phần này không? Hành động này không thể hoàn tác và sẽ xóa tất cả các mục trong phần này.',
+  pasteOptions: 'Tùy chọn dán',
+  pasteOptionsDesc: 'Phần này đã chứa dữ liệu. Bạn muốn dán dữ liệu mới như thế nào?',
+  replaceData: 'Thay thế dữ liệu',
+  replaceDataDesc: 'Xóa tất cả các mục hiện có và thay thế bằng dữ liệu được dán',
+  addData: 'Thêm dữ liệu',
+  addDataDesc: 'Giữ các mục hiện có và thêm dữ liệu được dán vào bên dưới',
+  addRows: 'Thêm hàng',
+  addRowsDesc: 'Thêm các hàng mới vào cuối bảng',
+  addColumns: 'Thêm cột',
+  addColumnsDesc: 'Thêm các cột mới vào bên phải bảng',
+  replaceAll: 'Thay thế tất cả',
+  replaceAllDesc: 'Xóa tất cả và thay bằng dữ liệu mới',
+  pasteHow: 'Bạn muốn dán như thế nào?',
+  dataRequirement: 'Yêu cầu: dữ liệu phải có',
+  columnsRequired: 'cột',
+  undoAction: 'Hoàn tác',
+  undoSuccess: 'Hoàn tác thành công',
+  undoSuccessDesc: 'Đã khôi phục trạng thái trước khi dán',
+  undoFailed: 'Hoàn tác thất bại',
+  undoFailedDesc: 'Không thể khôi phục trạng thái trước đó',
+  columnMismatch: 'Số cột không khớp',
+  columnMismatchDesc: 'Để thêm hàng, dữ liệu phải có cùng số cột với bảng hiện tại',
+  replaced: 'đã thay thế',
+  added: 'đã thêm',
+  duplicateDataDetected: 'Phát hiện dữ liệu trùng lặp',
+  duplicateDataDesc: 'Một số mục bạn đang cố gắng dán đã tồn tại trong phần này. Vui lòng sử dụng tùy chọn dán để thay thế hoặc thêm dữ liệu.',
+  columnsReplacedWith: 'cột đã được thay thế bằng',
+  newColumns: 'cột mới',
   // --- QUOTE SECTION IMPROVED: Add missing translation keys ---
   quoteSection: 'Báo giá',
   editColumn: 'Chỉnh sửa cột',
@@ -188,6 +223,62 @@ export const vi = {
   ,progress: 'Tiến Độ'
   ,days: 'ngày'
   ,invalidDate: 'Ngày không hợp lệ'
+  // Local Backup translations
+  ,localFolderBackup: 'Sao Lưu Thư Mục'
+  ,browserSupport: 'Hỗ Trợ Trình Duyệt'
+  ,supported: 'Hỗ Trợ'
+  ,limited: 'Hạn Chế'
+  ,browserNotSupported: 'Trình duyệt không hỗ trợ'
+  ,browserNotSupportedDesc: 'Trình duyệt của bạn không hỗ trợ chọn thư mục. Sử dụng Chrome 86+ hoặc Edge 86+ cho tính năng này. Bạn vẫn có thể tải xuống thủ công vào thư mục Downloads.'
+  ,autoSaveStatus: 'Trạng Thái Tự Động Lưu'
+  ,savingTo: 'Đang lưu vào'
+  ,selectedFolder: 'Thư mục đã chọn'
+  ,noFolderSelected: 'Chưa chọn thư mục'
+  ,active: 'Hoạt động'
+  ,inactive: 'Không hoạt động'
+  ,selectBackupFolder: 'Chọn Thư Mục Sao Lưu'
+  ,selecting: 'Đang chọn...'
+  ,saveNow: 'Lưu Ngay'
+  ,saving: 'Đang lưu...'
+  ,disableAutoSave: 'Tắt Tự Động Lưu'
+  ,folderSelected: 'Đã Chọn Thư Mục'
+  ,folderSelectedDesc: 'Thư mục sao lưu đã được thiết lập thành công. Tự động lưu hiện đã được bật.'
+  ,selectionFailed: 'Chọn Thất Bại'
+  ,selectionFailedDesc: 'Không thể chọn thư mục sao lưu. Vui lòng thử lại.'
+  ,autoSaveDisabled: 'Đã Tắt Tự Động Lưu'
+  ,autoSaveDisabledDesc: 'Tự động lưu thư mục local đã được tắt.'
+  ,backupSaved: 'Đã Lưu Sao Lưu'
+  ,backupSavedDesc: 'Sao lưu thủ công đã được lưu vào thư mục đã chọn.'
+  ,saveFailed: 'Lưu Thất Bại'
+  ,saveFailedDesc: 'Không thể lưu sao lưu. Vui lòng chọn thư mục trước.'
+  ,saveError: 'Lỗi Lưu'
+  ,saveErrorDesc: 'Đã xảy ra lỗi khi lưu sao lưu.'
+  ,manualDownload: 'Tải Xuống Thủ Công'
+  ,manualDownloadDesc: 'Tải sao lưu trực tiếp vào thư mục Downloads'
+  ,suggested: 'Gợi Ý'
+  ,downloadToDownloads: 'Tải Về Dữ Liệu'
+  ,backupDownloaded: 'Đã Tải Sao Lưu'
+  ,backupDownloadedDesc: 'Tệp sao lưu đã được tải xuống vào thư mục Downloads của bạn.'
+  ,lastAutoSave: 'Lần tự động lưu cuối'
+  ,howItWorks: 'Cách hoạt động'
+  ,autoSaveEvery24h: 'Tự động tạo tệp sao lưu mỗi 24 giờ'
+  ,savedDirectlyToFolder: 'Tệp được lưu trực tiếp vào thư mục bạn chọn'
+  ,noInternetRequired: 'Không cần internet - mọi thứ lưu trên máy tính của bạn'
+  ,folderPermissionOnce: 'Quyền thư mục chỉ được yêu cầu một lần mỗi phiên'
+  ,manualDownloadAllBrowsers: 'Tải thủ công hoạt động trên mọi trình duyệt'
+  ,dataBackupAndRestore: 'Sao Lưu & Khôi Phục Dữ Liệu'
+  ,dataBackupDesc: 'Quản lý sao lưu dữ liệu với nhiều tùy chọn bảo vệ'
+  ,backupTooltip: 'Tự động tạo nhiều phiên bản sao lưu để bảo vệ dữ liệu khỏi bị mất'
+  ,localFolderTooltip: 'Lưu sao lưu trực tiếp vào thư mục trên máy tính của bạn'
+  ,manualExportTooltip: 'Tải xuống tệp sao lưu ngay lập tức để lưu trữ thủ công'
+  // Data Management
+  ,dataManagement: 'Quản lý dữ liệu'
+  ,dataManagementDesc: 'Sao lưu, khôi phục và quản lý dữ liệu của bạn'
+  ,dataRestore: 'Khôi phục dữ liệu'
+  ,selectBackupFile: 'Chọn tệp sao lưu'
+  ,supportedFormat: 'Hỗ trợ định dạng: .json'
+  ,selectFile: 'Chọn tệp'
+  ,warningNotReversible: 'Cảnh báo: Hành động này không thể hoàn tác!'
 };
 
 // English translations (default)
@@ -210,7 +301,42 @@ export const en = {
   newItemPlaceholder: 'New item description...',
   pasteTable: 'Paste table',
   pasteFailed: 'Failed to paste',
+  pasteInstructions: 'Copy your table data (from Excel, Google Sheets, etc.) and paste it here using Ctrl+V:',
+  pasteHere: 'Paste your table data here...',
+  pasteExample: 'Example: Each row on a new line, columns separated by tabs',
   delete: 'Delete',
+  deleteSection: 'Delete section',
+  sectionName: 'Section name',
+  confirmDeleteSection: 'Delete Section?',
+  confirmDeleteSectionDesc: 'Are you sure you want to delete this section? This action cannot be undone and will remove all items in this section.',
+  pasteOptions: 'Paste Options',
+  pasteOptionsDesc: 'This section already contains data. How would you like to paste the new data?',
+  replaceData: 'Replace Data',
+  replaceDataDesc: 'Remove all existing items and replace with pasted data',
+  addData: 'Add Data',
+  addDataDesc: 'Keep existing items and add pasted data below',
+  addRows: 'Add Rows',
+  addRowsDesc: 'Add new rows to the end of table',
+  addColumns: 'Add Columns',
+  addColumnsDesc: 'Add new columns to the right of table',
+  replaceAll: 'Replace All',
+  replaceAllDesc: 'Remove everything and replace with new data',
+  pasteHow: 'How would you like to paste?',
+  dataRequirement: 'Requirement: data must have',
+  columnsRequired: 'columns',
+  undoAction: 'Undo',
+  undoSuccess: 'Undo successful',
+  undoSuccessDesc: 'Restored state before paste',
+  undoFailed: 'Undo failed',
+  undoFailedDesc: 'Unable to restore previous state',
+  columnMismatch: 'Column count mismatch',
+  columnMismatchDesc: 'To add rows, data must have the same number of columns as current table',
+  replaced: 'replaced',
+  added: 'added',
+  duplicateDataDetected: 'Duplicate Data Detected',
+  duplicateDataDesc: 'Some items you are trying to paste already exist in this section. Please use paste options to replace or add data.',
+  columnsReplacedWith: 'columns replaced with',
+  newColumns: 'new columns',
   // --- QUOTE SECTION IMPROVED: Add missing translation keys ---
   quoteSection: 'Quote Section',
   editColumn: 'Edit Column',
@@ -379,9 +505,70 @@ export const en = {
   ,progress: 'Progress'
   ,days: 'days'
   ,invalidDate: 'Invalid Date'
+  // Local Backup translations
+  ,localFolderBackup: 'Local Folder Backup'
+  ,browserSupport: 'Browser Support'
+  ,supported: 'Supported'
+  ,limited: 'Limited'
+  ,browserNotSupported: 'Browser Not Supported'
+  ,browserNotSupportedDesc: 'Your browser doesn\'t support folder selection. Please use Chrome 86+ or Edge 86+ for this feature. You can still use manual download to Downloads folder.'
+  ,autoSaveStatus: 'Auto-save Status'
+  ,savingTo: 'Saving to'
+  ,selectedFolder: 'Selected folder'
+  ,noFolderSelected: 'No folder selected'
+  ,active: 'Active'
+  ,inactive: 'Inactive'
+  ,selectBackupFolder: 'Select Backup Folder'
+  ,selecting: 'Selecting...'
+  ,saveNow: 'Save Now'
+  ,saving: 'Saving...'
+  ,disableAutoSave: 'Disable Auto-save'
+  ,folderSelected: 'Folder Selected'
+  ,folderSelectedDesc: 'Backup folder has been set successfully. Auto-save is now enabled.'
+  ,selectionFailed: 'Selection Failed'
+  ,selectionFailedDesc: 'Failed to select backup folder. Please try again.'
+  ,autoSaveDisabled: 'Auto-save Disabled'
+  ,autoSaveDisabledDesc: 'Local folder auto-save has been disabled.'
+  ,backupSaved: 'Backup Saved'
+  ,backupSavedDesc: 'Manual backup has been saved to your selected folder.'
+  ,saveFailed: 'Save Failed'
+  ,saveFailedDesc: 'Failed to save backup. Please select a folder first.'
+  ,saveError: 'Save Error'
+  ,saveErrorDesc: 'An error occurred while saving backup.'
+  ,manualDownload: 'Manual Download'
+  ,manualDownloadDesc: 'Download backup directly to your Downloads folder'
+  ,suggested: 'Suggested'
+  ,downloadToDownloads: 'Download Data'
+  ,backupDownloaded: 'Backup Downloaded'
+  ,backupDownloadedDesc: 'Backup file has been downloaded to your Downloads folder.'
+  ,lastAutoSave: 'Last auto-save'
+  ,howItWorks: 'How it works'
+  ,autoSaveEvery24h: 'Auto-save creates backup files every 24 hours'
+  ,savedDirectlyToFolder: 'Files are saved directly to your chosen folder'
+  ,noInternetRequired: 'No internet required - everything stays on your computer'
+  ,folderPermissionOnce: 'Folder permission is requested only once per session'
+  ,manualDownloadAllBrowsers: 'Manual download works in all browsers'
+  ,dataBackupAndRestore: 'Data Backup & Restore'
+  ,dataBackupDesc: 'Manage data backups with multiple protection options'
+  ,backupTooltip: 'Automatically creates multiple backup versions to protect data from loss'
+  ,localFolderTooltip: 'Save backups directly to a folder on your computer'
+  ,manualExportTooltip: 'Download backup file instantly for manual storage'
+  // Data Management
+  ,dataManagement: 'Data Management'
+  ,dataManagementDesc: 'Backup, restore and manage your data'
+  ,dataRestore: 'Data Restore'
+  ,selectBackupFile: 'Select backup file'
+  ,supportedFormat: 'Supported format: .json'
+  ,selectFile: 'Select File'
+  ,warningNotReversible: 'Warning: This action cannot be undone!'
 };
 
-// Simple language switcher (default to Vietnamese)
+// Simple language switcher based on user settings
+export const getTranslations = (language: string = 'vi') => {
+  return language === 'en' ? en : vi;
+};
+
+// Default export for backwards compatibility
 export const T = vi;
 
 export const i18n = {
@@ -728,6 +915,14 @@ export const i18n = {
     clearAllDataWarningTitle: "Are you absolutely sure?",
     clearAllDataWarningDesc: "This will permanently delete all your data. To confirm, type {confirmationText} in the box below.",
     confirmClear: "I understand, clear all data",
+    // Data Management translations
+    dataManagement: 'Data Management',
+    dataManagementDesc: 'Backup, restore and manage your data',
+    dataRestore: 'Data Restore',
+    selectBackupFile: 'Select backup file',
+    supportedFormat: 'Supported format: .json',
+    selectFile: 'Select File',
+    warningNotReversible: 'Warning: This action cannot be undone!',
     statusSettings: 'Manage Statuses',
     statusSettingsDesc: 'Customize the labels and add detailed sub-statuses for your workflow.',
     mainStatusLabel: 'Main Status Label',
@@ -1207,5 +1402,13 @@ export const i18n = {
     newChatStarted: 'Đã bắt đầu cuộc trò chuyện mới',
     newChatStartedDesc: 'Lịch sử cuộc trò chuyện trước đó của bạn đã được xóa.',
     chatHistory: 'Lịch sử trò chuyện',
+    // Additional Data Management translations  
+    dataManagement: 'Quản lý dữ liệu',
+    dataManagementDesc: 'Sao lưu, khôi phục và quản lý dữ liệu của bạn',
+    dataRestore: 'Khôi phục dữ liệu',
+    selectBackupFile: 'Chọn tệp sao lưu',
+    supportedFormat: 'Hỗ trợ định dạng: .json',
+    selectFile: 'Chọn tệp',
+    warningNotReversible: 'Cảnh báo: Hành động này không thể hoàn tác!',
   }
 };

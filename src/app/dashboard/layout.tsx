@@ -50,8 +50,12 @@ import { differenceInDays } from "date-fns";
 import { DashboardContext } from '@/contexts/dashboard-context';
 import { PageTitle } from "@/components/page-title";
 import { SidebarNavigation } from "@/components/sidebar-navigation";
+import { DataRestoredNotification } from "@/components/data-restored-notification";
 import { getSidebarBackgroundColorHsl, hexToRgb, rgbToHsl, getThemeBackgroundColorHsl, getContrastingForegroundHsl, getContrastingTextColor } from "@/lib/colors";
 import { WIDGETS } from "@/lib/widgets";
+import { BackupService } from "@/lib/backup-service";
+import { LocalBackupService } from "@/lib/local-backup-service";
+import { DataPersistenceService } from "@/lib/data-persistence";
 
 const defaultSettings: AppSettings = {
     theme: {
@@ -122,96 +126,130 @@ export default function DashboardLayout({
   const lastBackupKey = 'freelance-flow-last-backup';
 
   useEffect(() => {
-    const storedDataString = localStorage.getItem(storageKey);
-    let loadedData: AppData = initialAppData;
+    const initializeData = async () => {
+      const storedDataString = localStorage.getItem(storageKey);
+      let loadedData: AppData = initialAppData;
+
+      // Kiểm tra và khôi phục dữ liệu nếu bị mất từ localStorage backup
+      const restoredData = BackupService.checkAndRestore();
+      if (restoredData) {
+        console.log('Data restored from localStorage backup successfully');
+        loadedData = restoredData;
+        setAppData(loadedData);
+        setIsDataLoaded(true);
+        return;
+      }
+
+      // Nếu localStorage backup cũng không có, thử IndexedDB
+      if (!storedDataString || storedDataString === '{}') {
+        try {
+          const indexedDBRestored = await DataPersistenceService.restoreFromIndexedDB();
+          if (indexedDBRestored) {
+            console.log('Data restored from IndexedDB successfully');
+            // Reload để áp dụng dữ liệu từ IndexedDB
+            setTimeout(() => window.location.reload(), 500);
+            return;
+          }
+        } catch (error) {
+          console.warn('IndexedDB restore failed:', error);
+        }
+      }
 
     if (storedDataString) {
-        try {
-            const data: any = JSON.parse(storedDataString);
-            const trashAutoDeleteDays = data.appSettings?.trashAutoDeleteDays || 30;
-            const trashExpiryDate = new Date(Date.now() - trashAutoDeleteDays * 86400000);
+          try {
+              const data: any = JSON.parse(storedDataString);
+              const trashAutoDeleteDays = data.appSettings?.trashAutoDeleteDays || 30;
+              const trashExpiryDate = new Date(Date.now() - trashAutoDeleteDays * 86400000);
 
-            const parsedTasks = (data.tasks || []).map((task: any) => ({
-                ...task,
-                startDate: new Date(task.startDate),
-                deadline: new Date(task.deadline),
-                deletedAt: task.deletedAt ? new Date(task.deletedAt).toISOString() : undefined,
-            })).filter((task: Task) => !task.deletedAt || new Date(task.deletedAt!) > trashExpiryDate);
+              const parsedTasks = (data.tasks || []).map((task: any) => ({
+                  ...task,
+                  startDate: new Date(task.startDate),
+                  deadline: new Date(task.deadline),
+                  deletedAt: task.deletedAt ? new Date(task.deletedAt).toISOString() : undefined,
+              })).filter((task: Task) => !task.deletedAt || new Date(task.deletedAt!) > trashExpiryDate);
 
-            const migrateQuote = (q: any) => {
-                if (q && q.items && !q.sections) {
-                    return { ...q, sections: [{ id: `section-migrated-${q.id}`, name: T.untitledSection || 'Main Items', items: q.items }], items: undefined };
-                }
-                return q;
-            };
+              const migrateQuote = (q: any) => {
+                  if (q && q.items && !q.sections) {
+                      return { ...q, sections: [{ id: `section-migrated-${q.id}`, name: T.untitledSection || 'Main Items', items: q.items }], items: undefined };
+                  }
+                  return q;
+              };
 
-            const migrateTemplate = (t: any) => {
-                 if (t && t.items && !t.sections) {
-                    return { ...t, sections: [{ id: `section-migrated-tpl-${t.id}`, name: T.untitledSection || 'Main Items', items: t.items }], items: undefined };
-                }
-                return t;
-            }
+              const migrateTemplate = (t: any) => {
+                   if (t && t.items && !t.sections) {
+                      return { ...t, sections: [{ id: `section-migrated-tpl-${t.id}`, name: T.untitledSection || 'Main Items', items: t.items }], items: undefined };
+                  }
+                  return t;
+              }
 
-            let loadedSettings = { ...defaultSettings, ...(data.appSettings || {}) };
+              let loadedSettings = { ...defaultSettings, ...(data.appSettings || {}) };
 
-            if (!loadedSettings.dashboardColumns || loadedSettings.dashboardColumns.length === 0) {
-                loadedSettings.dashboardColumns = defaultSettings.dashboardColumns;
-            } else {
-                const defaultCols = defaultSettings.dashboardColumns || [];
-                const loadedCols = loadedSettings.dashboardColumns || [];
-                const defaultColMap = new Map(defaultCols.map(c => [c.id, c]));
-                
-                const newCols: DashboardColumn[] = [];
-                loadedCols.forEach((col: DashboardColumn) => {
-                    if (defaultColMap.has(col.id)) {
-                        newCols.push(col);
-                    }
-                });
-                defaultCols.forEach(defaultCol => {
-                    if (!newCols.find(c => c.id === defaultCol.id)) {
-                        newCols.push(defaultCol);
-                    }
-                });
-                loadedSettings.dashboardColumns = newCols;
-            }
-            if (!loadedSettings.statusSettings || loadedSettings.statusSettings.length !== STATUS_INFO.length) {
-                loadedSettings.statusSettings = defaultSettings.statusSettings;
-            }
-            const defaultWidgetMap = new Map((defaultSettings.widgets || []).map(w => [w.id, w]));
-            const loadedWidgets = (loadedSettings.widgets || []).map((w: any) => {
-                const defaultWidget = defaultWidgetMap.get(w.id);
-                return { ...defaultWidget, ...w };
-            });
-            const loadedWidgetIds = new Set(loadedWidgets.map((w: any) => w.id));
-            defaultSettings.widgets.forEach(defaultWidget => {
-                if (!loadedWidgetIds.has(defaultWidget.id)) {
-                    loadedWidgets.push(defaultWidget);
-                }
-            });
-            loadedSettings.widgets = loadedWidgets;
+              if (!loadedSettings.dashboardColumns || loadedSettings.dashboardColumns.length === 0) {
+                  loadedSettings.dashboardColumns = defaultSettings.dashboardColumns;
+              } else {
+                  const defaultCols = defaultSettings.dashboardColumns || [];
+                  const loadedCols = loadedSettings.dashboardColumns || [];
+                  const defaultColMap = new Map(defaultCols.map(c => [c.id, c]));
+                  
+                  const newCols: DashboardColumn[] = [];
+                  loadedCols.forEach((col: DashboardColumn) => {
+                      if (defaultColMap.has(col.id)) {
+                          newCols.push(col);
+                      }
+                  });
+                  defaultCols.forEach(defaultCol => {
+                      if (!newCols.find(c => c.id === defaultCol.id)) {
+                          newCols.push(defaultCol);
+                      }
+                  });
+                  loadedSettings.dashboardColumns = newCols;
+              }
+              if (!loadedSettings.statusSettings || loadedSettings.statusSettings.length !== STATUS_INFO.length) {
+                  loadedSettings.statusSettings = defaultSettings.statusSettings;
+              }
+              const defaultWidgetMap = new Map((defaultSettings.widgets || []).map(w => [w.id, w]));
+              const loadedWidgets = (loadedSettings.widgets || []).map((w: any) => {
+                  const defaultWidget = defaultWidgetMap.get(w.id);
+                  return { ...defaultWidget, ...w };
+              });
+              const loadedWidgetIds = new Set(loadedWidgets.map((w: any) => w.id));
+              defaultSettings.widgets.forEach(defaultWidget => {
+                  if (!loadedWidgetIds.has(defaultWidget.id)) {
+                      loadedWidgets.push(defaultWidget);
+                  }
+              });
+              loadedSettings.widgets = loadedWidgets;
 
-            loadedData = {
-              tasks: parsedTasks,
-              quotes: (data.quotes || []).map(migrateQuote),
-              collaboratorQuotes: (data.collaboratorQuotes || []).map(migrateQuote),
-              clients: data.clients || [],
-              collaborators: data.collaborators || [],
-              quoteTemplates: (data.quoteTemplates || []).map(migrateTemplate),
-              categories: data.categories !== undefined ? data.categories : initialCategories,
-              appSettings: loadedSettings,
-            };
-        } catch (e) {
-            console.error("Failed to parse data from localStorage", e);
-        }
-    }
-    
-    setAppData(loadedData);
-    
-    const storedBackupDate = localStorage.getItem(lastBackupKey);
-    if (storedBackupDate) {
-        setLastBackupDate(new Date(storedBackupDate));
-    }
-    setIsDataLoaded(true);
+              loadedData = {
+                tasks: parsedTasks,
+                quotes: (data.quotes || []).map(migrateQuote),
+                collaboratorQuotes: (data.collaboratorQuotes || []).map(migrateQuote),
+                clients: data.clients || [],
+                collaborators: data.collaborators || [],
+                quoteTemplates: (data.quoteTemplates || []).map(migrateTemplate),
+                categories: data.categories !== undefined ? data.categories : initialCategories,
+                appSettings: loadedSettings,
+              };
+          } catch (e) {
+              console.error("Failed to parse data from localStorage", e);
+          }
+      }
+      
+      setAppData(loadedData);
+      
+      const storedBackupDate = localStorage.getItem(lastBackupKey);
+      if (storedBackupDate) {
+          setLastBackupDate(new Date(storedBackupDate));
+      }
+      
+      // Initialize local folder backup service
+      LocalBackupService.restoreSettings();
+      
+      setIsDataLoaded(true);
+    };
+
+    // Call the async initialization
+    initializeData();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -242,6 +280,12 @@ export default function DashboardLayout({
   useEffect(() => {
     if (isDataLoaded) {
         localStorage.setItem(storageKey, JSON.stringify(debouncedAppData));
+        // Tự động backup dữ liệu để ngăn chặn mất dữ liệu
+        BackupService.autoBackup(debouncedAppData);
+        // Sync với IndexedDB để có backup layer phụ
+        DataPersistenceService.syncWithIndexedDB();
+        // Trigger local folder auto-save if enabled
+        LocalBackupService.autoSaveIfNeeded(debouncedAppData);
     }
   }, [debouncedAppData, storageKey, isDataLoaded]);
 
@@ -514,7 +558,7 @@ export default function DashboardLayout({
               { id: 'unitPrice', name: `${T.currency} (${appData.appSettings.currency})`, type: 'number' },
           ];
           const newQuoteItems: QuoteItem[] = newTaskData.quoteItems.map((item: any, index: number) => ({ ...item, id: `item-ai-${Date.now()}-${index}`, customFields: {} }));
-          const total = newQuoteItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+          const total = newQuoteItems.reduce((sum, item) => sum + ((item.quantity ?? 1) * (item.unitPrice ?? 0)), 0);
           newQuotes.push({ id: newQuoteId, sections: [{id: 'section-ai-1', name: T.untitledSection, items: newQuoteItems}], total, columns: defaultQuoteColumns });
         } else {
           newQuotes.push({ id: newQuoteId, sections: [{id: 'section-ai-1', name: T.untitledSection, items: []}], total: 0, columns: [] });
@@ -687,11 +731,13 @@ export default function DashboardLayout({
   };
 
   const handleExport = () => {
-    const jsonString = JSON.stringify(appData, null, 2);
+    // Sử dụng BackupService mới để tạo backup tích hợp
+    const { jsonString, filename } = BackupService.createManualBackup(appData);
+    
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.download = `freelance-flow-backup-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = filename;
     link.href = url;
     link.setAttribute('aria-label', 'Download backup JSON');
     link.setAttribute('title', 'Download backup JSON');
@@ -699,8 +745,9 @@ export default function DashboardLayout({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    
+    // Cập nhật last backup date cho UI
     const now = new Date();
-    localStorage.setItem(lastBackupKey, now.toISOString());
     setLastBackupDate(now);
     toast({ title: T.backupSuccessful, description: T.backupSuccessfulDesc });
   };
@@ -872,6 +919,10 @@ export default function DashboardLayout({
                              </div>
                          </Alert>
                      )}
+                     
+                     {/* Data Restored Notification */}
+                     <DataRestoredNotification />
+                     
                      {isDataLoaded ? children : <div className="h-full w-full flex items-center justify-center"><Skeleton className="h-full w-full" /></div>}
                    </main>
                  </SidebarInset>

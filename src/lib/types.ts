@@ -23,6 +23,7 @@ export type QuoteItem = {
   id: string;
   description: string;
   unitPrice: number;
+  quantity?: number;
   customFields?: Record<string, any>;
 };
 

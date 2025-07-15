@@ -36,6 +36,8 @@ const predefinedStatusColors: { name: string; colors: StatusColors }[] = [
 ];
 
 import React, { useState, useRef, useEffect } from 'react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { QuestionMarkIcon } from '@/components/ui/question-mark-icon';
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -66,6 +68,7 @@ import { useDashboard } from '@/contexts/dashboard-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { StatusSettings } from '@/components/status-settings';
+import { LocalBackupManager } from '@/components/local-backup-manager';
 import { getThemeBackgroundColorHsl, getContrastingTextColor } from "@/lib/colors";
 
 import { WIDGETS } from '@/lib/widgets';
@@ -483,11 +486,35 @@ function SettingsPageContent() {
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="google-api-key">Google AI API Key</Label>
+                                        <div className="flex items-center gap-1">
+                                            <Label htmlFor="google-api-key">Google AI API Key</Label>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" tabIndex={-1} title="Hướng dẫn lấy Google API Key">
+                                                        <QuestionMarkIcon className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-primary" />
+                                                    </a>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top">
+                                                    Dùng để truy cập Gemini. Lấy API key tại Google AI Studio.
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </div>
                                         <Input id="google-api-key" type="password" placeholder="Enter your Google API Key" value={appSettings.googleApiKey || ''} onChange={(e) => onSettingsChange(s => ({ ...s, googleApiKey: e.target.value }))} />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="openai-api-key">OpenAI API Key</Label>
+                                        <div className="flex items-center gap-1">
+                                            <Label htmlFor="openai-api-key">OpenAI API Key</Label>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" tabIndex={-1} title="Hướng dẫn lấy OpenAI API Key">
+                                                        <QuestionMarkIcon className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-primary" />
+                                                    </a>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top">
+                                                    Dùng để truy cập OpenAI (GPT). Lấy API key tại OpenAI Platform.
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </div>
                                         <Input id="openai-api-key" type="password" placeholder="Enter your OpenAI API Key" value={appSettings.openaiApiKey || ''} onChange={(e) => onSettingsChange(s => ({ ...s, openaiApiKey: e.target.value }))} />
                                     </div>
                                 </div>
@@ -495,35 +522,50 @@ function SettingsPageContent() {
                         </Card>
                     </TabsContent>
                     <TabsContent value="data">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base">{T.backupAndRestore}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="space-y-2">
-                                    <Label>{T.exportData}</Label>
-                                    <p className="text-sm text-muted-foreground">{T.backupDesc}</p>
-                                    <Button onClick={() => {
-                                        const jsonString = JSON.stringify(appData, null, 2);
-                                        const blob = new Blob([jsonString], { type: 'application/json' });
-                                        const url = URL.createObjectURL(blob);
-                                        const link = document.createElement('a');
-                                        link.download = `freelance-flow-backup-${new Date().toISOString().split('T')[0]}.json`;
-                                        link.href = url;
-                                        link.setAttribute('aria-label', 'Download backup JSON');
-                                        link.setAttribute('title', 'Download backup JSON');
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                        URL.revokeObjectURL(url);
-                                        toast({ title: T.backupSuccessful, description: T.backupSuccessfulDesc });
-                                    }}>{T.exportData}</Button>
-                                </div>
-                                <Separator />
-                                <div className="space-y-2">
-                                    <Label>{T.importData}</Label>
-                                    <p className="text-sm text-muted-foreground">{T.restoreDesc}</p>
-                                    <Button variant="outline" onClick={() => fileInputRef.current?.click()}>{T.importData}</Button>
+                        <div className="space-y-6">
+                            {/* Header Section */}
+                            <div className="space-y-2">
+                                <h2 className="text-xl font-semibold">{T.dataManagement || 'Data Management'}</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    {T.dataManagementDesc || 'Backup, restore and manage your data'}
+                                </p>
+                            </div>
+
+                            {/* Backup & Export Section */}
+                            <LocalBackupManager />
+
+                            {/* Import & Restore Section */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-lg">{T.dataRestore || 'Data Restore'}</CardTitle>
+                                    <CardDescription>
+                                        {T.restoreDesc}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p className="font-medium">{T.selectBackupFile || 'Select backup file'}</p>
+                                                <p className="text-sm text-muted-foreground">{T.supportedFormat || 'Supported format: .json'}</p>
+                                            </div>
+                                        </div>
+                                        <Button 
+                                            variant="outline"
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
+                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                            </svg>
+                                            {T.selectFile || 'Select File'}
+                                        </Button>
+                                    </div>
+                                        
                                     <input
                                         type="file"
                                         ref={fileInputRef}
@@ -531,38 +573,86 @@ function SettingsPageContent() {
                                         accept=".json"
                                         onChange={handleFileChange}
                                         aria-label="Import backup JSON"
-                                        title="Import backup JSON"
-                                        placeholder="Import backup JSON"
                                     />
-                                </div>
-                                <Separator />
-                                <Card className="border-destructive">
-                                    <CardHeader>
-                                        <CardTitle className="text-base text-destructive">{T.dangerZone}</CardTitle>
-                                        <CardDescription>{T.dangerZoneDesc}</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
+                                </CardContent>
+                            </Card>
+
+                            {/* Danger Zone */}
+                            <Card className="border-destructive/20">
+                                <CardHeader>
+                                    <CardTitle className="text-lg text-destructive">{T.dangerZone}</CardTitle>
+                                    <CardDescription>
+                                        {T.dangerZoneDesc}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 bg-destructive/10 rounded-full flex items-center justify-center">
+                                                <svg className="w-4 h-4 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p className="font-medium">{T.clearAllData}</p>
+                                                <p className="text-sm text-muted-foreground">{T.clearAllDataDesc}</p>
+                                            </div>
+                                        </div>
                                         <AlertDialog open={isConfirmClearOpen} onOpenChange={setIsConfirmClearOpen}>
-                                            <AlertDialogTrigger asChild><Button variant="destructive">{T.clearAllData}</Button></AlertDialogTrigger>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="destructive">
+                                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                    {T.clearAllData}
+                                                </Button>
+                                            </AlertDialogTrigger>
                                             <AlertDialogContent>
                                                 <AlertDialogHeader>
-                                                    <AlertDialogTitle>{T.clearAllDataWarningTitle}</AlertDialogTitle>
-                                                    <AlertDialogDescription>{T.clearAllDataWarningDesc.replace('{confirmationText}', confirmationText)}</AlertDialogDescription>
+                                                    <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                                        </svg>
+                                                        {T.clearAllDataWarningTitle}
+                                                    </AlertDialogTitle>
+                                                    <AlertDialogDescription className="space-y-2">
+                                                        <p>{T.clearAllDataWarningDesc?.replace('{confirmationText}', confirmationText) || `Type "${confirmationText}" to confirm deleting all data.`}</p>
+                                                        <div className="p-3 bg-destructive/10 rounded border border-destructive/20">
+                                                            <p className="text-sm text-destructive font-medium">
+                                                                ⚠️ {T.warningNotReversible || 'Warning: This action cannot be undone!'}
+                                                            </p>
+                                                        </div>
+                                                    </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <div className="py-2">
-                                                    <Input value={clearConfirmText} onChange={(e) => setClearConfirmText(e.target.value)} placeholder={appSettings.language === 'vi' ? 'Gõ XÓA để xác nhận' : 'Type DELETE to confirm'} />
+                                                    <Input 
+                                                        value={clearConfirmText} 
+                                                        onChange={(e) => setClearConfirmText(e.target.value)} 
+                                                        placeholder={appSettings.language === 'vi' ? `Gõ "${confirmationText}" để xác nhận` : `Type "${confirmationText}" to confirm`}
+                                                        className="border-destructive/20 focus:border-destructive"
+                                                    />
                                                 </div>
                                                 <AlertDialogFooter>
-                                                    <AlertDialogCancel onClick={() => setClearConfirmText('')}>{T.cancel}</AlertDialogCancel>
-                                                    <AlertDialogAction disabled={clearConfirmText !== confirmationText} className={cn(buttonVariants({ variant: "destructive" }))} onClick={handleClearData}>{T.confirmClear}</AlertDialogAction>
+                                                    <AlertDialogCancel onClick={() => setClearConfirmText('')}>
+                                                        {T.cancel}
+                                                    </AlertDialogCancel>
+                                                    <AlertDialogAction 
+                                                        disabled={clearConfirmText !== confirmationText} 
+                                                        className={cn(buttonVariants({ variant: "destructive" }))} 
+                                                        onClick={handleClearData}
+                                                    >
+                                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                        {T.confirmClear}
+                                                    </AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>
-                                        <p className="text-sm text-muted-foreground mt-2">{T.clearAllDataDesc}</p>
-                                    </CardContent>
-                                </Card>
-                            </CardContent>
-                        </Card>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
                     </TabsContent>
                 </Tabs>
                 <div className="flex justify-end pt-4">

@@ -39,6 +39,7 @@ import { QuoteSectionComponent } from "./quote-section-improved";
 import { QuoteSuggestion } from "./quote-suggestion";
 import type { QuoteColumn, QuoteTemplate, AppSettings } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { vi, en } from "@/lib/i18n";
 
@@ -75,14 +76,27 @@ export const QuoteManager = ({
 }: QuoteManagerProps) => {
   // Áp dụng cách lấy ngôn ngữ đúng theo cấu trúc i18n.ts mới
   const T = settings.language === 'en' ? en : vi;
-  // DEBUG: log giá trị T và settings.language
-  if (typeof window !== 'undefined') {
-    console.log('QuoteManager: settings.language =', settings.language);
-    console.log('QuoteManager: T =', T);
-  }
+  // Language setup completed
 
   const [templateToApply, setTemplateToApply] = React.useState<QuoteTemplate | null>(null);
   const [activeTab, setActiveTab] = React.useState("sections");
+  
+  // Paste options state
+  const [pendingPasteData, setPendingPasteData] = React.useState<{
+    sectionIndex: number;
+    text: string;
+    parsedItems: any[];
+    parsedColumns: QuoteColumn[];
+  } | null>(null);
+  const [isPasteOptionsDialogOpen, setIsPasteOptionsDialogOpen] = React.useState(false);
+  
+  // Undo state for paste operations
+  const [undoBackup, setUndoBackup] = React.useState<{
+    columns: QuoteColumn[];
+    sections: any[];
+    sectionIndex: number;
+    timeoutId?: NodeJS.Timeout;
+  } | null>(null);
   
   const { fields: sectionFields, append: appendSection, remove: removeSection } = useFieldArray({
     control,
@@ -203,7 +217,7 @@ export const QuoteManager = ({
     });
 
     if (typeof window !== 'undefined') {
-      console.log('QuoteManager: calculationResults =', results);
+      // Calculation results computed successfully
     }
     return results;
   }, [watchedSections, columns]);
@@ -483,9 +497,304 @@ export const QuoteManager = ({
     });
   };
 
+  // Function to handle undo paste operation
+  const handleUndoPaste = React.useCallback(() => {
+    console.log('handleUndoPaste called, checking current undoBackup...');
+    
+    // Use setTimeout to avoid setState during render
+    setTimeout(() => {
+      // Get current undoBackup state directly from setUndoBackup
+      setUndoBackup(currentBackup => {
+        console.log('Current undoBackup in callback:', currentBackup);
+        
+        if (!currentBackup) {
+          console.log('No undo backup available');
+          toast({
+            title: T.undoAction || "Không có hoàn tác",
+            description: T.undoAction || "Không có thao tác gần đây để hoàn tác",
+            variant: "destructive"
+          });
+          return currentBackup; // Return unchanged
+        }
+        
+        try {
+          // Clear the timeout if it exists
+          if (currentBackup.timeoutId) {
+            clearTimeout(currentBackup.timeoutId);
+          }
+          
+          console.log('Restoring backup columns:', currentBackup.columns);
+          console.log('Restoring backup sections:', currentBackup.sections);
+          
+          // Restore columns first
+          setColumns(currentBackup.columns);
+          
+          // Restore sections with complete data structure
+          // Use setTimeout to ensure columns are set before sections
+          setTimeout(() => {
+            form.setValue(fieldArrayName, currentBackup.sections);
+            console.log('Sections restored successfully');
+          }, 10);
+          
+          toast({
+            title: T.undoSuccess || "Hoàn tác thành công",
+            description: T.undoSuccessDesc || "Đã khôi phục trạng thái trước khi dán"
+          });
+          
+          console.log('Undo completed successfully');
+          
+          // Return null to clear the backup
+          return null;
+        } catch (error) {
+          console.error('Undo failed:', error);
+          toast({
+            variant: 'destructive',
+            title: T.undoFailed || "Hoàn tác thất bại",
+            description: T.undoFailedDesc || "Không thể khôi phục trạng thái trước đó"
+          });
+          return currentBackup; // Return unchanged on error
+        }
+      });
+    }, 0); // Execute on next tick
+  }, [setColumns, form, fieldArrayName, toast, T]);
+
+  // Helper function for better header detection
+  const detectHeaders = React.useCallback((firstRow: string[], allRows: string[][]) => {
+    // Multiple criteria for header detection
+    const criteria = {
+      hasNonNumeric: firstRow.some(cell => {
+        const trimmed = cell.trim();
+        return trimmed !== '' && isNaN(parseFloat(trimmed)) && trimmed.length > 1;
+      }),
+      hasTypicalHeaders: firstRow.some(cell => {
+        const lower = cell.toLowerCase().trim();
+        return ['description', 'item', 'service', 'price', 'cost', 'amount', 'quantity', 'qty', 'date', 'name', 'title'].some(keyword => lower.includes(keyword));
+      }),
+      differentFromSecondRow: allRows.length > 1 && firstRow.some((cell, index) => {
+        const secondRowCell = allRows[1][index] || '';
+        const firstTrimmed = cell.trim();
+        const secondTrimmed = secondRowCell.trim();
+        
+        // Different content and not both empty
+        return firstTrimmed !== secondTrimmed && (firstTrimmed !== '' || secondTrimmed !== '');
+      }),
+      hasTextInMostCells: firstRow.filter(cell => {
+        const trimmed = cell.trim();
+        return trimmed !== '' && isNaN(parseFloat(trimmed));
+      }).length >= Math.ceil(firstRow.length * 0.5) // At least 50% non-numeric
+    };
+    
+    // At least 2 criteria must be met for reliable header detection
+    const criteriaCount = Object.values(criteria).filter(Boolean).length;
+    return criteriaCount >= 2;
+  }, []);
+
+  // Helper function for better date detection
+  const isDateColumn = React.useCallback((columnData: string[]) => {
+    if (columnData.length === 0) return false;
+    
+    const nonEmptyCells = columnData.filter(cell => cell.trim() !== '');
+    if (nonEmptyCells.length === 0) return false;
+    
+    const validDates = nonEmptyCells.filter(cell => {
+      const trimmed = cell.trim();
+      
+      // Check common date formats
+      const datePatterns = [
+        /^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
+        /^\d{2}\/\d{2}\/\d{4}$/, // MM/DD/YYYY
+        /^\d{2}-\d{2}-\d{4}$/, // MM-DD-YYYY
+        /^\d{1,2}\/\d{1,2}\/\d{4}$/, // M/D/YYYY
+      ];
+      
+      if (datePatterns.some(pattern => pattern.test(trimmed))) {
+        const date = new Date(trimmed);
+        return !isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100;
+      }
+      
+      return false;
+    });
+    
+    // At least 70% should be valid dates for reliable detection
+    return validDates.length / nonEmptyCells.length >= 0.7;
+  }, []);
+
+  // Helper function for unique column ID generation
+  const generateUniqueColumnId = React.useCallback((baseId: string, existingIds: string[], index: number) => {
+    // For essential columns (description, unitPrice), always use the base ID without suffix
+    if (['description', 'unitPrice'].includes(baseId)) {
+      return baseId;
+    }
+    
+    let uniqueId = baseId;
+    let suffix = 1;
+    
+    while (existingIds.includes(uniqueId)) {
+      if (['quantity'].includes(baseId)) {
+        uniqueId = `${baseId}_${suffix}`;
+      } else {
+        // Use timestamp and index for truly unique IDs
+        uniqueId = `custom_${Date.now()}_${index}_${suffix}`;
+      }
+      suffix++;
+    }
+    
+    return uniqueId;
+  }, []);
+
+  const parsePasteData = React.useCallback((text: string) => {
+    // Split by actual newlines and tabs (not escaped strings)
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 1) {
+      return null;
+    }
+
+    // Parse all rows first to analyze data types
+    const allRows = lines.map(line => line.split(/\t/));
+
+    // Use improved header detection
+    const firstRow = allRows[0];
+    const hasHeaders = detectHeaders(firstRow, allRows);
+
+    let headerRow: string[];
+    let dataRows: string[][];
+
+    // Always treat all rows as data rows (including first row)
+    // Header detection is only used for column naming and type detection
+    if (hasHeaders) {
+      headerRow = firstRow;
+      dataRows = allRows; // Keep all rows including the first row as data
+    } else {
+      // Generate default headers if no header row detected
+      headerRow = firstRow.map((_, index) => `Column ${index + 1}`);
+      dataRows = allRows;
+    }
+
+    // Ensure we have at least some data
+    if (headerRow.length === 0 || dataRows.length === 0) {
+      return null;
+    }
+
+    // Get existing column IDs to avoid duplicates
+    const existingColumnIds = columns.map(col => col.id);
+    const existingColumnNames = columns.map(col => col.name.toLowerCase().trim());
+
+    // Robust: always use first column as description (text), all others as custom fields with auto-detected type
+    const newColumns = headerRow.map((header: string, index: number) => {
+      const columnData = dataRows.map(row => row[index] || '').filter(cell => cell.trim() !== '');
+
+      let columnId: string;
+      let columnType: 'text' | 'number' | 'date';
+      if (index === 0) {
+        // Always treat first column as description
+        columnId = 'description';
+        columnType = 'text';
+      } else {
+        // Auto-detect type for custom fields
+        // Check if all non-empty values in this column are numeric (handle Vietnamese number format)
+        const isNumeric = columnData.length > 0 && columnData.every(cell => {
+          const trimmed = cell.trim();
+          if (trimmed === '') return true;
+          // Try both Vietnamese (8.000,5) and English (8,000.5) formats
+          let cleanNumber = trimmed.replace(/\./g, '').replace(/,/g, '.');
+          let num = parseFloat(cleanNumber);
+          if (isNaN(num)) {
+            cleanNumber = trimmed.replace(/,/g, '');
+            num = parseFloat(cleanNumber);
+          }
+          return !isNaN(num) && isFinite(num) && (/^[\d,.]+$/.test(trimmed) || /^\d+(\s*\(ngày\))?$/i.test(trimmed));
+        });
+        const isDate = isDateColumn(columnData);
+        if (isDate && !isNumeric) {
+          columnType = 'date';
+        } else if (isNumeric) {
+          columnType = 'number';
+        } else {
+          columnType = 'text';
+        }
+        columnId = columnType === 'number' ? `custom_number_${Date.now()}_${index}` : `custom_${Date.now()}_${index}`;
+      }
+
+      // Generate unique column ID
+      const uniqueColumnId = generateUniqueColumnId(columnId, existingColumnIds, index);
+
+      // Ensure unique column name to prevent duplicates
+      let uniqueColumnName = header.trim();
+      let nameSuffix = 1;
+      while (existingColumnNames.includes(uniqueColumnName.toLowerCase().trim())) {
+        uniqueColumnName = `${header.trim()} (${nameSuffix})`;
+        nameSuffix++;
+      }
+
+      // Add to existing arrays to prevent duplicates within the same paste operation
+      existingColumnIds.push(uniqueColumnId);
+      existingColumnNames.push(uniqueColumnName.toLowerCase().trim());
+
+      return {
+        id: uniqueColumnId,
+        name: uniqueColumnName,
+        type: columnType
+      } as QuoteColumn;
+    });
+
+    // Create items from data rows
+    const newItems = dataRows
+      .filter(row => row.some(cell => cell.trim() !== '')) // Skip empty rows
+      .map((row: string[]) => {
+        const item: { description: string; unitPrice: number; customFields: Record<string, any> } = {
+          description: '',
+          unitPrice: 0,
+          customFields: {}
+        };
+
+        // Map data directly based on column index and type
+        newColumns.forEach((col, colIdx) => {
+          const cellValue = row[colIdx] ?? '';
+          const trimmedValue = cellValue.trim();
+          
+          if (colIdx === 0) {
+            // First column is always description
+            item.description = trimmedValue;
+          } else {
+            // All other columns go to customFields
+            if (col.type === 'number') {
+              if (trimmedValue === '') {
+                item.customFields[col.id] = 0;
+              } else {
+                // Try both Vietnamese and English number formats
+                let cleanNumber = trimmedValue.replace(/\./g, '').replace(/,/g, '.');
+                let parsed = parseFloat(cleanNumber);
+                if (isNaN(parsed)) {
+                  cleanNumber = trimmedValue.replace(/,/g, '');
+                  parsed = parseFloat(cleanNumber);
+                }
+                const finalValue = isNaN(parsed) ? 0 : parsed;
+                item.customFields[col.id] = finalValue;
+              }
+            } else if (col.type === 'date') {
+              const dateValue = new Date(trimmedValue);
+              item.customFields[col.id] = !isNaN(dateValue.getTime()) ? dateValue.toISOString().split('T')[0] : trimmedValue;
+            } else {
+              // Text columns
+              item.customFields[col.id] = trimmedValue !== '' ? trimmedValue : (cellValue || '');
+            }
+          }
+        });
+
+        return item;
+      });
+
+    if (newItems.length === 0) {
+      return null;
+    }
+
+    return { newItems, newColumns };
+  }, [columns, detectHeaders, isDateColumn, generateUniqueColumnId]);
+
   const handlePasteInSection = React.useCallback((sectionIndex: number, text: string) => {
-    const rows = text.trim().split('\\n').map((row: string) => row.split('\\t'));
-    if (rows.length < 1) {
+    const parseResult = parsePasteData(text);
+    
+    if (!parseResult) {
       toast({ 
         variant: 'destructive', 
         title: T.pasteFailed || "Paste Failed", 
@@ -494,52 +803,394 @@ export const QuoteManager = ({
       return;
     }
 
-    const headerRow = rows.shift()!;
-    const newColumns = headerRow.map((header: string, index: number) => {
-      const isNumeric = rows.every((row: string[]) => !isNaN(parseFloat(row[index])));
-      return {
-        id: `custom_${Date.now()}_${index}`,
-        name: header,
-        type: isNumeric ? 'number' : 'text'
-      } as QuoteColumn;
-    });
-
-    const quantityColumnIndex = headerRow.findIndex((header: string) => 
-      header.toLowerCase().includes('quantity')
-    );
-    if (quantityColumnIndex !== -1) {
-      newColumns[quantityColumnIndex].id = 'quantity';
-    }
-
-    if (sectionIndex === 0) {
-      setColumns(newColumns);
-    }
-
-    const newItems = rows.map((row: string[]) => {
-      const item: { description?: string; unitPrice?: number; customFields: Record<string, any> } = { 
-        customFields: {} 
-      };
-      newColumns.forEach((col, index) => {
-        item.customFields[col.id] = row[index];
-      });
-      return {
-        description: item.customFields.description || "",
-        unitPrice: parseFloat(item.customFields.unitPrice) || 0,
-        customFields: item.customFields || {},
-      };
-    });
-
+    const { newItems, newColumns } = parseResult;
+    
+    // Get current section data to check if it has existing items
     const allSections = form.getValues(fieldArrayName) || [];
-    if (allSections[sectionIndex]) {
-      allSections[sectionIndex].items = newItems;
-      form.setValue(fieldArrayName, allSections);
+    const currentSection = allSections[sectionIndex];
+    const hasExistingItems = currentSection?.items && currentSection.items.length > 0;
+    
+    // Always show options dialog when section has existing items
+    if (hasExistingItems) {
+      setPendingPasteData({
+        sectionIndex,
+        text,
+        parsedItems: newItems,
+        parsedColumns: newColumns
+      });
+      setIsPasteOptionsDialogOpen(true);
+    } else {
+      // If section is empty, directly add items with add-rows mode
+      applyPasteData(sectionIndex, newItems, newColumns, 'add-rows');
     }
+  }, [T, toast, form, fieldArrayName, parsePasteData]);
 
-    toast({
-      title: T.pastedFromClipboard || "Pasted from Clipboard",
-      description: `${newItems.length} ${T.items || "items"} ${T.and || "and"} ${newColumns.length} ${T.columns || "columns"} ${T.haveBeenImported || "have been imported."}`
-    });
-  }, [T, toast, form, fieldArrayName, setColumns]);
+  const applyPasteData = React.useCallback((sectionIndex: number, newItems: any[], newColumns: QuoteColumn[], mode: 'replace' | 'add-rows' | 'add-columns') => {
+    const existingColumnIds = columns.map(col => col.id);
+    let finalColumns = columns;
+    let columnsToAdd: QuoteColumn[] = [];
+
+    // Backup current state for rollback capability and undo
+    // Make deep copy to avoid reference issues
+    const currentSections = form.getValues(fieldArrayName) || [];
+    const backup = {
+      columns: JSON.parse(JSON.stringify(columns)), // Deep copy columns
+      sections: JSON.parse(JSON.stringify(currentSections)), // Deep copy sections with all data
+      sectionIndex
+    };
+
+    try {
+      if (mode === 'replace') {
+        // Replace all columns: first column is description, all others are custom fields with detected type
+        if (newColumns.length > 0) {
+          // Always set first column as description (text)
+          const firstCol = { ...newColumns[0], id: 'description', type: 'text' as 'text' };
+          // All other columns: assign unique IDs, auto-detect type (number/date/text)
+          const customCols = newColumns.slice(1).map((col, idx) => {
+            let colType: 'text' | 'number' | 'date' = (['number', 'date', 'text'].includes(col.type as string) ? col.type : 'text') as 'number' | 'date' | 'text';
+            // Always generate unique ID for number columns for calculation
+            let colId = colType === 'number' ? `custom_number_${Date.now()}_${idx}` : `custom_${Date.now()}_${idx}`;
+            return { ...col, id: colId, type: colType };
+          });
+          finalColumns = [firstCol, ...customCols];
+          columnsToAdd = [...finalColumns];
+          setColumns(finalColumns);
+        } else {
+          finalColumns = [];
+          columnsToAdd = [];
+          setColumns([]);
+        }
+      } else if (mode === 'add-columns') {
+        // Add all pasted columns as new columns, including the first/leftmost column
+        columnsToAdd = newColumns.map((col, idx) => {
+          let colType: 'text' | 'number' | 'date' = (['number', 'date', 'text'].includes(col.type as string) ? col.type : 'text') as 'number' | 'date' | 'text';
+          let colId = colType === 'number' ? `custom_number_${Date.now()}_${idx}` : `custom_${Date.now()}_${idx}`;
+          return { ...col, id: colId, type: colType };
+        });
+
+        if (columnsToAdd.length === 0) {
+          console.log('Add Columns: No new columns to add');
+        }
+
+        if (columnsToAdd.length > 0) {
+          finalColumns = [...columns, ...columnsToAdd];
+          setColumns(finalColumns);
+        } else {
+          finalColumns = columns;
+        }
+      } else {
+        // add-rows mode: use existing columns only
+        finalColumns = columns;
+      }
+
+      // Process items based on mode
+      let patchedItems: any[] = [];
+
+      if (mode === 'replace') {
+        // For replace: remap based on column indices rather than IDs
+        patchedItems = newItems.map((item) => {
+          const newItem: any = { description: '', unitPrice: 0, customFields: {} };
+          
+          // Always use description from parsed item
+          newItem.description = item.description || '';
+          
+          // Map custom fields by column index, not by ID
+          for (let colIdx = 1; colIdx < finalColumns.length; colIdx++) {
+            const finalCol = finalColumns[colIdx];
+            const originalCol = newColumns[colIdx]; // Get original column at same index
+            if (originalCol) {
+              let val = item.customFields?.[originalCol.id];
+              newItem.customFields[finalCol.id] = processColumnValue(val, finalCol.type);
+            } else {
+              newItem.customFields[finalCol.id] = getDefaultValue(finalCol.type);
+            }
+          }
+          
+          return newItem;
+        });
+      } else if (mode === 'add-columns') {
+        // For add-columns: map new column data correctly
+        
+        patchedItems = newItems.map((item) => {
+          // Keep empty description and unitPrice for add-columns mode
+          const newItem: any = { description: '', unitPrice: 0, customFields: {} };
+
+          // Initialize all existing columns with default values first
+          finalColumns.slice(1).forEach(finalCol => {
+            newItem.customFields[finalCol.id] = getDefaultValue(finalCol.type);
+          });
+
+          // Map all pasted columns data to the newly added columns
+          newColumns.forEach((originalCol, idx) => {
+            const correspondingNewCol = columnsToAdd[idx];
+            if (correspondingNewCol) {
+              // Map data from the original parsed item to the new column
+              let val;
+              if (idx === 0) {
+                // First column data comes from description
+                val = item.description || '';
+              } else {
+                // Other columns come from customFields
+                val = item.customFields?.[originalCol.id];
+              }
+              
+              if (val !== undefined) {
+                newItem.customFields[correspondingNewCol.id] = processColumnValue(val, correspondingNewCol.type);
+              }
+            }
+          });
+
+          return newItem;
+        });
+      } else if (mode === 'add-rows') {
+        // For add-rows: map data to existing columns using same logic as replace
+        
+        patchedItems = newItems.map((item, itemIdx) => {
+          const newItem: any = { description: '', unitPrice: 0, customFields: {} };
+          
+          // Map description
+          newItem.description = item.description || '';
+          
+          // Map to existing columns by index (same as replace logic)
+          finalColumns.slice(1).forEach((finalCol, finalColIdx) => {
+            // Find corresponding column in parsed data by index
+            const originalColIdx = finalColIdx + 1; // +1 because we skip description
+            const originalCol = newColumns[originalColIdx];
+            if (originalCol) {
+              let val = item.customFields?.[originalCol.id];
+              newItem.customFields[finalCol.id] = processColumnValue(val, finalCol.type);
+            } else {
+              newItem.customFields[finalCol.id] = getDefaultValue(finalCol.type);
+            }
+          });
+          
+          return newItem;
+        });
+      }
+
+      // Helper function to process column values
+      function processColumnValue(val: any, colType: 'text' | 'number' | 'date'): any {
+        if (colType === 'number') {
+          if (typeof val === 'string' && val.trim() !== '') {
+            let cleanNumber = val.replace(/\./g, '').replace(/,/g, '.');
+            let parsed = parseFloat(cleanNumber);
+            if (isNaN(parsed)) {
+              cleanNumber = val.replace(/,/g, '');
+              parsed = parseFloat(cleanNumber);
+            }
+            return isNaN(parsed) ? 0 : parsed;
+          } else {
+            return Number(val) || 0;
+          }
+        } else if (colType === 'date') {
+          const dateValue = new Date(val);
+          return !isNaN(dateValue.getTime()) ? dateValue.toISOString().split('T')[0] : val;
+        } else {
+          return val !== undefined ? val : '';
+        }
+      }
+
+      // Helper function to get default values
+      function getDefaultValue(colType: 'text' | 'number' | 'date'): any {
+        if (colType === 'number') return 0;
+        if (colType === 'date') return null;
+        return '';
+      }
+
+      // Map items to current column structure
+      const allColumnIds = finalColumns.map(col => col.id);
+      const mappedItems = patchedItems.map(item => {
+        const mappedItem = {
+          description: item.description || '',
+          unitPrice: item.unitPrice || 0,
+          customFields: {} as Record<string, any>
+        };
+        // Copy customFields that match current columns (except description/unitPrice)
+        Object.entries(item.customFields || {}).forEach(([key, value]) => {
+          if (allColumnIds.includes(key) && key !== 'description' && key !== 'unitPrice') {
+            mappedItem.customFields[key] = value;
+          }
+        });
+        return mappedItem;
+      });
+
+      // Update the form with mapped items
+      const allSections = form.getValues(fieldArrayName) || [];
+      if (allSections[sectionIndex]) {
+        if (mode === 'replace') {
+          // Replace all items
+          const cleanedItems = mappedItems.map(item => {
+            const cleanItem = {
+              description: item.description,
+              unitPrice: item.unitPrice,
+              customFields: {} as Record<string, any>
+            };
+            Object.entries(item.customFields || {}).forEach(([key, value]) => {
+              if (allColumnIds.includes(key) && !['description', 'unitPrice'].includes(key)) {
+                cleanItem.customFields[key] = value;
+              }
+            });
+            return cleanItem;
+          });
+          allSections[sectionIndex].items = cleanedItems;
+        } else if (mode === 'add-rows') {
+          // Add new rows to existing data - add all items
+          const existingItems = allSections[sectionIndex].items || [];
+          allSections[sectionIndex].items = [...existingItems, ...mappedItems];
+        } else if (mode === 'add-columns') {
+          // Update existing items with new column data
+          const existingItems = allSections[sectionIndex].items || [];
+          
+          // Add default values for new columns to existing items
+          const updatedExistingItems = existingItems.map((existingItem: any) => {
+            const updatedItem = { ...existingItem };
+            if (!updatedItem.customFields) updatedItem.customFields = {};
+            columnsToAdd.forEach(newCol => {
+              updatedItem.customFields[newCol.id] = getDefaultValue(newCol.type);
+            });
+            return updatedItem;
+          });
+          
+          // Add new items if any, ensuring they have all column values
+          let finalItems = updatedExistingItems;
+          if (mappedItems.length > 0) {
+            // Ensure new items have values for ALL columns (existing + new)
+            const newItemsWithAllColumns = mappedItems.map(newItem => {
+              const itemWithAllCols = {
+                description: newItem.description,
+                unitPrice: newItem.unitPrice,
+                customFields: {} as Record<string, any>
+              };
+              
+              // Add values for all columns in finalColumns
+              finalColumns.slice(1).forEach(col => {
+                if (newItem.customFields?.[col.id] !== undefined) {
+                  // Use the value from new item if available
+                  itemWithAllCols.customFields[col.id] = newItem.customFields[col.id];
+                } else {
+                  // Use default value for columns not in new data
+                  itemWithAllCols.customFields[col.id] = getDefaultValue(col.type);
+                }
+              });
+              
+              return itemWithAllCols;
+            });
+            
+            finalItems = [...updatedExistingItems, ...newItemsWithAllColumns];
+          }
+          
+          allSections[sectionIndex].items = finalItems;
+        }
+        form.setValue(fieldArrayName, allSections);
+      }
+
+      // Generate success message
+      let toastMessage = '';
+      if (mode === 'replace') {
+        const totalColumns = finalColumns.length - 1;
+        toastMessage = `${mappedItems.length} ${T.items || "items"} ${T.replaced || 'replaced'}`;
+        if (totalColumns > 0) {
+          toastMessage += ` ${T.and || "and"} ${T.columnsReplacedWith || "columns replaced with"} ${totalColumns} ${T.newColumns || "new columns"}`;
+        }
+      } else if (mode === 'add-rows') {
+        toastMessage = `${mappedItems.length} ${T.items || "items"} ${T.added || "added"}`;
+      } else if (mode === 'add-columns') {
+        const newColumnsCount = columnsToAdd.length;
+        const itemsCount = mappedItems.length;
+        if (newColumnsCount > 0 && itemsCount > 0) {
+          toastMessage = `${newColumnsCount} ${T.newColumns || "new columns"} ${T.and || "and"} ${itemsCount} ${T.items || "items"} ${T.added || "added"}`;
+        } else if (newColumnsCount > 0) {
+          toastMessage = `${newColumnsCount} ${T.newColumns || "new columns"} ${T.added || "added"}`;
+        } else {
+          toastMessage = `${itemsCount} ${T.items || "items"} ${T.added || "added"}`;
+        }
+      }
+      
+      // Save backup for undo functionality BEFORE creating toast
+      const timeoutId = setTimeout(() => {
+        setUndoBackup(prev => {
+          // Only clear if this is still the same backup
+          if (prev && prev.timeoutId === timeoutId) {
+            console.log('Undo backup expired, clearing...');
+            return null;
+          }
+          return prev;
+        });
+      }, 30000); // Increase to 30 seconds
+      
+      console.log('Creating undo backup with data:', {
+        columnsCount: backup.columns.length,
+        sectionsCount: backup.sections.length,
+        sampleSection: backup.sections[0] ? {
+          name: backup.sections[0].name,
+          itemsCount: backup.sections[0].items?.length,
+          sampleItem: backup.sections[0].items?.[0]
+        } : 'No sections'
+      });
+      
+      setUndoBackup({
+        ...backup,
+        timeoutId
+      });
+      
+      // Create toast AFTER setting undo backup
+      console.log('Creating toast with undo action...');
+      
+      toast({
+        title: T.pastedFromClipboard || "Pasted from Clipboard",
+        description: toastMessage,
+        action: (
+          <ToastAction 
+            altText="Hoàn tác thao tác dán"
+            onClick={() => {
+              console.log('Undo button clicked, executing undo...');
+              // Call handleUndoPaste directly - it will use the current undoBackup state
+              handleUndoPaste();
+            }}
+          >
+            {T.undoAction || "Hoàn tác"}
+          </ToastAction>
+        ),
+      });
+    } catch (error) {
+      // Rollback on error
+      setColumns(backup.columns);
+      form.setValue(fieldArrayName, backup.sections);
+      console.error('Paste operation failed:', error);
+      toast({
+        variant: 'destructive',
+        title: T.pasteFailed || "Paste Failed",
+        description: error instanceof Error ? error.message : (T.pasteFailed || "An unexpected error occurred")
+      });
+    }
+  }, [T, toast, form, fieldArrayName, setColumns, columns]);
+
+  const handlePasteOption = React.useCallback((mode: 'replace' | 'add-rows' | 'add-columns') => {
+    if (!pendingPasteData) return;
+    
+    const { sectionIndex, parsedItems, parsedColumns } = pendingPasteData;
+    
+    // Validate conditions for add-rows mode
+    if (mode === 'add-rows') {
+      const currentColumnCount = columns.length;
+      const pastedColumnCount = parsedColumns.length;
+      
+      if (currentColumnCount !== pastedColumnCount) {
+        toast({
+          variant: 'destructive',
+          title: T.columnMismatch || "Số cột không khớp",
+          description: `${T.columnMismatchDesc || "Để thêm hàng, dữ liệu phải có cùng số cột với bảng hiện tại"} (${currentColumnCount} ${T.columnsRequired || "cột"}).`,
+        });
+        return;
+      }
+    }
+    
+    applyPasteData(sectionIndex, parsedItems, parsedColumns, mode);
+    
+    // Close dialog and clear pending data
+    setIsPasteOptionsDialogOpen(false);
+    setPendingPasteData(null);
+  }, [pendingPasteData, applyPasteData, columns, toast, T]);
 
   return (
     <Card className="w-full">
@@ -822,6 +1473,68 @@ export const QuoteManager = ({
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      {/* Paste Options Dialog */}
+      <AlertDialog open={isPasteOptionsDialogOpen} onOpenChange={setIsPasteOptionsDialogOpen}>
+        <AlertDialogContent className="max-w-2xl w-[90vw]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg">{T.pasteOptions || "Tùy chọn dán"}</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">
+              {T.pasteHow || "Bạn muốn dán như thế nào?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3">
+              <Button
+                variant="outline"
+                className="h-auto p-4 flex items-center gap-3 text-left hover:bg-red-50 hover:border-red-300 transition-colors justify-start"
+                onClick={() => handlePasteOption('replace')}
+              >
+                <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></div>
+                <div className="flex-1">
+                  <div className="font-medium text-red-700 mb-1">{T.replaceAll || "Thay thế tất cả"}</div>
+                  <div className="text-xs text-muted-foreground">{T.replaceAllDesc || "Xóa tất cả và thay bằng dữ liệu mới"}</div>
+                </div>
+              </Button>
+              
+              <Button
+                variant="outline"
+                className="h-auto p-4 flex items-center gap-3 text-left hover:bg-blue-50 hover:border-blue-300 transition-colors justify-start"
+                onClick={() => handlePasteOption('add-rows')}
+                disabled={!!(pendingPasteData && columns.length !== pendingPasteData.parsedColumns.length)}
+              >
+                <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                <div className="flex-1">
+                  <div className="font-medium text-blue-700 mb-1">{T.addRows || "Thêm hàng"}</div>
+                  <div className="text-xs text-muted-foreground">{T.addRowsDesc || "Thêm các hàng mới vào cuối bảng"}</div>
+                  {pendingPasteData && columns.length !== pendingPasteData.parsedColumns.length && (
+                    <div className="text-xs text-orange-600 mt-1">
+                      {T.dataRequirement || "Yêu cầu: dữ liệu phải có"} {columns.length} {T.columnsRequired || "cột"}
+                    </div>
+                  )}
+                </div>
+              </Button>
+              
+              <Button
+                variant="outline"
+                className="h-auto p-4 flex items-center gap-3 text-left hover:bg-green-50 hover:border-green-300 transition-colors justify-start"
+                onClick={() => handlePasteOption('add-columns')}
+              >
+                <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                <div className="flex-1">
+                  <div className="font-medium text-green-700 mb-1">{T.addColumns || "Thêm cột"}</div>
+                  <div className="text-xs text-muted-foreground">{T.addColumnsDesc || "Thêm các cột mới vào bên phải bảng"}</div>
+                </div>
+              </Button>
+            </div>
+          </div>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel onClick={() => setIsPasteOptionsDialogOpen(false)}>
+              {T.cancel || "Hủy"}
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Template Application Dialog */}
       <AlertDialog open={!!templateToApply} onOpenChange={() => setTemplateToApply(null)}>

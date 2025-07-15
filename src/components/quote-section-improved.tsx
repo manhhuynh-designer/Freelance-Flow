@@ -4,6 +4,16 @@ import * as React from "react";
 import { useFieldArray, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
 import { Badge } from "./ui/badge";
@@ -121,6 +131,13 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
   const [newItemDescription, setNewItemDescription] = React.useState('');
   const [selectedItems, setSelectedItems] = React.useState<number[]>([]);
   
+  // State for manual paste dialog - moved up to avoid initialization error
+  const [isPasteDialogOpen, setIsPasteDialogOpen] = React.useState(false);
+  const [pasteText, setPasteText] = React.useState('');
+  
+  // State for delete section confirmation
+  const [isDeleteSectionDialogOpen, setIsDeleteSectionDialogOpen] = React.useState(false);
+  
   const calculationTypes = [
     { value: 'none', label: (T as any).noCalculation },
     { value: 'sum', label: (T as any).sum },
@@ -136,6 +153,74 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
       setCustomFormula(configCalcCol.calculation?.formula || '');
     }
   }, [configCalcCol]);
+
+  // Improved paste event listener with better target detection
+  React.useEffect(() => {
+    const sectionElement = document.querySelector(`[data-section-index="${sectionIndex}"]`) as HTMLElement;
+    if (!sectionElement) return;
+
+    const handleKeyboardPaste = async (e: ClipboardEvent) => {
+      // More precise target checking - only handle if event target is within this specific section
+      const target = e.target as HTMLElement;
+      const targetSection = target.closest(`[data-section-index]`);
+      const targetSectionIndex = targetSection?.getAttribute('data-section-index');
+      
+      // Only handle paste if target is specifically in this section
+      if (targetSectionIndex !== sectionIndex.toString()) {
+        return;
+      }
+      
+      // Prevent default only for our section
+      e.preventDefault();
+      e.stopPropagation();
+      
+      try {
+        // Improved clipboard data retrieval with better error handling
+        let pasteText = '';
+        
+        // First try: clipboard event data
+        if (e.clipboardData) {
+          pasteText = e.clipboardData.getData('text/plain') || e.clipboardData.getData('text');
+        }
+        
+        // Second try: Clipboard API with permission check
+        if (!pasteText && navigator.clipboard) {
+          try {
+            // Check if we have permission or need to request it
+            const permission = await navigator.permissions.query({ name: 'clipboard-read' as PermissionName });
+            if (permission.state === 'granted' || permission.state === 'prompt') {
+              pasteText = await navigator.clipboard.readText();
+            }
+          } catch (permissionError) {
+            console.warn('Clipboard permission denied or API unavailable:', permissionError);
+          }
+        }
+        
+        // If we got valid text, process it
+        if (pasteText && pasteText.trim()) {
+          onPaste(sectionIndex, pasteText);
+          return;
+        }
+        
+        // Fallback: show manual paste dialog
+        setIsPasteDialogOpen(true);
+        setPasteText('');
+        
+      } catch (error) {
+        console.error('Paste operation failed:', error);
+        // Show manual paste dialog as fallback
+        setIsPasteDialogOpen(true);
+        setPasteText('');
+      }
+    };
+
+    // Add event listener to the specific section element, not document
+    sectionElement.addEventListener('paste', handleKeyboardPaste, { capture: true });
+    
+    return () => {
+      sectionElement.removeEventListener('paste', handleKeyboardPaste, { capture: true });
+    };
+  }, [sectionIndex, onPaste, setIsPasteDialogOpen, setPasteText]);
 
   const { fields, append, remove, move } = useFieldArray({
     control,
@@ -223,15 +308,94 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
     });
   }, [watchedItems, columns, T]);
 
-  // Event handlers
+  // Improved paste handler with better error handling and user feedback
   const handlePaste = async () => {
     try {
-      const text = await navigator.clipboard.readText();
-      onPaste(sectionIndex, text);
+      let pasteText = '';
+      
+      // Try modern Clipboard API with permission handling
+      if (navigator.clipboard) {
+        try {
+          // Check permissions first
+          const permission = await navigator.permissions.query({ name: 'clipboard-read' as PermissionName });
+          
+          if (permission.state === 'granted') {
+            pasteText = await navigator.clipboard.readText();
+          } else if (permission.state === 'prompt') {
+            // User will be prompted, try to read
+            pasteText = await navigator.clipboard.readText();
+          } else {
+            // Permission denied, fall back to manual input
+            throw new Error('Clipboard access denied');
+          }
+        } catch (clipboardError) {
+          console.warn('Clipboard API access failed:', clipboardError);
+          // Continue to fallback
+        }
+      }
+      
+      // Validate the retrieved text
+      if (pasteText && pasteText.trim()) {
+        // Basic validation to ensure we have tabular data
+        const lines = pasteText.trim().split(/\r?\n/);
+        const hasTabularData = lines.some(line => line.includes('\t')) || lines.length > 1;
+        
+        if (hasTabularData) {
+          onPaste(sectionIndex, pasteText);
+          return;
+        } else {
+          toast({ 
+            variant: 'destructive', 
+            title: (T as any).pasteFailed || 'Paste Failed',
+            description: (T as any).clipboardInvalidFormat || 'Clipboard does not contain valid tabular data. Please copy data from a spreadsheet.'
+          });
+          setIsPasteDialogOpen(true);
+          setPasteText('');
+          return;
+        }
+      }
+      
+      // If we reach here, clipboard was empty or invalid
+      toast({ 
+        variant: 'destructive', 
+        title: (T as any).clipboardEmpty || 'Clipboard Empty',
+        description: (T as any).clipboardEmptyDesc || 'Clipboard is empty. Please copy some data first or use manual input.'
+      });
+      
     } catch (error) {
-      console.error('Failed to paste from clipboard:', error);
-      toast({ variant: 'destructive', title: (T as any).pasteFailed });
+      console.error('Clipboard access failed:', error);
+      toast({
+        variant: 'destructive',
+        title: (T as any).clipboardAccessFailed || 'Clipboard Access Failed',
+        description: (T as any).clipboardAccessFailedDesc || 'Unable to access clipboard. Please use manual input.'
+      });
     }
+    
+    // Always fallback to manual paste dialog
+    setIsPasteDialogOpen(true);
+    setPasteText('');
+  };
+
+  const handleManualPaste = () => {
+    if (pasteText.trim()) {
+      onPaste(sectionIndex, pasteText);
+      setIsPasteDialogOpen(false);
+      setPasteText('');
+    } else {
+      toast({ 
+        variant: 'destructive', 
+        title: (T as any).clipboardInvalidFormat || 'Please enter some data to paste'
+      });
+    }
+  };
+
+  const handleDeleteSection = () => {
+    setIsDeleteSectionDialogOpen(true);
+  };
+
+  const confirmDeleteSection = () => {
+    onRemoveSection(sectionIndex);
+    setIsDeleteSectionDialogOpen(false);
   };
 
   const handleAddItem = () => {
@@ -405,7 +569,54 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
 
   return (
     <>
-      <div className="overflow-x-auto">
+      {/* Section Header */}
+      <div className="flex items-center justify-between mb-4 p-4 bg-muted/30 rounded-lg border border-border/50">
+        <div className="flex items-center gap-3">
+          <FormField
+            control={control}
+            name={`${fieldArrayName}.${sectionIndex}.name`}
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder={(T as any).sectionName || "Section name..."}
+                    className="text-lg font-semibold border-none bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Badge variant="outline" className="text-xs">
+            {fields.length} {(T as any).items || "items"}
+          </Badge>
+        </div>
+        
+        {canDeleteSection && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  onClick={handleDeleteSection}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">{(T as any).deleteSection || "Delete section"}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{(T as any).deleteSection || "Delete section"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
+
+      <div className="overflow-x-auto" data-section-index={sectionIndex}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -817,6 +1028,67 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
           </TooltipProvider>
         </div>
       </div>
+
+      {/* Manual Paste Dialog */}
+      <Dialog open={isPasteDialogOpen} onOpenChange={setIsPasteDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{(T as any).pasteTable || 'Paste Table Data'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {(T as any).pasteInstructions || 'Copy your table data (from Excel, Google Sheets, etc.) and paste it here using Ctrl+V:'}
+            </p>
+            <Textarea
+              placeholder={(T as any).pasteHere || 'Paste your table data here...'}
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              onPaste={(e) => {
+                // Handle paste event more directly
+                const clipboardData = e.clipboardData?.getData('text');
+                if (clipboardData) {
+                  setPasteText(clipboardData);
+                  e.preventDefault(); // Prevent default to avoid duplicate handling
+                }
+              }}
+              className="min-h-[200px] font-mono text-sm"
+              autoFocus
+            />
+            <div className="text-xs text-muted-foreground">
+              {(T as any).pasteExample || 'Example: Each row on a new line, columns separated by tabs'}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPasteDialogOpen(false)}>
+              {(T as any).cancel || 'Cancel'}
+            </Button>
+            <Button onClick={handleManualPaste} disabled={!pasteText.trim()}>
+              {(T as any).paste || 'Paste'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Section Confirmation Dialog */}
+      <AlertDialog open={isDeleteSectionDialogOpen} onOpenChange={setIsDeleteSectionDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{(T as any).confirmDeleteSection || "Delete Section?"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {(T as any).confirmDeleteSectionDesc || "Are you sure you want to delete this section? This action cannot be undone and will remove all items in this section."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{(T as any).cancel || "Cancel"}</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteSection}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {(T as any).deleteSection || "Delete Section"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
