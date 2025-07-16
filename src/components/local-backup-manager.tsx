@@ -136,7 +136,14 @@ export function LocalBackupManager() {
     if (!dashboardContext) return;
     
     try {
-      const dataStr = JSON.stringify(dashboardContext, null, 2);
+      // Include filter presets in the export
+      const filterPresets = JSON.parse(localStorage.getItem('freelance-flow-filter-presets') || '[]');
+      const appDataWithPresets = {
+        ...dashboardContext,
+        filterPresets
+      };
+      
+      const dataStr = JSON.stringify(appDataWithPresets, null, 2);
       const dataBlob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(dataBlob);
       const link = document.createElement('a');
@@ -226,13 +233,6 @@ export function LocalBackupManager() {
                   <FolderOpen className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="font-medium">{currentLanguage === 'vi' ? "Sao lưu thư mục cục bộ" : "Local Folder Backup"}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {localSettings?.folderHandle 
-                      ? `${currentLanguage === 'vi' ? "Thư mục đã chọn" : "Selected folder"}: ${localSettings.folderName}` 
-                      : (currentLanguage === 'vi' ? "Chọn một thư mục trên máy tính của bạn để sao lưu tự động" : "Choose a folder on your computer for automatic backups")
-                    }
-                  </p>
                   {localSettings?.lastAutoSave && (
                     <p className="text-xs text-muted-foreground">
                       {currentLanguage === 'vi' ? "Lần tự động lưu cuối" : "Last auto save"}: {formatDate(localSettings.lastAutoSave)}

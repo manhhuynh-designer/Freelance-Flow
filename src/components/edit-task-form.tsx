@@ -128,7 +128,7 @@ export type TaskFormValues = z.infer<typeof formSchema>;
 type EditTaskFormProps = {
   setOpen: (open: boolean) => void;
   onSubmit: (values: TaskFormValues, quoteColumns: QuoteColumn[], collaboratorQuoteColumns: QuoteColumn[], taskId: string) => void;
-  taskToEdit: Task;
+  taskToEdit: Task | null;
   quote?: Quote;
   collaboratorQuote?: Quote;
   clients: Client[];
@@ -137,6 +137,7 @@ type EditTaskFormProps = {
   onAddClient: (data: Omit<Client, 'id'>) => Client;
   quoteTemplates: QuoteTemplate[];
   settings: AppSettings;
+  defaultDate?: Date | null;
 };
 
 export function EditTaskForm({ 
@@ -150,7 +151,8 @@ export function EditTaskForm({
   categories, 
   onAddClient, 
   quoteTemplates, 
-  settings 
+  settings, 
+  defaultDate 
 }: EditTaskFormProps) {
   const { toast } = useToast();
   const T = {
@@ -203,10 +205,11 @@ export function EditTaskForm({
           : [{ id: `item-edit-${sectionIndex}-0`, description: "", unitPrice: 0, customFields: {} }]
       }));
     }
+    const fallbackId = taskToEdit?.id || `new-${Date.now()}`;
     return [{
-      id: `section-edit-${taskToEdit.id}`,
+      id: `section-edit-${fallbackId}`,
       name: T.untitledSection,
-      items: [{ id: `item-edit-${taskToEdit.id}-0`, description: "", unitPrice: 0, customFields: {} }]
+      items: [{ id: `item-edit-${fallbackId}-0`, description: "", unitPrice: 0, customFields: {} }]
     }];
   };
 
@@ -224,9 +227,30 @@ export function EditTaskForm({
     return [];
   };
 
+  const isCreate = !taskToEdit;
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: isCreate ? {
+      name: "",
+      description: "",
+      briefLink: [""],
+      driveLink: [""],
+      clientId: "",
+      collaboratorId: "",
+      categoryId: "",
+      status: "todo",
+      subStatusId: "",
+      dates: {
+        from: defaultDate || undefined,
+        to: defaultDate || undefined,
+      },
+      sections: [{ 
+        id: `section-create-${Date.now()}`, 
+        name: T.untitledSection, 
+        items: [{ description: "", unitPrice: 0, customFields: {} }] 
+      }],
+      collaboratorSections: [],
+    } : {
       name: taskToEdit.name,
       description: taskToEdit.description || "",
       briefLink: Array.isArray(taskToEdit.briefLink) 
@@ -254,7 +278,8 @@ export function EditTaskForm({
   // Remove these useFieldArray hooks for briefLink and driveLink, as they are not compatible with your TaskFormValues type.
 
   const onSubmit = (data: TaskFormValues) => {
-    onFormSubmit(data, columns, collaboratorColumns, taskToEdit.id);
+    const fallbackId = taskToEdit?.id || `new-${Date.now()}`;
+    onFormSubmit(data, columns, collaboratorColumns, fallbackId);
   };
   
   const handleAddNewClient = () => {

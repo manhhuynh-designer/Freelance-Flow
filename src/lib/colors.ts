@@ -1,4 +1,3 @@
-
 export const hslToRgb = (hslStr: string): [number, number, number] => {
   const [h, s, l] = hslStr.replace(/%/g, '').split(' ').map(v => parseFloat(v));
   const saturation = s / 100;
@@ -140,4 +139,22 @@ export const getContrastingTextColor = (hex: string) => {
     } catch (e) {
         return '#000000';
     }
+};
+
+export const getStatusColor = (status: string, statusColors?: any): string => {
+    // If statusColors is provided (from appSettings), use it
+    if (statusColors && statusColors[status]) {
+        return statusColors[status];
+    }
+    
+    // Fallback to default colors
+    const defaultColors = {
+        'todo': '#a855f7',
+        'inprogress': '#eab308',
+        'done': '#22c55e',
+        'onhold': '#f97316',
+        'archived': '#64748b',
+    };
+    
+    return defaultColors[status as keyof typeof defaultColors] || '#64748b';
 };

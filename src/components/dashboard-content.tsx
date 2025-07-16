@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CalendarIcon, XCircle, Trash2, Filter, Table, CalendarDays } from "lucide-react"; // Thêm CalendarDays và Table icon
+import { CalendarIcon, XCircle, Trash2, Filter, Table, CalendarDays, ChevronDown, ChevronUp } from "lucide-react"; // Thêm CalendarDays và Table icon
 import { TaskList } from '@/components/task-list'; // Sẽ được thay thế bằng TableView
 import { STATUS_INFO } from '@/lib/data';
 import type { Task } from "@/lib/types";
@@ -48,11 +48,14 @@ import { cn } from "@/lib/utils";
 import { i18n } from "@/lib/i18n";
 import { useDashboard } from '@/contexts/dashboard-context';
 import { Skeleton } from "./ui/skeleton";
+import { FilterChipBar } from '@/components/filter-chip-bar-new';
+import { ViewModeToggle } from '@/components/view-mode-toggle';
 import { PaginationControls } from "./pagination-controls";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 import styles from "./DashboardContentColors.module.css";
 import { TableView } from './table-view'; // Import TableView mới
+import { CalendarView, type CalendarViewMode } from './calendar-view';
 
 export default function DashboardContent() {
     return (
@@ -121,8 +124,15 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   const sortFilter = searchParams.get('sortBy');
   const page = Number(searchParams.get('page') || '1');
   const limit = Number(searchParams.get('limit') || '10');
+  
+  // Calendar-specific parameters
+  const calendarDateParam = searchParams.get('calendarDate');
+  const calendarViewMode = searchParams.get('calendarMode') as 'week' | 'month' | null;
 
-  const defaultStatuses = useMemo(() => STATUS_INFO.map(s => s.id), []);
+  // Default statuses: all except archived
+  const defaultStatuses = useMemo(() => 
+    STATUS_INFO.filter(s => s.id !== 'archived').map(s => s.id), 
+  []);
 
   const selectedStatuses: string[] = useMemo(() => {
     if (statusFilter === null) return defaultStatuses;
@@ -135,6 +145,9 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     to: endDateFilter ? new Date(endDateFilter) : undefined,
   });
 
+  // State để quản lý thu gọn/mở rộng filter card
+  const [isFiltersCollapsed, setIsFiltersCollapsed] = useState(false);
+
   // State để quản lý chế độ xem hiện tại
   const [currentViewMode, setCurrentViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
@@ -142,6 +155,48 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     }
     return 'table';
   });
+
+  // Additional state for FilterChipBar compatibility
+  const selectedCategory = categoryFilter || 'all';
+  const selectedCollaborator = searchParams.get('collaborator') || 'all';
+  const selectedClient = clientFilter || 'all';
+  const dateRange = date;
+  
+  // Functions for FilterChipBar
+  const setSelectedCategory = (category: string) => {
+    console.log('setSelectedCategory called with:', category);
+    console.log('setSelectedCategory - about to call updateSearchParam');
+    updateSearchParam('category', (category === 'all' || !category) ? null : category);
+    console.log('setSelectedCategory - updateSearchParam called');
+  };
+  
+  const setSelectedCollaborator = (collaborator: string) => {
+    console.log('setSelectedCollaborator called with:', collaborator);
+    console.log('setSelectedCollaborator - about to call updateSearchParam');
+    updateSearchParam('collaborator', (collaborator === 'all' || !collaborator) ? null : collaborator);
+    console.log('setSelectedCollaborator - updateSearchParam called');
+  };
+  
+  const setSelectedClient = (client: string) => {
+    console.log('setSelectedClient called with:', client);
+    console.log('setSelectedClient - about to call updateSearchParam');
+    updateSearchParam('client', (client === 'all' || !client) ? null : client);
+    console.log('setSelectedClient - updateSearchParam called');
+  };
+  
+  const setDateRange = (range: DateRange | undefined) => {
+    handleDateRangeChange(range);
+  };
+  
+  const clearAllFilters = () => {
+    handleClearFilters();
+  };
+  
+  // Preset save logic removed
+  
+  // Additional data for FilterChipBar
+  const allCategories = categories;
+  const statuses = STATUS_INFO;
 
   // Lưu chế độ xem vào localStorage mỗi khi nó thay đổi
   useEffect(() => {
@@ -234,6 +289,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   }, [filteredTasks, page, limit]);
 
   const updateSearchParam = (name: string, value: string | null) => {
+    console.log(`updateSearchParam called: ${name} = ${value}`);
     const current = new URLSearchParams();
     searchParams.forEach((v, k) => {
       current.set(k, v);
@@ -246,6 +302,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     current.delete('page');
     const search = current.toString();
     const query = search ? `?${search}` : "";
+    console.log(`Updating URL to: ${pathname}${query}`);
     router.push(`${pathname}${query}`);
   }
 
@@ -264,6 +321,17 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
       else if (newActiveStatuses.length > 0) updateSearchParam('status', newActiveStatuses.join(','));
       else updateSearchParam('status', 'none');
   }
+
+  // Function to set all status filters at once (for presets)
+  const handleStatusBatchChange = (statusesToEnable: string[]) => {
+    const sortedNew = [...statusesToEnable].sort();
+    const sortedDefault = [...defaultStatuses].sort();
+    const isDefault = sortedNew.length === sortedDefault.length && sortedNew.every((val, index) => val === sortedDefault[index]);
+    
+    if (isDefault) updateSearchParam('status', null);
+    else if (statusesToEnable.length > 0) updateSearchParam('status', statusesToEnable.join(','));
+    else updateSearchParam('status', 'none');
+  };
 
   const handleStatusDoubleClick = (statusId: string) => updateSearchParam('status', statusId);
   const handleCategoryChange = (value: string) => updateSearchParam('category', value === 'all' ? null : value);
@@ -312,112 +380,285 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     router.push(`${pathname}${query}`);
   };
 
+  // Calendar state management
+  const [calendarDate, setCalendarDate] = useState<Date>(() => {
+    return calendarDateParam ? new Date(calendarDateParam) : new Date();
+  });
+  
+  const [calendarMode, setCalendarMode] = useState<CalendarViewMode>(() => {
+    return calendarViewMode || 'month';
+  });
+
+  // Calendar navigation handlers
+  const handleCalendarDateChange = (newDate: Date) => {
+    setCalendarDate(newDate);
+    
+    // Update URL parameters
+    const current = new URLSearchParams();
+    
+    // Preserve existing filters
+    if (statusFilter) current.set('status', statusFilter);
+    if (categoryFilter) current.set('category', categoryFilter);
+    if (clientFilter) current.set('client', clientFilter);
+    if (startDateFilter) current.set('startDate', startDateFilter);
+    if (endDateFilter) current.set('endDate', endDateFilter);
+    if (sortFilter) current.set('sortBy', sortFilter);
+    if (page > 1) current.set('page', page.toString());
+    if (limit !== 10) current.set('limit', limit.toString());
+    
+    // Add calendar parameters
+    current.set('calendarDate', newDate.toISOString().split('T')[0]);
+    if (calendarMode !== 'month') current.set('calendarMode', calendarMode);
+    
+    const query = current.toString() ? `?${current.toString()}` : '';
+    router.push(`${pathname}${query}`);
+  };
+
+  const handleCalendarModeChange = (newMode: CalendarViewMode) => {
+    setCalendarMode(newMode);
+    
+    // Update URL parameters
+    const current = new URLSearchParams();
+    
+    // Preserve existing filters
+    if (statusFilter) current.set('status', statusFilter);
+    if (categoryFilter) current.set('category', categoryFilter);
+    if (clientFilter) current.set('client', clientFilter);
+    if (startDateFilter) current.set('startDate', startDateFilter);
+    if (endDateFilter) current.set('endDate', endDateFilter);
+    if (sortFilter) current.set('sortBy', sortFilter);
+    if (page > 1) current.set('page', page.toString());
+    if (limit !== 10) current.set('limit', limit.toString());
+    
+    // Add calendar parameters
+    if (calendarDateParam) current.set('calendarDate', calendarDateParam);
+    if (newMode !== 'month') current.set('calendarMode', newMode);
+    
+    const query = current.toString() ? `?${current.toString()}` : '';
+    router.push(`${pathname}${query}`);
+  };
   const FiltersComponent = ({ inSheet = false }: { inSheet?: boolean }) => (
-    <div className={cn("grid gap-4", inSheet ? "grid-cols-2" : "md:grid-cols-3 lg:grid-cols-5")}> 
-        <div className={cn("flex flex-col justify-between", inSheet ? "col-span-1" : "md:col-span-1 lg:col-span-1")}> 
-            <label className="text-sm font-medium text-muted-foreground block mb-2">{T.status}</label> 
-            <TooltipProvider> 
-              <div className="grid grid-cols-5 gap-1"> 
-                {STATUS_INFO.map(status => { 
-                  const isSelected = selectedStatuses.includes(status.id); 
-                  const swatchStyle = { backgroundColor: appSettings.statusColors[status.id] };
-                  return ( 
-                    <Tooltip key={status.id} delayDuration={100}> 
-                      <TooltipTrigger asChild> 
-                          <button 
-                              onClick={() => handleStatusFilterChange(status.id, !isSelected)} 
-                              onDoubleClick={() => handleStatusDoubleClick(status.id)} 
-                              style={swatchStyle}
-                              className={cn(
-                                styles.statusSwatch,
-                                isSelected ? styles.selected : styles.unselected,
-                                "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                              )}
-                              aria-label={T.statuses[status.id]} 
-                          > 
-                            <span 
-                              className="block w-full h-full rounded-full"
-                            /> 
-                          </button> 
-                      </TooltipTrigger> 
-                      <TooltipContent> 
-                          <p>{T.statuses[status.id]}</p> 
-                      </TooltipContent> 
-                    </Tooltip> 
-                  ) 
-                })} 
-              </div> 
-            </TooltipProvider> 
+    <div className={cn("space-y-3", inSheet && "space-y-4")}>
+      {/* Nút collapse/expand - không có text */}
+      {!inSheet && (
+        <div className="flex justify-end mb-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsFiltersCollapsed(!isFiltersCollapsed)}
+            className="h-5 w-5 p-0"
+          >
+            {isFiltersCollapsed ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronUp className="h-3 w-3" />
+            )}
+          </Button>
         </div>
-          <div className="flex flex-col justify-between">
-            <label className="text-sm font-medium text-muted-foreground block mb-2">{T.category}</label>
-            <Select onValueChange={handleCategoryChange} value={categoryFilter || 'all'}>
-                <SelectTrigger><SelectValue placeholder={T.selectCategory} /></SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">{T.allCategories}</SelectItem>
-                    {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{i18n[appSettings.language].categories[cat.id as keyof typeof i18n.en.categories] || cat.name}</SelectItem>)}
-                </SelectContent>
-            </Select>
+      )}
+
+      {/* Filter content - collapsed/expanded */}
+      {(!isFiltersCollapsed || inSheet) && (
+        <div className={cn("space-y-3", inSheet && "space-y-4")}>
+          {/* Layout chính với filters bên trái và view buttons bên phải */}
+          <div className={cn(
+            "flex gap-3",
+            inSheet ? "flex-col space-y-4" : "flex-row items-start"
+          )}>
+            {/* Left side: All filters và Clear button - tối đa 50% */}
+            <div className={cn(
+              "space-y-3",
+              inSheet ? "w-full" : "w-1/2"
+            )}>
+      {/* Status Filter - nằm trong cột filter */}
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">{T.status}</label>
+        <TooltipProvider>
+          <div className="grid grid-cols-5 gap-1">
+            {STATUS_INFO.map(status => {
+              const isSelected = selectedStatuses.includes(status.id);
+              const color = appSettings.statusColors?.[status.id] || '#ccc';
+              return (
+                <Tooltip key={status.id} delayDuration={100}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => handleStatusFilterChange(status.id, !isSelected)}
+                      onDoubleClick={() => handleStatusDoubleClick(status.id)}
+                      className={cn(
+                        styles.statusSwatch,
+                        isSelected ? styles.selected : styles.unselected,
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        "h-6 w-6"
+                      )}
+                      style={{ backgroundColor: color, borderColor: color }}
+                      aria-label={T.statuses[status.id]}
+                    >
+                      <span
+                        className="block w-full h-full rounded-full"
+                        style={{ backgroundColor: color }}
+                      />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{T.statuses[status.id]}</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
+        </TooltipProvider>
+      </div>
+
+              {/* Other filters grid */}
+              <div className={cn(
+                "grid gap-2", 
+                inSheet 
+                  ? "grid-cols-1 space-y-3" 
+                  : "grid-cols-1 md:grid-cols-2 gap-3"
+              )}>
+                {/* Category Filter */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">{T.category}</label>
+                  <Select onValueChange={handleCategoryChange} value={categoryFilter || 'all'}>
+                    <SelectTrigger className="h-7 text-xs"><SelectValue placeholder={T.selectCategory} /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{T.allCategories}</SelectItem>
+                      {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{i18n[appSettings.language].categories[cat.id as keyof typeof i18n.en.categories] || cat.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Client Filter */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">{T.client}</label>
+                  <Select onValueChange={handleClientChange} value={clientFilter || 'all'}>
+                    <SelectTrigger className="h-7 text-xs"><SelectValue placeholder={T.selectClient} /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{T.allClients}</SelectItem>
+                      {clients.map((client: any) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Hide Date Range and Sort By filters in calendar view */}
+                {currentViewMode !== 'calendar' && (
+                  <>
+                    {/* Date Range Filter */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">{T.dateRange}</label>
+                      <Popover open={isDatePopoverOpen} onOpenChange={setIsDatePopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal h-7 text-xs", !date && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-1 h-3 w-3" />
+                            {date?.from ? (
+                              date.to ? (
+                                <>
+                                  {format(date.from, "MMM dd")} - {format(date.to, "MMM dd")}
+                                </>
+                              ) : (
+                                format(date.from, "MMM dd, y")
+                              )
+                            ) : (
+                              <span>{T.pickDate}</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar initialFocus mode="range" defaultMonth={date?.from} selected={date} onSelect={(range) => { handleDateRangeChange(range); if (range?.from && range?.to) setIsDatePopoverOpen(false); }} numberOfMonths={2} />
+                          <div className="p-2 border-t flex justify-end"><Button variant="ghost" size="sm" onClick={() => { handleDateRangeChange(undefined); setIsDatePopoverOpen(false); }}>{T.cancel}</Button></div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Sort By Filter */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">{T.sortBy}</label>
+                      <Select onValueChange={handleSortChange} value={sortFilter || 'deadline-asc'}>
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue placeholder={T.selectSort} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="deadline-asc">{T.sortDeadlineSoonest}</SelectItem>
+                          <SelectItem value="deadline-desc">{T.sortDeadlineFarthest}</SelectItem>
+                          <SelectItem value="startDate-desc">{T.sortNewest}</SelectItem>
+                          <SelectItem value="startDate-asc">{T.sortOldest}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Clear filters button */}
+              <div className="flex justify-start">
+                <Button onClick={handleClearFilters} size="sm" variant="outline" className="h-7 text-xs">
+                  <XCircle className="mr-1 h-3 w-3" />
+                  {T.clearFilters}
+                </Button>
+              </div>
+            </div>
+
+            {/* Right side: View mode buttons - 50% còn lại */}
+            {!inSheet && (
+              <div className="w-1/2 flex justify-end items-start">
+                <div className="flex flex-col space-y-1">
+                  <Button
+                    onClick={() => setCurrentViewMode('table')}
+                    variant={currentViewMode === 'table' ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-7 min-w-[100px] text-xs"
+                  >
+                    <Table className="mr-1 h-3 w-3" />
+                    {T.tableView}
+                  </Button>
+                  <Button
+                    onClick={() => setCurrentViewMode('calendar')}
+                    variant={currentViewMode === 'calendar' ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-7 min-w-[100px] text-xs"
+                  >
+                    <CalendarDays className="mr-1 h-3 w-3" />
+                    {T.calendarView}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-          <div className="flex flex-col justify-between">
-            <label className="text-sm font-medium text-muted-foreground block mb-2">{T.client}</label>
-            <Select onValueChange={handleClientChange} value={clientFilter || 'all'}>
-                <SelectTrigger><SelectValue placeholder={T.selectClient} /></SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">{T.allClients}</SelectItem>
-                    {clients.map((client: any) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}
-                </SelectContent>
-            </Select>
+      )}
+
+      {/* Collapsed state - chỉ hiển thị view buttons với layout 50/50 */}
+      {isFiltersCollapsed && !inSheet && (
+        <div className="flex">
+          {/* Left side - trống để giữ tỷ lệ 50/50 */}
+          <div className="w-1/2"></div>
+          {/* Right side - view buttons */}
+          <div className="w-1/2 flex justify-end">
+            <div className="flex flex-col space-y-1">
+              <Button
+                onClick={() => setCurrentViewMode('table')}
+                variant={currentViewMode === 'table' ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 min-w-[100px] text-xs"
+              >
+                <Table className="mr-1 h-3 w-3" />
+                {T.tableView}
+              </Button>
+              <Button
+                onClick={() => setCurrentViewMode('calendar')}
+                variant={currentViewMode === 'calendar' ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 min-w-[100px] text-xs"
+              >
+                <CalendarDays className="mr-1 h-3 w-3" />
+                {T.calendarView}
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col justify-between">
-            <label className="text-sm font-medium text-muted-foreground block mb-2">{T.dateRange}</label>
-            <Popover open={isDatePopoverOpen} onOpenChange={setIsDatePopoverOpen}>
-                <PopoverTrigger asChild>
-                    <Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date?.from ? (
-                          date.to ? (
-                            <>
-                              {format(date.from, "LLL dd, y")} -{" "}
-                              {format(date.to, "LLL dd, y")}
-                            </>
-                          ) : (
-                            format(date.from, "LLL dd, y")
-                          )
-                        ) : (
-                          <span>{T.pickDate}</span>
-                        )}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar initialFocus mode="range" defaultMonth={date?.from} selected={date} onSelect={(range) => { handleDateRangeChange(range); if (range?.from && range?.to) setIsDatePopoverOpen(false); }} numberOfMonths={2} />
-                    <div className="p-2 border-t flex justify-end"><Button variant="ghost" size="sm" onClick={() => { handleDateRangeChange(undefined); setIsDatePopoverOpen(false); }}>{T.cancel}</Button></div>
-                </PopoverContent>
-            </Popover>
-        </div>
-         <div className="flex flex-col justify-between">
-            <label className="text-sm font-medium text-muted-foreground block mb-2">{T.sortBy}</label>
-            <Select onValueChange={handleSortChange} value={sortFilter || 'deadline-asc'}>
-                <SelectTrigger>
-                    <SelectValue placeholder={T.selectSort} />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="deadline-asc">{T.sortDeadlineSoonest}</SelectItem>
-                    <SelectItem value="deadline-desc">{T.sortDeadlineFarthest}</SelectItem>
-                    <SelectItem value="startDate-desc">{T.sortNewest}</SelectItem>
-                    <SelectItem value="startDate-asc">{T.sortOldest}</SelectItem>
-                </SelectContent>
-            </Select>
-        </div>
-        <div className={cn("flex items-end", inSheet ? "col-span-2" : "self-end")}>
-            <Button onClick={handleClearFilters} className="w-full">
-                <XCircle className="mr-2 h-4 w-4" />
-                {T.clearFilters}
-            </Button>
-        </div>
+      )}
     </div>
   );
-
 
   if (view === 'trash') {
     return (
@@ -507,10 +748,24 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
         );
       case 'calendar':
         return (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            {/* Placeholder for Calendar View */}
-            <p>Chế độ xem Lịch sẽ ở đây.</p>
-          </div>
+          <CalendarView
+            tasks={filteredTasks}
+            quotes={quotes}
+            collaboratorQuotes={collaboratorQuotes}
+            clients={clients}
+            collaborators={collaborators}
+            categories={categories}
+            onEditTask={handleEditTask}
+            onTaskStatusChange={handleTaskStatusChange}
+            onDeleteTask={handleDeleteTask}
+            onAddClient={handleAddClientAndSelect}
+            quoteTemplates={quoteTemplates}
+            settings={appSettings}
+            currentDate={calendarDate}
+            viewMode={calendarMode}
+            onDateChange={handleCalendarDateChange}
+            onViewModeChange={handleCalendarModeChange}
+          />
         );
       default:
         return (
@@ -538,32 +793,47 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   return (
     <div className="flex flex-col h-full gap-4">
       <div className="flex-shrink-0">
-        {/* Desktop Filters */}
+        {/* Desktop - New Filter & View Layout */}
         <div className="hidden md:block">
-            <Card>
-                <CardContent className="p-4">
-                    <FiltersComponent />
-                    <div className="flex justify-end mt-4 space-x-2">
-                      <Button
-                        onClick={() => setCurrentViewMode('table')}
-                        variant={currentViewMode === 'table' ? 'default' : 'outline'}
-                        size="sm"
-                      >
-                        <Table className="mr-2 h-4 w-4" />
-                        {T.tableView}
-                      </Button>
-                      <Button
-                        onClick={() => setCurrentViewMode('calendar')}
-                        variant={currentViewMode === 'calendar' ? 'default' : 'outline'}
-                        size="sm"
-                      >
-                        <CalendarDays className="mr-2 h-4 w-4" />
-                        {T.calendarView}
-                      </Button>
-                    </div>
-                </CardContent>
-            </Card>
+          <div className="flex items-start justify-between gap-4 mb-4">
+            {/* Left: Filter Chip Bar */}
+            <div className="flex-1 min-w-0">
+            <FilterChipBar
+              selectedStatuses={selectedStatuses}
+              selectedCategory={selectedCategory}
+              selectedCollaborator={selectedCollaborator}
+              selectedClient={selectedClient}
+              dateRange={dateRange}
+              onStatusFilterChange={handleStatusFilterChange}
+              onStatusDoubleClick={handleStatusDoubleClick}
+              onStatusBatchChange={handleStatusBatchChange}
+              onCategoryChange={setSelectedCategory}
+              onCollaboratorChange={setSelectedCollaborator}
+              onClientChange={setSelectedClient}
+              onDateRangeChange={setDateRange}
+              onClearFilters={clearAllFilters}
+              sortFilter={sortFilter || 'deadline-asc'}
+              handleSortChange={handleSortChange}
+              viewMode={currentViewMode}
+              T={T}
+              allCategories={allCategories}
+              collaborators={collaborators}
+              clients={clients}
+              statuses={statuses}
+              statusColors={appSettings.statusColors}
+            />
+            </div>
+            
+            {/* Right: View Mode Toggle - Fixed Position */}
+            <div className="flex-shrink-0 self-start sticky top-0 z-10">
+              <ViewModeToggle
+                currentMode={currentViewMode}
+                onModeChange={setCurrentViewMode}
+              />
+            </div>
+          </div>
         </div>
+        
         {/* Mobile Filters */}
         <div className="block md:hidden">
              <Sheet>
@@ -579,11 +849,13 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
                     </SheetHeader>
                     <div className="py-4">
                         <FiltersComponent inSheet={true} />
-                        <div className="flex justify-end mt-4 space-x-2">
+                        {/* View mode buttons for mobile - 2 hàng */}
+                        <div className="flex flex-col space-y-2 mt-4">
                           <Button
                             onClick={() => setCurrentViewMode('table')}
                             variant={currentViewMode === 'table' ? 'default' : 'outline'}
                             size="sm"
+                            className="w-full"
                           >
                             <Table className="mr-2 h-4 w-4" />
                             {T.tableView}
@@ -592,6 +864,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
                             onClick={() => setCurrentViewMode('calendar')}
                             variant={currentViewMode === 'calendar' ? 'default' : 'outline'}
                             size="sm"
+                            className="w-full"
                           >
                             <CalendarDays className="mr-2 h-4 w-4" />
                             {T.calendarView}
@@ -608,22 +881,25 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
         </div>
       </div>
       
-      <Card className="flex-1 flex flex-col min-h-0">
-        <CardContent className="p-0 flex-1 overflow-y-auto">
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <CardContent className={cn("flex-1 min-h-0 flex flex-col", currentViewMode === 'calendar' ? "p-0" : "p-0 overflow-y-auto")}>
             {renderView()}
         </CardContent>
       </Card>
       
-      <div className="flex-shrink-0 border-t pt-4">
-        <PaginationControls
-            page={page}
-            totalPages={totalPages}
-            limit={limit}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
-            T={T}
-        />
-      </div>
+      {/* Hide pagination in calendar view */}
+      {currentViewMode !== 'calendar' && (
+        <div className="flex-shrink-0 border-t pt-4">
+          <PaginationControls
+              page={page}
+              totalPages={totalPages}
+              limit={limit}
+              onPageChange={handlePageChange}
+              onLimitChange={handleLimitChange}
+              T={T}
+          />
+        </div>
+      )}
     </div>
   );
 }

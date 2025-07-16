@@ -180,8 +180,15 @@ function SettingsPageContent() {
             ],
             statusSettings: [
                 { id: 'todo', label: i18n.en.statuses.todo, subStatuses: [] },
-                { id: 'inprogress', label: i18n.en.statuses.inprogress, subStatuses: [] },
-                { id: 'done', label: i18n.en.statuses.done, subStatuses: [] },
+                { id: 'inprogress', label: i18n.en.statuses.inprogress, subStatuses: [
+                    { id: 'planning', label: 'Planning' },
+                    { id: 'development', label: 'Development' },
+                    { id: 'testing', label: 'Testing' }
+                ]},
+                { id: 'done', label: i18n.en.statuses.done, subStatuses: [
+                    { id: 'completed', label: 'Completed' },
+                    { id: 'delivered', label: 'Delivered' }
+                ]},
                 { id: 'onhold', label: i18n.en.statuses.onhold, subStatuses: [] },
                 { id: 'archived', label: i18n.en.statuses.archived, subStatuses: [] },
             ],
@@ -275,6 +282,11 @@ function SettingsPageContent() {
             setQuoteTemplates(syncedData.quoteTemplates || []);
             setCategories(syncedData.categories || []);
             setAppSettings(syncedData.appSettings || defaultSettings as AppSettings);
+            
+            // Restore filter presets if they exist in imported data
+            if (restoredData.filterPresets && Array.isArray(restoredData.filterPresets)) {
+                localStorage.setItem('freelance-flow-filter-presets', JSON.stringify(restoredData.filterPresets));
+            }
             
             setIsConfirmRestoreOpen(false);
             setRestoredData(null);
@@ -623,14 +635,14 @@ function SettingsPageContent() {
                                                         </svg>
                                                         {T.clearAllDataWarningTitle}
                                                     </AlertDialogTitle>
-                                                    <AlertDialogDescription className="space-y-2">
-                                                        <p>{T.clearAllDataWarningDesc?.replace('{confirmationText}', confirmationText) || `Type "${confirmationText}" to confirm deleting all data.`}</p>
-                                                        <div className="p-3 bg-destructive/10 rounded border border-destructive/20">
-                                                            <p className="text-sm text-destructive font-medium">
-                                                                ⚠️ {T.warningNotReversible || 'Warning: This action cannot be undone!'}
-                                                            </p>
-                                                        </div>
+                                                    <AlertDialogDescription>
+                                                        {T.clearAllDataWarningDesc?.replace('{confirmationText}', confirmationText) || `Type "${confirmationText}" to confirm deleting all data.`}
                                                     </AlertDialogDescription>
+                                                    <div className="p-3 bg-destructive/10 rounded border border-destructive/20 mt-2">
+                                                        <span className="text-sm text-destructive font-medium">
+                                                            ⚠️ {T.warningNotReversible || 'Warning: This action cannot be undone!'}
+                                                        </span>
+                                                    </div>
                                                 </AlertDialogHeader>
                                                 <div className="py-2">
                                                     <Input 

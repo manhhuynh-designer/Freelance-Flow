@@ -3,6 +3,7 @@
   aspect-ratio: 1 / 1;
   border-radius: 9999px;
   transition: opacity 0.2s;
+  background-color: var(--status-color, #ccc);
 }
 
 .statusSwatch.selected {

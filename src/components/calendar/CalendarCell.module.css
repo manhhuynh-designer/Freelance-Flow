@@ -1,0 +1,43 @@
+/* Popover in CalendarCell: luôn 100% opacity, không bị ảnh hưởng bởi outside-month */
+.calendar-popover {
+  opacity: 1 !important;
+  filter: none !important;
+  background: hsl(var(--popover)) !important;
+  color: hsl(var(--popover-foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  z-index: 100;
+  position: absolute;
+}
+/* Ô ngày không thuộc tháng hiện tại (month view) */
+.calendar-outside-month {
+  opacity: 0.45;
+  filter: grayscale(0.2);
+  background: none !important;
+}
+/* CalendarCell.module.css */
+/* Use a pseudo-element for today highlight to avoid Tailwind bg override */
+.calendar-today {
+  position: relative !important;
+  border: 2px solid hsl(var(--primary)) !important;
+  background: transparent !important;
+  z-index: 1;
+}
+.calendar-today::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: hsl(var(--muted)) !important;
+  pointer-events: none;
+  transition: background 0.2s;
+}
+/* Today number: use CSS variables that adapt to theme */
+.calendar-today-number {
+  color: hsl(var(--primary));
+  font-weight: bold;
+  position: relative;
+  z-index: 1;
+}
+/* Remove all dark mode specific overrides */
+

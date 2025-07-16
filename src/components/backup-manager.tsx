@@ -94,6 +94,11 @@ export function BackupManager() {
         setCategories(syncedData.categories || []);
         setAppSettings(syncedData.appSettings);
 
+        // Restore filter presets if they exist
+        if (restoredData.filterPresets && Array.isArray(restoredData.filterPresets)) {
+          localStorage.setItem('freelance-flow-filter-presets', JSON.stringify(restoredData.filterPresets));
+        }
+
         toast({
           title: "Data Restored",
           description: "Your data has been restored from backup successfully.",

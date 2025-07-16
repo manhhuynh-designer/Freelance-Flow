@@ -4,6 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { i18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { useEffect, useRef } from "react";
+
 // LinkPreview: fetches page title and favicon for a given URL
 function LinkPreview({ url, fallback, maxLength = 40 }: { url: string; fallback?: string; maxLength?: number }) {
   const [title, setTitle] = React.useState<string>("");
@@ -137,7 +138,7 @@ type TaskListItemProps = {
     collaboratorQuoteColumns: QuoteColumn[],
     taskId: string
   ) => void;
-  onTaskStatusChange: (taskId: string, status: Task['status']) => void;
+  onTaskStatusChange: (taskId: string, status: Task['status'], subStatusId?: string) => void;
   onDeleteTask: (taskId: string) => void;
   onAddClient: (data: Omit<Client, 'id'>) => Client;
   onRestoreTask: (taskId: string) => void;
@@ -171,6 +172,10 @@ export function TaskListItem({
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editDialogSize, setEditDialogSize] = useState('default');
+  // State for status dropdown
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  // State for hover sub-menu
+  const [hoveredStatusId, setHoveredStatusId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Ensure T is always reactive to language changes
@@ -619,33 +624,142 @@ export function TaskListItem({
             return <span className={deadlineColorClass}>{isValidDeadline ? format(task.deadline, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}</span>;
         case 'status':
             return StatusIcon && status && (
-              <DropdownMenu>
+              <DropdownMenu open={isStatusDropdownOpen} onOpenChange={setIsStatusDropdownOpen}>
                 <DropdownMenuTrigger onClick={(e) => e.stopPropagation()} asChild>
                   <Badge
-                    className="inline-flex items-center gap-2 cursor-pointer px-2 border-transparent"
+                    className="inline-flex items-center gap-2 cursor-pointer px-3 py-1 border-transparent hover:opacity-80 transition-opacity max-w-full"
                     style={{ 
                       backgroundColor: settings.statusColors[task.status],
                       color: getContrastingTextColor(settings.statusColors[task.status]) 
                     }}
                   >
-                    <StatusIcon className="h-3 w-3" />
-                    <span>{statusSetting?.label || T.statuses[status.id]}</span>
-                    {subStatusLabel && <span className="text-xs opacity-80 ml-1.5">({subStatusLabel})</span>}
+                    <StatusIcon className="h-3 w-3 flex-shrink-0" />
+                    <span className="font-medium text-xs truncate">
+                      {statusSetting?.label || T.statuses[status.id]}
+                      {subStatusLabel && ` • ${subStatusLabel}`}
+                    </span>
                   </Badge>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenuRadioGroup 
-                        value={task.status} 
-                        onValueChange={(value) => onTaskStatusChange(task.id, value as Task['status'])}
+                <DropdownMenuContent onClick={(e) => e.stopPropagation()} className="w-64 status-dropdown-content">
+                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    {T.status || 'Status'}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {(settings.statusSettings || []).map((s) => {
+                    console.log(`Status ${s.label} has ${s.subStatuses?.length || 0} sub-statuses:`, s.subStatuses);
+                    return (
+                    <div 
+                      key={s.id} 
+                      className="relative"
+                      onMouseEnter={() => {
+                        if (s.subStatuses && s.subStatuses.length > 0) {
+                          console.log(`Hovering over ${s.label} with ${s.subStatuses.length} sub-statuses`);
+                          setHoveredStatusId(s.id);
+                        }
+                      }}
+                      onMouseLeave={() => setHoveredStatusId(null)}
                     >
-                        <DropdownMenuLabel>Set {T.status.toLowerCase()}</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {(settings.statusSettings || []).map((s) => (
-                            <DropdownMenuRadioItem key={s.id} value={s.id}>
-                                {s.label}
-                            </DropdownMenuRadioItem>
-                        ))}
-                    </DropdownMenuRadioGroup>
+                      {s.subStatuses && s.subStatuses.length > 0 ? (
+                        // Status with sub-statuses - use div to avoid DropdownMenuRadioItem conflicts
+                        <div
+                          className={cn(
+                            "relative cursor-default select-none rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 flex items-center justify-between group",
+                            task.status === s.id ? 'font-semibold bg-accent' : ''
+                          )}
+                          tabIndex={0}
+                          onClick={() => {
+                            // Has sub-statuses, set main status and keep existing sub-status if same
+                            const newSubStatusId = task.status === s.id ? task.subStatusId : undefined;
+                            onTaskStatusChange(task.id, s.id, newSubStatusId);
+                          }}
+                        >
+                          <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                            {task.status === s.id && (
+                              <div className="w-2 h-2 rounded-full bg-current" />
+                            )}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: settings.statusColors[s.id] }}
+                            />
+                            <span>{s.label}</span>
+                          </div>
+                          <ChevronDown className="h-3 w-3 opacity-50" />
+                        </div>
+                      ) : (
+                        // Status without sub-statuses - use normal DropdownMenuRadioItem
+                        <DropdownMenuRadioItem
+                          value={s.id}
+                          onClick={() => {
+                            onTaskStatusChange(task.id, s.id, undefined);
+                            setIsStatusDropdownOpen(false);
+                          }}
+                          className={cn(
+                            "flex items-center justify-between group",
+                            task.status === s.id ? 'font-semibold bg-accent' : ''
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: settings.statusColors[s.id] }}
+                            />
+                            <span>{s.label}</span>
+                          </div>
+                        </DropdownMenuRadioItem>
+                      )}
+                      
+                      {/* Hover Sub-menu for sub-statuses */}
+                      {s.subStatuses && s.subStatuses.length > 0 && hoveredStatusId === s.id && (
+                        <div 
+                          className="absolute left-full top-0 ml-1 w-48 bg-popover border rounded-md shadow-lg py-1 z-[100] status-sub-menu"
+                          onMouseEnter={() => setHoveredStatusId(s.id)}
+                          onMouseLeave={() => setHoveredStatusId(null)}
+                        >
+                          
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onTaskStatusChange(task.id, s.id, undefined);
+                              setIsStatusDropdownOpen(false);
+                              setHoveredStatusId(null);
+                            }}
+                            className={cn(
+                              "px-2 py-1 text-sm cursor-pointer hover:bg-accent rounded-sm mx-1",
+                              task.status === s.id && !task.subStatusId ? 'font-semibold bg-accent' : 'text-muted-foreground'
+                            )}
+                          >
+                            
+                          </div>
+                          {s.subStatuses.map((sub) => (
+                            <div
+                              key={sub.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onTaskStatusChange(task.id, s.id, sub.id);
+                                setIsStatusDropdownOpen(false);
+                                setHoveredStatusId(null);
+                              }}
+                              className={cn(
+                                "px-2 py-1 text-sm cursor-pointer hover:bg-accent rounded-sm mx-1",
+                                task.status === s.id && task.subStatusId === sub.id ? 'font-semibold bg-accent' : ''
+                              )}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-2 h-2 rounded-full opacity-80"
+                                  style={{ backgroundColor: settings.statusColors[s.id] }}
+                                />
+                                <span>{sub.label}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    );
+                  })}
                 </DropdownMenuContent>
               </DropdownMenu>
             );

@@ -78,8 +78,8 @@
     --accent-foreground: 210 40% 98%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 0 0% 69.4%;
-    --input: 0 0% 69.4%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
     --ring: 221 83% 53%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -92,7 +92,7 @@
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 222 47% 22%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 0 0% 69.4%;
+    --sidebar-border: 0 0% 30%;
     --sidebar-ring: 217 91% 60%;
     
     /* Deadline Colors - Dark mode values can be the same or different */
@@ -137,4 +137,18 @@
     /* Adjust based on your filter section's structure and content */
     /* Example: Using a max-height and overflow hidden for collapsing */
   }
+}
+
+/* Status dropdown sub-menu fixes */
+.status-dropdown-content {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.status-sub-menu {
+  position: absolute !important;
+  z-index: 9999 !important;
+  left: 100% !important;
+  top: 0 !important;
+  margin-left: 4px !important;
 }

@@ -17,7 +17,7 @@ type DashboardContextType = AppData & {
   setAppSettings: React.Dispatch<React.SetStateAction<AppData['appSettings']>>;
   handleAddTask: (values: TaskFormValues, quoteColumns: QuoteColumn[], collaboratorQuoteColumns: QuoteColumn[]) => void;
   handleEditTask: (values: TaskFormValues, quoteColumns: QuoteColumn[], collaboratorQuoteColumns: QuoteColumn[], taskId: string) => void;
-  handleTaskStatusChange: (taskId: string, status: AppData['tasks'][0]['status']) => void;
+  handleTaskStatusChange: (taskId: string, status: AppData['tasks'][0]['status'], subStatusId?: string) => void;
   handleDeleteTask: (taskId: string) => void;
   handleRestoreTask: (taskId: string) => void;
   handlePermanentDeleteTask: (taskId: string) => void;

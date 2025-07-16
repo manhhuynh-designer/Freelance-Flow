@@ -17,14 +17,14 @@ interface TableViewProps {
     collaboratorQuoteColumns: QuoteColumn[],
     taskId: string
   ) => void;
-  onTaskStatusChange: (taskId: string, newStatus: Task['status']) => void;
+  onTaskStatusChange: (taskId: string, newStatus: Task['status'], subStatusId?: string) => void;
   onDeleteTask: (taskId: string) => void;
   onAddClient: (data: Omit<Client, 'id'>) => Client;
   quoteTemplates: QuoteTemplate[];
-  view: 'active' | 'trash'; // Cập nhật kiểu dữ liệu cho 'view'
+  view: 'active' | 'trash';
   onRestoreTask: (taskId: string) => void;
   onPermanentDeleteTask: (taskId: string) => void;
-  settings: AppSettings; // Cập nhật kiểu dữ liệu cho 'settings'
+  settings: AppSettings;
 }
 
 export function TableView({

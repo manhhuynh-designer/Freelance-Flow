@@ -30,7 +30,7 @@ type TaskListProps = {
       collaboratorQuoteColumns: QuoteColumn[],
       taskId: string
     ) => void;
-    onTaskStatusChange: (taskId: string, status: Task['status']) => void;
+    onTaskStatusChange: (taskId: string, status: Task['status'], subStatusId?: string) => void;
     onDeleteTask: (taskId: string) => void;
     onAddClient: (data: Omit<Client, 'id'>) => Client;
     onRestoreTask: (taskId: string) => void;

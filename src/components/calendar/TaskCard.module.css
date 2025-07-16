@@ -1,0 +1,8 @@
+.taskCard {
+  border-left-color: var(--status-color);
+  background-color: var(--status-bg-color);
+}
+
+.statusIndicator {
+  background-color: var(--status-color);
+}

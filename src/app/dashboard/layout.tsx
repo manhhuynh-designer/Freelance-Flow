@@ -87,11 +87,28 @@ const defaultSettings: AppSettings = {
         { id: 'status', label: 'Status', visible: true },
         { id: 'priceQuote', label: 'Quote', visible: true },
     ],
-    statusSettings: STATUS_INFO.map(s => ({
-        id: s.id,
-        label: i18n.en.statuses[s.id],
-        subStatuses: [],
-    })),
+    statusSettings: [
+        { id: 'todo', label: i18n.en.statuses.todo, subStatuses: [] },
+        { 
+            id: 'inprogress', 
+            label: i18n.en.statuses.inprogress, 
+            subStatuses: [
+                { id: 'planning', label: 'Planning' },
+                { id: 'development', label: 'Development' },
+                { id: 'testing', label: 'Testing' }
+            ]
+        },
+        { 
+            id: 'done', 
+            label: i18n.en.statuses.done, 
+            subStatuses: [
+                { id: 'completed', label: 'Completed' },
+                { id: 'delivered', label: 'Delivered' }
+            ]
+        },
+        { id: 'onhold', label: i18n.en.statuses.onhold, subStatuses: [] },
+        { id: 'archived', label: i18n.en.statuses.archived, subStatuses: [] },
+    ],
     widgets: [
         { id: 'calculator', enabled: true, showInSidebar: true, colSpan: 1, rowSpan: 1 },
         { id: 'sticky-notes', enabled: true, showInSidebar: true, colSpan: 2, rowSpan: 2 },
@@ -338,12 +355,20 @@ export default function DashboardLayout({
   useEffect(() => {
     if (isDataLoaded) {
         localStorage.setItem(storageKey, JSON.stringify(debouncedAppData));
+        
+        // Include filter presets for backup services
+        const filterPresets = JSON.parse(localStorage.getItem('freelance-flow-filter-presets') || '[]');
+        const appDataWithPresets = {
+          ...debouncedAppData,
+          filterPresets
+        };
+        
         // Tự động backup dữ liệu để ngăn chặn mất dữ liệu
-        BackupService.autoBackup(debouncedAppData);
+        BackupService.autoBackup(appDataWithPresets);
         // Sync với IndexedDB để có backup layer phụ
         DataPersistenceService.syncWithIndexedDB();
         // Trigger local folder auto-save if enabled
-        LocalBackupService.autoSaveIfNeeded(debouncedAppData);
+        LocalBackupService.autoSaveIfNeeded(appDataWithPresets);
     }
   }, [debouncedAppData, storageKey, isDataLoaded]);
 
@@ -583,10 +608,14 @@ export default function DashboardLayout({
     toast({ title: T.taskUpdated, description: T.taskUpdatedDesc });
   }
   
-  const handleTaskStatusChange = (taskId: string, status: Task['status']) => {
+  const handleTaskStatusChange = (taskId: string, status: Task['status'], subStatusId?: string) => {
     setAppData(prev => ({
       ...prev,
-      tasks: prev.tasks.map(t => t.id === taskId ? { ...t, status: status } : t),
+      tasks: prev.tasks.map(t =>
+        t.id === taskId
+          ? { ...t, status, subStatusId: subStatusId ?? undefined }
+          : t
+      ),
     }));
     toast({ title: T.taskStatusUpdated, description: T.taskStatusUpdatedDesc });
   };
@@ -784,13 +813,21 @@ export default function DashboardLayout({
     localStorage.removeItem('freelance-flow-filters');
     localStorage.removeItem('freelance-flow-last-backup');
     localStorage.removeItem('freelance-flow-notes');
+    localStorage.removeItem('freelance-flow-filter-presets'); // Clear filter presets too
     toast({ title: T.clearAllData, description: T.clearAllDataDesc });
     setTimeout(() => window.location.reload(), 1000);
   };
 
   const handleExport = () => {
+    // Include filter presets in export
+    const filterPresets = localStorage.getItem('freelance-flow-filter-presets');
+    const appDataWithPresets = {
+      ...appData,
+      filterPresets: filterPresets ? JSON.parse(filterPresets) : []
+    };
+    
     // Sử dụng BackupService mới để tạo backup tích hợp
-    const { jsonString, filename } = BackupService.createManualBackup(appData);
+    const { jsonString, filename } = BackupService.createManualBackup(appDataWithPresets);
     
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -828,7 +865,7 @@ export default function DashboardLayout({
         return T.notBackedUp;
     }
     const days = differenceInDays(new Date(), lastBackupDate);
-    if (days === 0) return T.today;
+    if (days === 0) return "Today";
     if (days === 1) return T.yesterday;
     return `${days} ${T.daysAgo}`;
   }, [lastBackupDate, T]);

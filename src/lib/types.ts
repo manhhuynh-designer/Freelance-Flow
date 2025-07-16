@@ -1,4 +1,7 @@
 
+// Calendar view mode for calendar components
+export type CalendarViewMode = 'week' | 'month';
+
 
 export type DashboardColumn = {
   id: 'name' | 'client' | 'category' | 'deadline' | 'status' | 'priceQuote';
@@ -146,6 +149,20 @@ export type AppSettings = {
   widgets: WidgetSetting[];
 };
 
+export type FilterPreset = {
+  id: string;
+  name: string;
+  filters: {
+    status?: string;
+    category?: string;
+    collaborator?: string;
+    client?: string;
+    dateRange?: any; // DateRange type
+  };
+  isDefault?: boolean;
+  createdAt: string;
+};
+
 export type AppData = {
   tasks: Task[];
   quotes: Quote[];
@@ -155,4 +172,5 @@ export type AppData = {
   quoteTemplates: QuoteTemplate[];
   categories: Category[];
   appSettings: AppSettings;
+  filterPresets?: FilterPreset[]; // Add filter presets to export data
 };

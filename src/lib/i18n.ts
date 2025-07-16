@@ -279,6 +279,100 @@ export const vi = {
   ,supportedFormat: 'Hỗ trợ định dạng: .json'
   ,selectFile: 'Chọn tệp'
   ,warningNotReversible: 'Cảnh báo: Hành động này không thể hoàn tác!'
+  // Calendar navigation keys
+  ,navigationGroup: 'Điều hướng'
+  ,goToPrevious: 'Đi tới trước'
+  ,goToNext: 'Đi tới sau'
+  ,jumpToToday: 'Nhảy về hôm nay'
+  ,todayButton: 'Hôm nay'
+  ,prevWeek: 'Tuần trước'
+  ,nextWeek: 'Tuần sau'
+  ,prevMonth: 'Tháng trước'
+  ,nextMonth: 'Tháng sau'
+  ,currentWeek: 'Tuần hiện tại'
+  ,currentMonth: 'Tháng hiện tại'
+  ,weekNumber: 'Tuần'
+  ,viewMode: 'Chế độ xem'
+  ,switchToWeekView: 'Chuyển sang xem tuần'
+  ,switchToMonthView: 'Chuyển sang xem tháng'
+  ,weekView: 'Xem theo tuần'
+  ,monthView: 'Xem theo tháng'
+  // Month names
+  ,months: {
+    january: 'Tháng Một',
+    february: 'Tháng Hai', 
+    march: 'Tháng Ba',
+    april: 'Tháng Tư',
+    may: 'Tháng Năm',
+    june: 'Tháng Sáu',
+    july: 'Tháng Bảy',
+    august: 'Tháng Tám',
+    september: 'Tháng Chín',
+    october: 'Tháng Mười',
+    november: 'Tháng Mười Một',
+    december: 'Tháng Mười Hai'
+  }
+  // Days of week
+  ,weekdays: {
+    monday: 'Thứ Hai',
+    tuesday: 'Thứ Ba', 
+    wednesday: 'Thứ Tư',
+    thursday: 'Thứ Năm',
+    friday: 'Thứ Sáu',
+    saturday: 'Thứ Bảy',
+    sunday: 'Chủ Nhật'
+  }
+  ,weekdaysShort: {
+    monday: 'T2',
+    tuesday: 'T3',
+    wednesday: 'T4', 
+    thursday: 'T5',
+    friday: 'T6',
+    saturday: 'T7',
+    sunday: 'CN'
+  }
+  ,collapseFilters: 'Thu gọn bộ lọc'
+  ,expandFilters: 'Mở rộng bộ lọc'
+  ,clearFilters: 'Xóa bộ lọc'
+  ,tableView: 'Xem bảng'
+  ,calendarView: 'Xem lịch'
+  // Date and time formats
+  ,dateFormats: {
+    today: 'Hôm nay',
+    yesterday: 'Hôm qua',
+    tomorrow: 'Ngày mai',
+    daysAgo: 'ngày trước',
+    daysFrom: 'ngày sau',
+    thisWeek: 'Tuần này',
+    lastWeek: 'Tuần trước',
+    nextWeek: 'Tuần sau',
+    thisMonth: 'Tháng này',
+    lastMonth: 'Tháng trước',
+    nextMonth: 'Tháng sau'
+  },
+  
+  // Advanced Filter translations
+  advancedFilters: 'Bộ lọc nâng cao',
+  selectCategory: 'Chọn danh mục',
+  allCategories: 'Tất cả danh mục',
+  selectCollaborator: 'Chọn cộng tác viên',
+  allCollaborators: 'Tất cả cộng tác viên',
+  selectClient: 'Chọn khách hàng',
+  allClients: 'Tất cả khách hàng',
+  clearAll: 'Xóa tất cả',
+  savePreset: 'Lưu bộ lọc',
+  done: 'Xong',
+  
+  // Filter Presets translations
+  thisWeek: 'Tuần này',
+  inProgress: 'Đang thực hiện',
+  overdueItems: 'Quá hạn',
+  savedPresets: 'Đã lưu',
+  saveFilterPreset: 'Lưu bộ lọc',
+  saveFilterPresetDesc: 'Đặt tên cho bộ lọc hiện tại để sử dụng lại sau.',
+  presetNamePlaceholder: 'Bộ lọc của tôi...',
+  setDefault: 'Đặt làm mặc định',
+  removeDefault: 'Bỏ mặc định'
 };
 
 // English translations (default)
@@ -561,6 +655,100 @@ export const en = {
   ,supportedFormat: 'Supported format: .json'
   ,selectFile: 'Select File'
   ,warningNotReversible: 'Warning: This action cannot be undone!'
+  // Calendar navigation keys
+  ,navigationGroup: 'Navigation'
+  ,goToPrevious: 'Go to Previous'
+  ,goToNext: 'Go to Next'
+  ,jumpToToday: 'Jump to Today'
+  ,todayButton: 'Today'
+  ,prevWeek: 'Previous Week'
+  ,nextWeek: 'Next Week'
+  ,prevMonth: 'Previous Month'
+  ,nextMonth: 'Next Month'
+  ,currentWeek: 'Current Week'
+  ,currentMonth: 'Current Month'
+  ,weekNumber: 'Week'
+  ,viewMode: 'View Mode'
+  ,switchToWeekView: 'Switch to Week View'
+  ,switchToMonthView: 'Switch to Month View'
+  ,weekView: 'Week'
+  ,monthView: 'Month'
+  // Month names
+  ,months: {
+    january: 'January',
+    february: 'February',
+    march: 'March', 
+    april: 'April',
+    may: 'May',
+    june: 'June',
+    july: 'July',
+    august: 'August',
+    september: 'September',
+    october: 'October',
+    november: 'November',
+    december: 'December'
+  }
+  // Days of week
+  ,weekdays: {
+    monday: 'Monday',
+    tuesday: 'Tuesday',
+    wednesday: 'Wednesday', 
+    thursday: 'Thursday',
+    friday: 'Friday',
+    saturday: 'Saturday',
+    sunday: 'Sunday'
+  }
+  ,weekdaysShort: {
+    monday: 'Mon',
+    tuesday: 'Tue',
+    wednesday: 'Wed',
+    thursday: 'Thu', 
+    friday: 'Fri',
+    saturday: 'Sat',
+    sunday: 'Sun'
+  }
+  ,collapseFilters: 'Collapse Filters'
+  ,expandFilters: 'Expand Filters'
+  ,clearFilters: 'Clear Filters'
+  ,tableView: 'Table View'
+  ,calendarView: 'Calendar View'
+  // Date and time formats
+  ,dateFormats: {
+    today: 'Today',
+    yesterday: 'Yesterday',
+    tomorrow: 'Tomorrow',
+    daysAgo: 'days ago',
+    daysFrom: 'days from now',
+    thisWeek: 'This week',
+    lastWeek: 'Last week',
+    nextWeek: 'Next week',
+    thisMonth: 'This month',
+    lastMonth: 'Last month',
+    nextMonth: 'Next month'
+  },
+  
+  // Advanced Filter translations
+  advancedFilters: 'Advanced Filters',
+  selectCategory: 'Select category',
+  allCategories: 'All categories',
+  selectCollaborator: 'Select collaborator',
+  allCollaborators: 'All collaborators',
+  selectClient: 'Select client',
+  allClients: 'All clients',
+  clearAll: 'Clear all',
+  savePreset: 'Save preset',
+  done: 'Done',
+  
+  // Filter Presets translations
+  thisWeek: 'This Week',
+  inProgress: 'In Progress',
+  overdueItems: 'Overdue',
+  savedPresets: 'Saved',
+  saveFilterPreset: 'Save Filter Preset',
+  saveFilterPresetDesc: 'Give your current filter combination a name to save it for later use.',
+  presetNamePlaceholder: 'My filter preset...',
+  setDefault: 'Set as default',
+  removeDefault: 'Remove default'
 };
 
 // Simple language switcher based on user settings
@@ -666,8 +854,8 @@ export const i18n = {
     trashCan: 'Trash Can',
     addTask: 'Add Task',
     views: 'Views',
-    tableView: 'Table View', // Thêm khóa mới
-    calendarView: 'Calendar View', // Thêm khóa mới
+    tableView: 'Table View',
+    calendarView: 'Calendar View',
     trash: 'Trash',
     manage: 'Manage',
     manageClients: 'Manage Clients',
@@ -804,10 +992,42 @@ export const i18n = {
     suggestionApplied: 'Suggestion Applied',
     suggestionAppliedDesc: '{count} items have been added to your quote.',
     lastBackup: 'Last backup',
-    today: 'today',
     yesterday: 'yesterday',
     daysAgo: 'days ago',
     notBackedUp: 'Not yet backed up',
+    // Calendar specific translations
+    monthView: 'Month View',
+    weekView: 'Week View',
+    dayView: 'Day View',
+    navigation: 'Navigation',
+    prevMonth: 'Previous Month',
+    nextMonth: 'Next Month',
+    prevWeek: 'Previous Week',
+    nextWeek: 'Next Week',
+    prevDay: 'Previous Day',
+    nextDay: 'Next Day',
+    calendarFilters: 'Calendar Filters',
+    calendarNavigation: 'Calendar Navigation',
+    todayButton: 'Today',
+    goToPrevious: 'Go to Previous',
+    goToNext: 'Go to Next',
+    jumpToToday: 'Jump to Today',
+    currentWeek: 'Current Week',
+    currentMonth: 'Current Month',
+    weekNumber: 'Week',
+    viewMode: 'View Mode',
+    switchToWeekView: 'Switch to Week View',
+    switchToMonthView: 'Switch to Month View',
+    navigationGroup: 'Navigation',
+    moreTasks: 'more tasks',
+    selectDate: 'Select date',
+    currentDate: 'today',
+    // Missing keys for TaskDetailsDialog
+    overview: 'Overview',
+    progress: 'Progress',
+    invalidDate: 'Invalid Date',
+    noQuoteData: 'No quote data available',
+    noCollaboratorQuoteData: 'No collaborator quote data available',
     backupData: 'Backup Data',
     backupSuccessful: "Backup Successful",
     backupSuccessfulDesc: "Your data has been exported to freelance-flow-backup.json.",
@@ -991,6 +1211,42 @@ export const i18n = {
     newChatStarted: 'New chat started',
     newChatStartedDesc: 'Your previous conversation has been cleared.',
     chatHistory: 'Chat History',
+
+    // Month names
+    months: {
+      january: 'January',
+      february: 'February',
+      march: 'March', 
+      april: 'April',
+      may: 'May',
+      june: 'June',
+      july: 'July',
+      august: 'August',
+      september: 'September',
+      october: 'October',
+      november: 'November',
+      december: 'December'
+    },
+    
+    // Days of week
+    weekdays: {
+      monday: 'Monday',
+      tuesday: 'Tuesday',
+      wednesday: 'Wednesday', 
+      thursday: 'Thursday',
+      friday: 'Friday',
+      saturday: 'Saturday',
+      sunday: 'Sunday'
+    },
+    weekdaysShort: {
+      monday: 'Mon',
+      tuesday: 'Tue',
+      wednesday: 'Wed',
+      thursday: 'Thu', 
+      friday: 'Fri',
+      saturday: 'Sat',
+      sunday: 'Sun'
+    }
   },
   vi: {
     // General
@@ -1085,8 +1341,8 @@ export const i18n = {
     trashCan: 'Thùng rác',
     addTask: 'Thêm công việc',
     views: 'Chế độ xem',
-    tableView: 'Chế độ xem Bảng', // Thêm khóa mới
-    calendarView: 'Chế độ xem Lịch', // Thêm khóa mới
+    tableView: 'Chế độ xem Bảng',
+    calendarView: 'Lịch',
     trash: 'Thùng rác',
     manage: 'Quản lý',
     manageClients: 'Quản lý khách hàng',
@@ -1223,10 +1479,42 @@ export const i18n = {
     suggestionApplied: 'Đã áp dụng gợi ý',
     suggestionAppliedDesc: '{count} mục đã được thêm vào báo giá của bạn.',
     lastBackup: 'Sao lưu lần cuối',
-    today: 'hôm nay',
     yesterday: 'hôm qua',
     daysAgo: 'ngày trước',
     notBackedUp: 'Chưa sao lưu',
+    // Calendar specific translations - Vietnamese
+    monthView: 'Xem theo tháng',
+    weekView: 'Xem theo tuần',
+    dayView: 'Xem theo ngày',
+    navigation: 'Điều hướng',
+    prevMonth: 'Tháng trước',
+    nextMonth: 'Tháng sau',
+    prevWeek: 'Tuần trước',
+    nextWeek: 'Tuần sau',
+    prevDay: 'Ngày trước',
+    nextDay: 'Ngày sau',
+    calendarFilters: 'Bộ lọc lịch',
+    calendarNavigation: 'Điều hướng lịch',
+    todayButton: 'Hôm nay',
+    goToPrevious: 'Đi tới trước',
+    goToNext: 'Đi tới sau',
+    jumpToToday: 'Nhảy về hôm nay',
+    currentWeek: 'Tuần hiện tại',
+    currentMonth: 'Tháng hiện tại',
+    weekNumber: 'Tuần',
+    viewMode: 'Chế độ xem',
+    switchToWeekView: 'Chuyển sang xem tuần',
+    switchToMonthView: 'Chuyển sang xem tháng',
+    navigationGroup: 'Điều hướng',
+    moreTasks: 'công việc khác',
+    selectDate: 'Chọn ngày',
+    currentDate: 'hôm nay',
+    // Missing keys for TaskDetailsDialog - Vietnamese
+    overview: 'Tổng quan',
+    progress: 'Tiến độ',
+    invalidDate: 'Ngày không hợp lệ',
+    noQuoteData: 'Không có dữ liệu báo giá',
+    noCollaboratorQuoteData: 'Không có dữ liệu báo giá cộng tác viên',
     backupData: 'Sao lưu Dữ liệu',
     backupSuccessful: "Sao lưu thành công",
     backupSuccessfulDesc: "Dữ liệu của bạn đã được xuất ra tệp freelance-flow-backup.json.",
@@ -1334,6 +1622,14 @@ export const i18n = {
     clearAllDataWarningTitle: "Bạn có hoàn toàn chắc chắn không?",
     clearAllDataWarningDesc: "Hành động này sẽ xóa vĩnh viễn toàn bộ dữ liệu của bạn. Để xác nhận, hãy gõ {confirmationText} vào ô bên dưới.",
     confirmClear: "Tôi hiểu, xóa tất cả dữ liệu",
+    // Data Management translations
+    dataManagement: 'Quản lý dữ liệu',
+    dataManagementDesc: 'Sao lưu, khôi phục và quản lý dữ liệu của bạn',
+    dataRestore: 'Khôi phục dữ liệu',
+    selectBackupFile: 'Chọn tệp sao lưu',
+    supportedFormat: 'Hỗ trợ định dạng: .json',
+    selectFile: 'Chọn tệp',
+    warningNotReversible: 'Cảnh báo: Hành động này không thể hoàn tác!',
     statusSettings: 'Quản lý Trạng thái',
     statusSettingsDesc: 'Tùy chỉnh nhãn và thêm các trạng thái phụ chi tiết cho quy trình làm việc của bạn.',
     mainStatusLabel: 'Nhãn Trạng thái Chính',
@@ -1402,13 +1698,42 @@ export const i18n = {
     newChatStarted: 'Đã bắt đầu cuộc trò chuyện mới',
     newChatStartedDesc: 'Lịch sử cuộc trò chuyện trước đó của bạn đã được xóa.',
     chatHistory: 'Lịch sử trò chuyện',
-    // Additional Data Management translations  
-    dataManagement: 'Quản lý dữ liệu',
-    dataManagementDesc: 'Sao lưu, khôi phục và quản lý dữ liệu của bạn',
-    dataRestore: 'Khôi phục dữ liệu',
-    selectBackupFile: 'Chọn tệp sao lưu',
-    supportedFormat: 'Hỗ trợ định dạng: .json',
-    selectFile: 'Chọn tệp',
-    warningNotReversible: 'Cảnh báo: Hành động này không thể hoàn tác!',
+
+    // Month names
+    months: {
+      january: 'Tháng Một',
+      february: 'Tháng Hai', 
+      march: 'Tháng Ba',
+      april: 'Tháng Tư',
+      may: 'Tháng Năm',
+      june: 'Tháng Sáu',
+      july: 'Tháng Bảy',
+      august: 'Tháng Tám',
+      september: 'Tháng Chín',
+      october: 'Tháng Mười',
+      november: 'Tháng Mười Một',
+      december: 'Tháng Mười Hai'
+    },
+    
+    // Days of week
+    weekdays: {
+      monday: 'Thứ Hai',
+      tuesday: 'Thứ Ba', 
+      wednesday: 'Thứ Tư',
+      thursday: 'Thứ Năm',
+      friday: 'Thứ Sáu',
+      saturday: 'Thứ Bảy',
+      sunday: 'Chủ Nhật'
+    },
+    weekdaysShort: {
+      monday: 'T2',
+      tuesday: 'T3',
+      wednesday: 'T4', 
+      thursday: 'T5',
+      friday: 'T6',
+      saturday: 'T7',
+      sunday: 'CN'
+    }
+    
   }
 };
