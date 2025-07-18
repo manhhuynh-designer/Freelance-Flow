@@ -3,7 +3,8 @@
 import React, { useState, useTransition } from "react";
 import { Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { suggestQuote, type SuggestQuoteOutput } from "@/ai/flows/suggest-quote";
+import { suggestQuoteAction } from "@/app/actions/ai-actions";
+import type { SuggestQuoteOutput } from "@/lib/ai-types";
 import { useToast } from "@/hooks/use-toast";
 import { i18n } from "@/lib/i18n";
 import type { AppSettings } from "@/lib/types";
@@ -60,7 +61,7 @@ export function QuoteSuggestion({ taskDescription, taskCategory, settings, onApp
 
     startTransition(async () => {
       try {
-        const result = await suggestQuote({ 
+        const result = await suggestQuoteAction({ 
             taskDescription, 
             taskCategory,
             provider: preferredModelProvider,

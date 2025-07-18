@@ -96,7 +96,13 @@ export function TaskList({
                         collaborators={collaborators}
                         categories={categories}
                         quote={quotes.find(q => q.id === task.quoteId)}
-                        collaboratorQuote={collaboratorQuotes.find(q => q.id === task.collaboratorQuoteId)}
+                        collaboratorQuotes={
+                            task.collaboratorQuotes 
+                                ? task.collaboratorQuotes.map(cq => collaboratorQuotes.find(q => q.id === cq.quoteId)).filter(Boolean) as Quote[]
+                                : (task as any).collaboratorQuoteId 
+                                    ? [collaboratorQuotes.find(q => q.id === (task as any).collaboratorQuoteId)].filter(Boolean) as Quote[]
+                                    : []
+                        }
                         status={STATUS_INFO.find(s => s.id === task.status)}
                         onEditTask={onEditTask}
                         onTaskStatusChange={onTaskStatusChange}

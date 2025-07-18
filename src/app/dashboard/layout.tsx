@@ -486,7 +486,7 @@ export default function DashboardLayout({
     quoteColumns: QuoteColumn[],
     collaboratorQuoteColumns: QuoteColumn[],
   ) => {
-    const { sections, collaboratorSections, dates, ...taskDetails } = values;
+    const { sections, collaboratorQuotes, dates, ...taskDetails } = values;
 
     const calculateTotal = (sections: QuoteSection[] = []) => sections.reduce((total, section) => 
         total + section.items.reduce((sectionTotal, item) => sectionTotal + ((item.quantity || 1) * (item.unitPrice || 0)), 0), 0);
@@ -499,37 +499,56 @@ export default function DashboardLayout({
         id: item.id || `item-${Date.now()}-${idx}`, // Ensure id is always a string
       })) as QuoteItem[],
     }));
-    const normalizedCollaboratorSections: QuoteSection[] = (collaboratorSections || []).map(section => ({
-      ...section,
-      items: (section.items || []).map((item, idx) => ({
-        ...item,
-        id: item.id || `collab-item-${Date.now()}-${idx}`, // Ensure id is always a string
-      })) as QuoteItem[],
-    }));
 
     const quoteTotal = calculateTotal(normalizedSections);
-    const collaboratorQuoteTotal = calculateTotal(normalizedCollaboratorSections);
-
     const taskData = { ...taskDetails, startDate: dates.from, deadline: dates.to };
 
     const newQuoteId = `quote-${Date.now()}`;
     const newQuote: Quote = { id: newQuoteId, sections: normalizedSections, total: quoteTotal, columns: quoteColumns };
     
-    let newCollabId: string | undefined = undefined;
-    let newCollabQuote: Quote | undefined = undefined;
-
-    if (collaboratorSections && collaboratorSections.length > 0) {
-        newCollabId = `collab-quote-${Date.now()}`;
-        newCollabQuote = { id: newCollabId, sections: normalizedCollaboratorSections, total: collaboratorQuoteTotal, columns: collaboratorQuoteColumns };
+    // Handle multiple collaborator quotes
+    const newCollaboratorQuotes: Quote[] = [];
+    const collaboratorQuoteIds: string[] = [];
+    
+    if (collaboratorQuotes && collaboratorQuotes.length > 0) {
+      collaboratorQuotes.forEach((collabQuote, index) => {
+        if (collabQuote.sections && collabQuote.sections.length > 0) {
+          const normalizedCollaboratorSections: QuoteSection[] = collabQuote.sections.map(section => ({
+            ...section,
+            items: (section.items || []).map((item, idx) => ({
+              ...item,
+              id: item.id || `collab-item-${Date.now()}-${index}-${idx}`, // Ensure id is always a string
+            })) as QuoteItem[],
+          }));
+          
+          const collaboratorQuoteTotal = calculateTotal(normalizedCollaboratorSections);
+          const newCollabId = `collab-quote-${Date.now()}-${index}`;
+          
+          newCollaboratorQuotes.push({ 
+            id: newCollabId, 
+            sections: normalizedCollaboratorSections, 
+            total: collaboratorQuoteTotal, 
+            columns: collaboratorQuoteColumns 
+          });
+          
+          collaboratorQuoteIds.push(newCollabId);
+        }
+      });
     }
     
-    const newTask: Task = { id: `task-${Date.now()}`, ...taskData, quoteId: newQuoteId, collaboratorQuoteId: newCollabId } as Task;
+    const newTask: Task = { 
+      id: `task-${Date.now()}`, 
+      ...taskData, 
+      quoteId: newQuoteId, 
+      collaboratorQuoteIds: collaboratorQuoteIds, // Array of collaborator quote IDs
+      collaboratorQuoteId: undefined // Keep for backward compatibility
+    } as Task;
     
     setAppData(prev => ({
         ...prev,
         tasks: [newTask, ...prev.tasks],
         quotes: [...prev.quotes, newQuote],
-        collaboratorQuotes: newCollabQuote ? [...prev.collaboratorQuotes, newCollabQuote] : prev.collaboratorQuotes,
+        collaboratorQuotes: [...prev.collaboratorQuotes, ...newCollaboratorQuotes],
     }));
 
     toast({ title: T.taskCreated, description: T.taskCreatedDesc });
@@ -542,7 +561,7 @@ export default function DashboardLayout({
     collaboratorQuoteColumns: QuoteColumn[],
     taskId: string
   ) => {
-    const { sections, collaboratorSections, dates, ...taskDetails } = values;
+    const { sections, collaboratorQuotes, dates, ...taskDetails } = values;
 
     const calculateTotal = (sections: QuoteSection[] = []) => sections.reduce((total, section) => 
         total + section.items.reduce((sectionTotal, item) => sectionTotal + ((item.quantity || 1) * (item.unitPrice || 0)), 0), 0);
@@ -554,17 +573,8 @@ export default function DashboardLayout({
         id: item.id || `item-${Date.now()}-${idx}`, // Ensure id is always a string
       })) as QuoteItem[],
     }));
-    const normalizedCollaboratorSections: QuoteSection[] = (collaboratorSections || []).map(section => ({
-      ...section,
-      items: (section.items || []).map((item, idx) => ({
-        ...item,
-        id: item.id || `collab-item-${Date.now()}-${idx}`, // Ensure id is always a string
-      })) as QuoteItem[],
-    }));
 
     const quoteTotal = calculateTotal(normalizedSections);
-    const collaboratorQuoteTotal = calculateTotal(normalizedCollaboratorSections || []);
-
     const taskData = { ...taskDetails, startDate: dates.from, deadline: dates.to };
     
     setAppData(prev => {
@@ -580,22 +590,71 @@ export default function DashboardLayout({
         );
         
         let newCollaboratorQuotes = [...prev.collaboratorQuotes];
-        if (collaboratorSections && collaboratorSections.length > 0) {
-            if (taskToUpdate.collaboratorQuoteId) {
-                newCollaboratorQuotes = newCollaboratorQuotes.map(q => 
-                    q.id === taskToUpdate!.collaboratorQuoteId 
-                        ? { ...q, sections: normalizedCollaboratorSections, total: collaboratorQuoteTotal, columns: collaboratorQuoteColumns } 
-                        : q
-                );
-            } else {
-                const newId = `collab-quote-${Date.now()}`;
-                newCollaboratorQuotes.push({ id: newId, sections: normalizedCollaboratorSections, total: collaboratorQuoteTotal, columns: collaboratorQuoteColumns });
-                updatedTask.collaboratorQuoteId = newId;
-            }
-        } else if (taskToUpdate.collaboratorQuoteId) {
-            newCollaboratorQuotes = newCollaboratorQuotes.filter(q => q.id !== taskToUpdate!.collaboratorQuoteId);
-            updatedTask.collaboratorQuoteId = undefined;
+        
+        // Remove old collaborator quotes
+        if ((taskToUpdate as any).collaboratorQuoteIds && (taskToUpdate as any).collaboratorQuoteIds.length > 0) {
+            newCollaboratorQuotes = newCollaboratorQuotes.filter(q => 
+                !(taskToUpdate as any).collaboratorQuoteIds!.includes(q.id)
+            );
         }
+        // Keep backward compatibility
+        if ((taskToUpdate as any).collaboratorQuoteId) {
+            newCollaboratorQuotes = newCollaboratorQuotes.filter(q => q.id !== (taskToUpdate as any).collaboratorQuoteId);
+        }
+        
+        // Add new collaborator quotes
+        const newCollaboratorQuoteIds: string[] = [];
+        console.log('Processing collaborator quotes:', collaboratorQuotes);
+        
+        if (collaboratorQuotes && collaboratorQuotes.length > 0) {
+            collaboratorQuotes.forEach((collabQuote, index) => {
+                console.log(`Processing collaborator quote ${index}:`, collabQuote);
+                
+                // Check if collaborator is selected and has sections (even if empty)
+                if (collabQuote.collaboratorId && collabQuote.collaboratorId.trim() !== '') {
+                    const normalizedCollaboratorSections: QuoteSection[] = (collabQuote.sections || []).map(section => ({
+                        ...section,
+                        items: (section.items || []).map((item, idx) => ({
+                            ...item,
+                            id: item.id || `collab-item-${Date.now()}-${index}-${idx}`,
+                        })) as QuoteItem[],
+                    }));
+                    
+                    const collaboratorQuoteTotal = calculateTotal(normalizedCollaboratorSections);
+                    const newCollabId = `collab-quote-${Date.now()}-${index}`;
+                    
+                    console.log(`Creating collaborator quote ${newCollabId} for collaborator ${collabQuote.collaboratorId}`);
+                    
+                    newCollaboratorQuotes.push({ 
+                        id: newCollabId, 
+                        sections: normalizedCollaboratorSections, 
+                        total: collaboratorQuoteTotal, 
+                        columns: collaboratorQuoteColumns 
+                    });
+                    
+                    newCollaboratorQuoteIds.push(newCollabId);
+                }
+            });
+        }
+        
+        console.log('Final collaborator quote IDs:', newCollaboratorQuoteIds);
+        
+        // Update task with new collaborator quote IDs and collaborator IDs
+        const collaboratorIds = collaboratorQuotes 
+            ? collaboratorQuotes.map(cq => cq.collaboratorId).filter(id => id && id.trim() !== '')
+            : [];
+        
+        const taskCollaboratorQuotes = newCollaboratorQuoteIds.map((quoteId, index) => ({
+            collaboratorId: collaboratorIds[index] || '',
+            quoteId: quoteId
+        }));
+        
+        updatedTask.collaboratorIds = collaboratorIds;
+        updatedTask.collaboratorQuotes = taskCollaboratorQuotes;
+        (updatedTask as any).collaboratorQuoteIds = newCollaboratorQuoteIds;
+        (updatedTask as any).collaboratorQuoteId = undefined; // Keep for backward compatibility
+
+        console.log('Updated task:', updatedTask);
 
         return {
             ...prev,
@@ -735,6 +794,71 @@ export default function DashboardLayout({
         }
       });
   }
+const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>) => {
+    setAppData(prev => ({
+      ...prev,
+      clients: prev.clients.map(c => c.id === clientId ? { ...c, ...updates } : c)
+    }));
+    toast({ title: T.clientUpdated, description: T.clientUpdatedDesc });
+  };
+
+  const handleDeleteClient = (clientId: string) => {
+    setAppData(prev => ({
+      ...prev,
+      clients: prev.clients.filter(c => c.id !== clientId)
+    }));
+    toast({ title: T.clientDeleted, description: T.clientDeletedDesc });
+  };
+
+  const handleAddCollaborator = (data: Omit<Collaborator, 'id'>) => {
+    const newCollaborator: Collaborator = { id: `collab-${Date.now()}`, ...data };
+    setAppData(prev => ({
+      ...prev,
+      collaborators: [...prev.collaborators, newCollaborator]
+    }));
+    toast({ title: T.collaboratorAdded, description: T.collaboratorAddedDesc });
+  };
+
+  const handleEditCollaborator = (collaboratorId: string, updates: Partial<Omit<Collaborator, 'id'>>) => {
+    setAppData(prev => ({
+      ...prev,
+      collaborators: prev.collaborators.map(c => c.id === collaboratorId ? { ...c, ...updates } : c)
+    }));
+    toast({ title: T.collaboratorUpdated, description: T.collaboratorUpdatedDesc });
+  };
+
+  const handleDeleteCollaborator = (collaboratorId: string) => {
+    setAppData(prev => ({
+      ...prev,
+      collaborators: prev.collaborators.filter(c => c.id !== collaboratorId)
+    }));
+    toast({ title: T.collaboratorDeleted, description: T.collaboratorDeletedDesc });
+  };
+
+  const handleAddCategory = (data: Omit<Category, 'id'>) => {
+    const newCategory: Category = { id: `cat-${Date.now()}`, ...data };
+    setAppData(prev => ({
+      ...prev,
+      categories: [...prev.categories, newCategory]
+    }));
+    toast({ title: T.categoryAdded, description: T.categoryAddedDesc });
+  };
+
+  const handleEditCategory = (categoryId: string, updates: Partial<Omit<Category, 'id'>>) => {
+    setAppData(prev => ({
+      ...prev,
+      categories: prev.categories.map(c => c.id === categoryId ? { ...c, ...updates } : c)
+    }));
+    toast({ title: T.categoryUpdated, description: T.categoryUpdatedDesc });
+  };
+
+  const handleDeleteCategory = (categoryId: string) => {
+    setAppData(prev => ({
+      ...prev,
+      categories: prev.categories.filter(c => c.id !== categoryId)
+    }));
+    toast({ title: T.categoryDeleted, description: T.categoryDeletedDesc });
+  };
 
   const handleDeleteTask = (taskId: string) => { 
     const task = appData.tasks.find(t => t.id === taskId); 
@@ -767,7 +891,7 @@ export default function DashboardLayout({
         ...prev,
         tasks: prev.tasks.filter(t => t.id !== taskId),
         quotes: task.quoteId ? prev.quotes.filter(q => q.id !== task.quoteId) : prev.quotes,
-        collaboratorQuotes: task.collaboratorQuoteId ? prev.collaboratorQuotes.filter(q => q.id !== task.collaboratorQuoteId) : prev.collaboratorQuotes,
+        collaboratorQuotes: (task as any).collaboratorQuoteId ? prev.collaboratorQuotes.filter(q => q.id !== (task as any).collaboratorQuoteId) : prev.collaboratorQuotes,
     })); 
     toast({ title: T.taskPermanentlyDeleted, description: `${T.task} "${task.name}" ${T.taskPermanentlyDeletedDesc}` }); 
   };
@@ -776,7 +900,7 @@ export default function DashboardLayout({
         const trashedTasks = prev.tasks.filter(t => t.deletedAt);
         if (trashedTasks.length === 0) return prev;
         const quoteIdsToDelete = new Set(trashedTasks.map(t => t.quoteId).filter(Boolean));
-        const collabQuoteIdsToDelete = new Set(trashedTasks.map(t => t.collaboratorQuoteId).filter(Boolean));
+        const collabQuoteIdsToDelete = new Set(trashedTasks.map(t => (t as any).collaboratorQuoteId).filter(Boolean));
         return {
             ...prev,
             tasks: prev.tasks.filter(t => !t.deletedAt),
@@ -871,7 +995,16 @@ export default function DashboardLayout({
   }, [lastBackupDate, T]);
 
   const dashboardContextValue = {
-    ...appData,
+    // Always reference latest appData for reactivity
+    tasks: appData.tasks,
+    clients: appData.clients,
+    collaborators: appData.collaborators,
+    quotes: appData.quotes,
+    quoteTemplates: appData.quoteTemplates,
+    categories: appData.categories,
+    appSettings: appData.appSettings,
+    collaboratorQuotes: appData.collaboratorQuotes,
+    // Other context values
     setTasks,
     setQuotes,
     setCollaboratorQuotes,
@@ -891,6 +1024,14 @@ export default function DashboardLayout({
     handleAiCreateTask,
     handleAiEditTask,
     handleClearAllData,
+    handleEditClient,
+    handleDeleteClient,
+    handleAddCollaborator,
+    handleEditCollaborator,
+    handleDeleteCollaborator,
+    handleAddCategory,
+    handleEditCategory,
+    handleDeleteCategory,
   };
 
   return (

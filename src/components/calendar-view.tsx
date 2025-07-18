@@ -285,7 +285,12 @@ export function CalendarView({
               collaborators={collaborators}
               categories={categories}
               quote={quotes.find(q => q.id === selectedTask.quoteId)}
-              collaboratorQuote={collaboratorQuotes.find(q => q.id === selectedTask.collaboratorQuoteId)}
+              collaboratorQuotes={selectedTask.collaboratorQuotes 
+                ? selectedTask.collaboratorQuotes.map(cq => collaboratorQuotes.find(q => q.id === cq.quoteId)).filter(Boolean) as Quote[]
+                : (selectedTask as any).collaboratorQuoteId 
+                  ? [collaboratorQuotes.find(q => q.id === (selectedTask as any).collaboratorQuoteId)].filter(Boolean) as Quote[]
+                  : []
+              }
               settings={settings}
               isOpen={isTaskDetailsOpen}
               onClose={() => setIsTaskDetailsOpen(false)}
@@ -296,7 +301,12 @@ export function CalendarView({
           <TaskEditDialog
             task={selectedTask}
             quote={selectedTask ? quotes.find(q => q.id === selectedTask.quoteId) : undefined}
-            collaboratorQuote={selectedTask ? collaboratorQuotes.find(q => q.id === selectedTask.collaboratorQuoteId) : undefined}
+            collaboratorQuotes={selectedTask?.collaboratorQuotes 
+              ? selectedTask.collaboratorQuotes.map(cq => collaboratorQuotes.find(q => q.id === cq.quoteId)).filter(Boolean) as Quote[]
+              : (selectedTask as any)?.collaboratorQuoteId 
+                ? [collaboratorQuotes.find(q => q.id === (selectedTask as any).collaboratorQuoteId)].filter(Boolean) as Quote[]
+                : []
+            }
             clients={clients}
             collaborators={collaborators}
             categories={categories}

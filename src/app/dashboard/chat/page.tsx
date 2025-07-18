@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect, useTransition, useMemo, Suspense } from 'react';
@@ -9,8 +8,10 @@ import { i18n } from '@/lib/i18n';
 import { useToast } from '@/hooks/use-toast';
 import { Bot, Send, User, PlusCircle, Trash2, History, PanelRightClose } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import { Card, CardContent } from '@/components/ui/card';
-import { askAboutTasks, type AskAboutTasksOutput } from '@/ai/flows/ask-about-tasks';
+import { askAboutTasksAction } from '@/app/actions/ai-actions';
+import type { AskAboutTasksOutput } from '@/lib/ai-types';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,7 +46,17 @@ const OLD_CHAT_HISTORY_KEY = 'freelance-flow-chat-history';
 function ChatView({ isQuickChat = false }: { isQuickChat?: boolean }) {
   const { 
     tasks, clients, collaborators, quoteTemplates, appSettings,
-    handleTaskStatusChange, handleAiCreateTask, handleAiEditTask
+    handleTaskStatusChange, handleAiCreateTask, handleAiEditTask,
+    handleDeleteTask,
+    handleAddClientAndSelect,
+    handleEditClient,
+    handleDeleteClient,
+    handleAddCollaborator,
+    handleEditCollaborator,
+    handleDeleteCollaborator,
+    handleAddCategory,
+    handleEditCategory,
+    handleDeleteCategory
   } = useDashboard() || {};
   
   const { toast } = useToast();
@@ -133,7 +144,7 @@ function ChatView({ isQuickChat = false }: { isQuickChat?: boolean }) {
   }, [conversations, activeConversationId]);
 
   // Fallback for when context is not yet available
-  if (!appSettings || !tasks || !clients || !collaborators || !quoteTemplates || !handleTaskStatusChange || !handleAiCreateTask || !handleAiEditTask) {
+  if (!appSettings || !tasks || !clients || !collaborators || !quoteTemplates || !handleTaskStatusChange || !handleAiCreateTask || !handleAiEditTask || !handleDeleteTask || !handleAddClientAndSelect || !handleEditClient || !handleDeleteClient || !handleAddCollaborator || !handleEditCollaborator || !handleDeleteCollaborator || !handleAddCategory || !handleEditCategory || !handleDeleteCategory) {
     return null; 
   }
 
@@ -162,23 +173,47 @@ function ChatView({ isQuickChat = false }: { isQuickChat?: boolean }) {
   };
 
   const handleAction = (action: AskAboutTasksOutput['action']) => {
-    if (!action) return;
+    if (!action || !action.payload) return;
   
     switch (action.type) {
       case 'updateTaskStatus':
-        if (action.payload && handleTaskStatusChange) {
-          handleTaskStatusChange(action.payload.taskId, action.payload.status);
-        }
+        if (handleTaskStatusChange) handleTaskStatusChange(action.payload.taskId, action.payload.status);
         break;
       case 'createTask':
-        if (action.payload && handleAiCreateTask) {
-          handleAiCreateTask(action.payload as any);
-        }
+        if (handleAiCreateTask) handleAiCreateTask(action.payload as any);
         break;
       case 'editTask':
-        if (action.payload && handleAiEditTask) {
-          handleAiEditTask(action.payload as any);
-        }
+        if (handleAiEditTask) handleAiEditTask(action.payload as any);
+        break;
+      case 'deleteTask':
+        if (handleDeleteTask) handleDeleteTask(action.payload.taskId);
+        break;
+      case 'createClient':
+        if (handleAddClientAndSelect) handleAddClientAndSelect(action.payload);
+        break;
+      case 'editClient':
+        if (handleEditClient) handleEditClient(action.payload.clientId, action.payload.updates);
+        break;
+      case 'deleteClient':
+        if (handleDeleteClient) handleDeleteClient(action.payload.clientId);
+        break;
+      case 'createCollaborator':
+        if (handleAddCollaborator) handleAddCollaborator(action.payload);
+        break;
+      case 'editCollaborator':
+        if (handleEditCollaborator) handleEditCollaborator(action.payload.collaboratorId, action.payload.updates);
+        break;
+      case 'deleteCollaborator':
+        if (handleDeleteCollaborator) handleDeleteCollaborator(action.payload.collaboratorId);
+        break;
+      case 'createCategory':
+        if (handleAddCategory) handleAddCategory(action.payload);
+        break;
+      case 'editCategory':
+        if (handleEditCategory) handleEditCategory(action.payload.categoryId, action.payload.updates);
+        break;
+      case 'deleteCategory':
+        if (handleDeleteCategory) handleDeleteCategory(action.payload.categoryId);
         break;
       default:
         console.warn('Unknown AI action:', (action as any).type);
@@ -226,7 +261,7 @@ function ChatView({ isQuickChat = false }: { isQuickChat?: boolean }) {
 
         const activeTasks = tasks.filter(t => !t.deletedAt);
         
-        const response = await askAboutTasks({
+        const response = await askAboutTasksAction({
           userInput: userInput,
           history: historyForAI,
           tasks: activeTasks,
@@ -335,7 +370,11 @@ function ChatView({ isQuickChat = false }: { isQuickChat?: boolean }) {
                                     )}
                                     style={{ overflowWrap: 'anywhere' }}
                                 >
-                                    {msg.content?.[0]?.text}
+                                    {msg.role === 'model' ? (
+                                        <MarkdownRenderer content={msg.content?.[0]?.text || ''} />
+                                    ) : (
+                                        msg.content?.[0]?.text
+                                    )}
                                 </div>
                                 {msg.role === 'user' && (
                                     <div className="bg-muted text-muted-foreground rounded-full p-2">

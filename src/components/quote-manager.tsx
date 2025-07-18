@@ -46,7 +46,7 @@ import { vi, en } from "@/lib/i18n";
 type QuoteManagerProps = {
   control: any;
   form: any;
-  fieldArrayName: "sections" | "collaboratorSections";
+  fieldArrayName: string; // Updated to accept any string for dynamic fields
   columns: QuoteColumn[];
   setColumns: React.Dispatch<React.SetStateAction<QuoteColumn[]>>;
   title: string;
@@ -55,7 +55,7 @@ type QuoteManagerProps = {
   taskDescription?: string;
   taskCategory?: string;
   onApplySuggestion?: (items: any[]) => void;
-  onCopyFromQuote?: () => void;
+  onCopyFromQuote?: (e?: React.MouseEvent) => void;
   showCopyFromQuote?: boolean;
 };
 
@@ -106,6 +106,14 @@ export const QuoteManager = ({
   const watchedSections = useWatch({
     control,
     name: fieldArrayName,
+  });
+
+  // Watch collaboratorSections for realtime Net Total updates in price quotes
+  // This ensures that when users edit Collaborator Costs in one tab,
+  // the Net Total in Price Quotes tab updates immediately
+  const watchedCollaboratorSections = useWatch({
+    control,
+    name: "collaboratorSections",
   });
 
   const { toast } = useToast();
@@ -272,61 +280,69 @@ export const QuoteManager = ({
   }, [watchedSections, columns]);
 
   // collabSum: sum of all collaborator unitPrice (including formula-calculated values)
+  // This calculates realtime with watchedCollaboratorSections for accurate Net Total updates
   const collabSum = React.useMemo(() => {
     if (!form || !form.getValues) return 0;
     
-    // Only calculate if this is actually for collaboratorSections
-    if (fieldArrayName !== "collaboratorSections") {
-      const collabSections = form.getValues('collaboratorSections') || [];
-      return (collabSections || []).reduce((acc: number, section: any) =>
-        acc + (section.items?.reduce((itemAcc: number, item: any) => {
-          return itemAcc + (Number(item.unitPrice) || 0);
-        }, 0) || 0), 0);
-    }
+    // Use watchedCollaboratorSections for realtime updates, fallback to form.getValues
+    const collabSections = watchedCollaboratorSections || form.getValues('collaboratorSections') || [];
     
-    // For collaboratorSections, use the current columns and calculate with formulas
-    const collabSections = form.getValues('collaboratorSections') || [];
+    if (!collabSections || collabSections.length === 0) return 0;
     
-    return (collabSections || []).reduce((acc: number, section: any) =>
+    const total = (collabSections || []).reduce((acc: number, section: any) =>
       acc + (section.items?.reduce((itemAcc: number, item: any) => {
         let value = 0;
         
-        // Find unitPrice column in current columns to check for rowFormula
-        const unitPriceCol = columns.find(col => col.id === 'unitPrice');
-        
-        if (unitPriceCol?.rowFormula) {
-          try {
-            // Calculate value based on rowFormula and current row values
-            const rowVals: Record<string, number> = {};
-            columns.forEach(c => {
-              if (c.type === 'number' && c.id !== 'unitPrice') {
-                const val = ['description', 'unitPrice'].includes(c.id)
-                  ? Number(item[c.id]) || 0
-                  : Number(item.customFields?.[c.id]) || 0;
-                rowVals[c.id] = val;
-              }
-            });
-            
-            // Replace column IDs in formula with actual values
-            let expr = unitPriceCol.rowFormula;
-            Object.entries(rowVals).forEach(([cid, val]) => {
-              expr = expr.replaceAll(cid, val.toString());
-            });
-            
-            // eslint-disable-next-line no-eval
-            const result = eval(expr);
-            value = !isNaN(result) ? Number(result) : 0;
-          } catch {
-            value = 0; // Default to 0 if formula fails
+        // For collaborator costs, always use simple unitPrice calculation
+        // Unless this component is rendering collaboratorSections and has custom formulas
+        if (fieldArrayName === "collaboratorSections") {
+          // If we're in collaborator context, check for formula in current columns
+          const unitPriceCol = columns.find(col => col.id === 'unitPrice');
+          
+          if (unitPriceCol?.rowFormula) {
+            try {
+              // Calculate value based on rowFormula and current row values
+              const rowVals: Record<string, number> = {};
+              columns.forEach(c => {
+                if (c.type === 'number' && c.id !== 'unitPrice') {
+                  const val = ['description', 'unitPrice'].includes(c.id)
+                    ? Number(item[c.id]) || 0
+                    : Number(item.customFields?.[c.id]) || 0;
+                  rowVals[c.id] = val;
+                }
+              });
+              
+              // Replace column IDs in formula with actual values
+              let expr = unitPriceCol.rowFormula;
+              Object.entries(rowVals).forEach(([cid, val]) => {
+                expr = expr.replaceAll(cid, val.toString());
+              });
+              
+              // eslint-disable-next-line no-eval
+              const result = eval(expr);
+              value = !isNaN(result) ? Number(result) : 0;
+            } catch {
+              value = 0; // Default to 0 if formula fails
+            }
+          } else {
+            // Use normal unitPrice value if no formula
+            value = Number(item.unitPrice) || 0;
           }
         } else {
-          // Use normal unitPrice value if no formula
+          // If we're in price quotes context, just use simple unitPrice for collaborators
           value = Number(item.unitPrice) || 0;
         }
         
         return itemAcc + value;
       }, 0) || 0), 0);
-  }, [form, form?.getValues, form?.watch && form.watch('collaboratorSections'), columns, fieldArrayName]);
+      
+    // Debug log for development (can be removed in production)
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      console.log(`[QuoteManager] collabSum updated: ${total} (fieldArrayName: ${fieldArrayName})`);
+    }
+    
+    return total;
+  }, [form, form?.getValues, columns, fieldArrayName, watchedSections, watchedCollaboratorSections]);
 
   // Grand Total: custom formula or priceSum
   const grandTotal = React.useMemo(() => {
@@ -377,6 +393,7 @@ export const QuoteManager = ({
   }, [grandTotalFormula, priceSum, collabSum, watchedSections, columns, calculationResults]);
 
   // Net Total: Grand Total - collabSum
+  // This automatically updates when collaborator costs change due to watchedCollaboratorSections
   const netTotal = grandTotal - collabSum;
 
   // Separate sum totals and other calculations for better organization
@@ -791,39 +808,8 @@ export const QuoteManager = ({
     return { newItems, newColumns };
   }, [columns, detectHeaders, isDateColumn, generateUniqueColumnId]);
 
-  const handlePasteInSection = React.useCallback((sectionIndex: number, text: string) => {
-    const parseResult = parsePasteData(text);
-    
-    if (!parseResult) {
-      toast({ 
-        variant: 'destructive', 
-        title: T.pasteFailed || "Paste Failed", 
-        description: T.clipboardInvalidFormat || "Clipboard is empty or has invalid format" 
-      });
-      return;
-    }
 
-    const { newItems, newColumns } = parseResult;
-    
-    // Get current section data to check if it has existing items
-    const allSections = form.getValues(fieldArrayName) || [];
-    const currentSection = allSections[sectionIndex];
-    const hasExistingItems = currentSection?.items && currentSection.items.length > 0;
-    
-    // Always show options dialog when section has existing items
-    if (hasExistingItems) {
-      setPendingPasteData({
-        sectionIndex,
-        text,
-        parsedItems: newItems,
-        parsedColumns: newColumns
-      });
-      setIsPasteOptionsDialogOpen(true);
-    } else {
-      // If section is empty, directly add items with add-rows mode
-      applyPasteData(sectionIndex, newItems, newColumns, 'add-rows');
-    }
-  }, [T, toast, form, fieldArrayName, parsePasteData]);
+
 
   const applyPasteData = React.useCallback((sectionIndex: number, newItems: any[], newColumns: QuoteColumn[], mode: 'replace' | 'add-rows' | 'add-columns') => {
     const existingColumnIds = columns.map(col => col.id);
@@ -1192,6 +1178,40 @@ export const QuoteManager = ({
     setPendingPasteData(null);
   }, [pendingPasteData, applyPasteData, columns, toast, T]);
 
+  const handlePasteInSection = React.useCallback((sectionIndex: number, text: string) => {
+    console.log('handlePasteInSection called with:', { sectionIndex, text });
+    
+    if (!text || !text.trim()) {
+      toast({
+        variant: 'destructive',
+        title: T.pasteFailed || "Paste Failed",
+        description: "No data to paste"
+      });
+      return;
+    }
+
+    const parsed = parsePasteData(text);
+    if (!parsed) {
+      toast({
+        variant: 'destructive',
+        title: T.pasteFailed || "Paste Failed",
+        description: "Invalid paste data format"
+      });
+      return;
+    }
+
+    const { newItems, newColumns } = parsed;
+    
+    // Store pending paste data and open options dialog
+    setPendingPasteData({
+      sectionIndex,
+      text,
+      parsedItems: newItems,
+      parsedColumns: newColumns
+    });
+    setIsPasteOptionsDialogOpen(true);
+  }, [parsePasteData, toast, T]);
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -1234,7 +1254,16 @@ export const QuoteManager = ({
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button type="button" variant="outline" size="sm" onClick={onCopyFromQuote}>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onCopyFromQuote?.(e);
+                      }}
+                    >
                       <Copy className="mr-2 h-4 w-4" />
                       {T.copyFromPriceQuote || "Copy from Quote"}
                     </Button>
@@ -1251,7 +1280,7 @@ export const QuoteManager = ({
 
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className={`grid w-full ${fieldArrayName === "collaboratorSections" ? "grid-cols-2" : "grid-cols-3"}`}>
             <TabsTrigger value="sections" className="flex items-center gap-2">
               <FolderPlus className="h-4 w-4" />
               {T.sections || "Sections"}
@@ -1260,10 +1289,12 @@ export const QuoteManager = ({
               <Calculator className="h-4 w-4" />
               {T.calculationsDesc || "Tổng Kết"}
             </TabsTrigger>
-            <TabsTrigger value="suggestions" className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              {T.suggestions || "AI Suggestions"}
-            </TabsTrigger>
+            {fieldArrayName !== "collaboratorSections" && (
+              <TabsTrigger value="suggestions" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                {T.suggestions || "AI Suggestions"}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="sections" className="space-y-4 mt-6">
@@ -1274,7 +1305,6 @@ export const QuoteManager = ({
                 control={control}
                 columns={columns}
                 fieldArrayName={fieldArrayName}
-                onPaste={handlePasteInSection}
                 T={T}
                 onRemoveSection={() => removeSection(index)}
                 canDeleteSection={sectionFields.length > 1}
@@ -1284,6 +1314,7 @@ export const QuoteManager = ({
                 onItemChange={form.setValue}
                 onUpdateColumnCalculation={handleUpdateColumnCalculation}
                 onAddColumn={handleAddColumn}
+                onPaste={handlePasteInSection}
               />
             ))}
             
@@ -1382,15 +1413,17 @@ export const QuoteManager = ({
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <div>
-                        <p className="text-base font-medium text-primary">{T.netTotal || "Net Total"}</p>
-                        <span className="text-xs text-muted-foreground">{T.netTotalDesc || "Grand Total - Tổng collaborator"}</span>
+                    {fieldArrayName !== "collaboratorSections" && (
+                      <div className="flex items-center justify-between mt-2">
+                        <div>
+                          <p className="text-base font-medium text-primary">{T.netTotal || "Net Total"}</p>
+                          <span className="text-xs text-muted-foreground">{T.netTotalDesc || "Grand Total - Tổng collaborator"}</span>
+                        </div>
+                        <p className="text-2xl font-bold text-primary">
+                          {netTotal.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}
+                        </p>
                       </div>
-                      <p className="text-2xl font-bold text-primary">
-                        {netTotal.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}
-                      </p>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1461,16 +1494,18 @@ export const QuoteManager = ({
             )}
           </TabsContent>
 
-          <TabsContent value="suggestions" className="space-y-4 mt-6">
-            {onApplySuggestion && (
-              <QuoteSuggestion
-                settings={settings}
-                taskDescription={taskDescription}
-                taskCategory={taskCategory}
-                onApplySuggestion={onApplySuggestion}
-              />
-            )}
-          </TabsContent>
+          {fieldArrayName !== "collaboratorSections" && (
+            <TabsContent value="suggestions" className="space-y-4 mt-6">
+              {onApplySuggestion && (
+                <QuoteSuggestion
+                  settings={settings}
+                  taskDescription={taskDescription}
+                  taskCategory={taskCategory}
+                  onApplySuggestion={onApplySuggestion}
+                />
+              )}
+            </TabsContent>
+          )}
         </Tabs>
       </CardContent>
 

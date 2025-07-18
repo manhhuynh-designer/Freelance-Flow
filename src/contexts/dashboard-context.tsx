@@ -1,8 +1,8 @@
-
 "use client";
 
 import { createContext, useContext } from 'react';
-import type { AppData, Client, QuoteColumn, TaskFormValues } from '@/lib/types';
+import type { AppData, Client, QuoteColumn, Collaborator, Category } from '@/lib/types';
+import type { TaskFormValues } from '@/components/create-task-form';
 
 // Using a more specific type instead of 'any' for better type safety.
 // This context will hold all the shared state and functions for the dashboard.
@@ -23,6 +23,14 @@ type DashboardContextType = AppData & {
   handlePermanentDeleteTask: (taskId: string) => void;
   handleEmptyTrash: () => void;
   handleAddClientAndSelect: (data: Omit<Client, 'id'>) => Client;
+  handleEditClient: (clientId: string, updates: Partial<Omit<Client, 'id'>>) => void;
+  handleDeleteClient: (clientId: string) => void;
+  handleAddCollaborator: (data: Omit<Collaborator, 'id'>) => void;
+  handleEditCollaborator: (collaboratorId: string, updates: Partial<Omit<Collaborator, 'id'>>) => void;
+  handleDeleteCollaborator: (collaboratorId: string) => void;
+  handleAddCategory: (data: Omit<Category, 'id'>) => void;
+  handleEditCategory: (categoryId: string, updates: Partial<Omit<Category, 'id'>>) => void;
+  handleDeleteCategory: (categoryId: string) => void;
   handleAiCreateTask: (data: any) => void;
   handleAiEditTask: (data: any) => void;
   handleClearAllData: () => void;

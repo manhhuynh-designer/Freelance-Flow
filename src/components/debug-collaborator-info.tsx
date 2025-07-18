@@ -15,8 +15,10 @@ export function DebugCollaboratorInfo({ collaborators, tasks }: DebugCollaborato
     const usage = new Map<string, number>();
     
     tasks.forEach(task => {
-      if (task.collaboratorId) {
-        usage.set(task.collaboratorId, (usage.get(task.collaboratorId) || 0) + 1);
+      if (task.collaboratorIds && task.collaboratorIds.length > 0) {
+        task.collaboratorIds.forEach(id => {
+          usage.set(id, (usage.get(id) || 0) + 1);
+        });
       }
     });
     
@@ -25,7 +27,15 @@ export function DebugCollaboratorInfo({ collaborators, tasks }: DebugCollaborato
 
   const orphanedCollaboratorIds = useMemo(() => {
     const allCollaboratorIds = new Set(collaborators.map(c => c.id));
-    const usedCollaboratorIds = new Set(tasks.map(t => t.collaboratorId).filter((id): id is string => Boolean(id)));
+    const usedCollaboratorIds = new Set<string>();
+    
+    tasks.forEach(task => {
+      if (task.collaboratorIds && task.collaboratorIds.length > 0) {
+        task.collaboratorIds.forEach(id => {
+          if (id) usedCollaboratorIds.add(id);
+        });
+      }
+    });
     
     return Array.from(usedCollaboratorIds).filter(id => !allCollaboratorIds.has(id));
   }, [collaborators, tasks]);

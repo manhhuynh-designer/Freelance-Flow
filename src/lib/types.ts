@@ -4,7 +4,7 @@ export type CalendarViewMode = 'week' | 'month';
 
 
 export type DashboardColumn = {
-  id: 'name' | 'client' | 'category' | 'deadline' | 'status' | 'priceQuote';
+  id: 'name' | 'client' | 'category' | 'collaborator' | 'deadline' | 'status' | 'priceQuote';
   label: string;
   visible: boolean;
 };
@@ -50,6 +50,14 @@ export type QuoteTemplate = {
   columns?: QuoteColumn[];
 };
 
+export type CollaboratorQuote = {
+  id: string;
+  collaboratorId: string;
+  sections: QuoteSection[];
+  total: number;
+  columns?: QuoteColumn[];
+};
+
 export type Task = {
   id: string;
   name: string;
@@ -57,12 +65,12 @@ export type Task = {
   startDate: Date | string;
   deadline: Date | string;
   clientId: string;
-  collaboratorId?: string;
+  collaboratorIds?: string[]; // Changed to array to support multiple collaborators
   categoryId: string;
   status: 'todo' | 'inprogress' | 'done' | 'onhold' | 'archived';
   subStatusId?: string;
   quoteId: string;
-  collaboratorQuoteId?: string;
+  collaboratorQuotes?: { collaboratorId: string; quoteId: string }[]; // Multiple collaborator quotes
   briefLink?: string[];
   driveLink?: string[];
   deletedAt?: string;

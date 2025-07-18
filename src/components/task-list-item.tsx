@@ -129,7 +129,7 @@ type TaskListItemProps = {
   collaborators: Collaborator[];
   categories: Category[];
   quote?: Quote;
-  collaboratorQuote?: Quote;
+  collaboratorQuotes: Quote[];
   status?: StatusInfo;
   view: 'active' | 'trash';
   onEditTask: (
@@ -157,7 +157,7 @@ export function TaskListItem({
   collaborators,
   categories,
   quote, 
-  collaboratorQuote, 
+  collaboratorQuotes, 
   status, 
   view,
   onEditTask, 
@@ -195,6 +195,18 @@ export function TaskListItem({
   const isValidDeadline = task.deadline instanceof Date && !isNaN(task.deadline.getTime());
   const isValidStartDate = task.startDate instanceof Date && !isNaN(task.startDate.getTime());
   
+  // Use first quote for backward compatibility
+  // Get all collaborator quotes for this task
+  const taskCollaboratorQuotes = useMemo(() => {
+    if (!collaboratorQuotes || !task.collaboratorQuotes) return [];
+    return task.collaboratorQuotes.map(cq => 
+      collaboratorQuotes.find(q => q.id === cq.quoteId)
+    ).filter(Boolean) as Quote[];
+  }, [collaboratorQuotes, task.collaboratorQuotes]);
+
+  // For backward compatibility with single collaborator
+  const collaboratorQuote = taskCollaboratorQuotes[0];
+  
   const defaultColumns: QuoteColumn[] = [
     { id: 'description', name: T.description, type: 'text' },
     { id: 'unitPrice', name: `${T.unitPrice} (${settings.currency})`, type: 'number', calculation: { type: 'sum' } },
@@ -202,10 +214,20 @@ export function TaskListItem({
 
   const category = useMemo(() => (categories || []).find(c => c.id === task.categoryId), [task.categoryId, categories]);
 
+  const assignedCollaborators = useMemo(() => {
+    if (!task.collaboratorIds || task.collaboratorIds.length === 0) return [];
+    
+    // Get unique collaborator IDs to avoid duplicates
+    const uniqueCollaboratorIds = [...new Set(task.collaboratorIds)];
+    
+    return uniqueCollaboratorIds.map(id => collaborators.find(c => c.id === id)).filter(Boolean) as Collaborator[];
+  }, [task.collaboratorIds, collaborators]);
+
+  // Backward compatibility
   const assignedCollaborator = useMemo(() => {
-    if (!task.collaboratorId) return null;
-    return collaborators.find(c => c.id === task.collaboratorId) || null;
-  }, [task.collaboratorId, collaborators]);
+    if (assignedCollaborators.length > 0) return assignedCollaborators[0];
+    return null;
+  }, [assignedCollaborators]);
 
   // Helper function to calculate row value with formula support
   const calculateRowValue = useCallback((item: QuoteItem, column: QuoteColumn, allColumns: QuoteColumn[]) => {
@@ -253,17 +275,30 @@ export function TaskListItem({
     }, 0);
   }, [quote, defaultColumns, calculateRowValue]);
   
+  // Calculate total for all collaborator quotes
   const totalCollabQuote = useMemo(() => {
-    if (!collaboratorQuote?.sections) return 0;
-    const unitPriceCol = (collaboratorQuote.columns || defaultColumns).find(col => col.id === 'unitPrice');
-    if (!unitPriceCol) return 0;
+    if (!taskCollaboratorQuotes || taskCollaboratorQuotes.length === 0) return 0;
     
-    return collaboratorQuote.sections.reduce((acc, section) => {
-      return acc + (section.items?.reduce((itemAcc, item) => {
-        return itemAcc + calculateRowValue(item, unitPriceCol, collaboratorQuote.columns || defaultColumns);
-      }, 0) || 0);
+    return taskCollaboratorQuotes.reduce((totalAcc, collabQuote) => {
+      if (!collabQuote?.sections) return totalAcc;
+      
+      const unitPriceCol = (collabQuote.columns || defaultColumns).find(col => col.id === 'unitPrice');
+      if (!unitPriceCol) return totalAcc;
+      
+      const quoteTotal = collabQuote.sections.reduce((acc, section) => {
+        return acc + (section.items?.reduce((itemAcc, item) => {
+          return itemAcc + calculateRowValue(item, unitPriceCol, collabQuote.columns || defaultColumns);
+        }, 0) || 0);
+      }, 0);
+      
+      return totalAcc + quoteTotal;
     }, 0);
-  }, [collaboratorQuote, defaultColumns, calculateRowValue]);
+  }, [taskCollaboratorQuotes, defaultColumns, calculateRowValue]);
+
+  // Calculate Net Total (Price Quote total - Collaborator total)
+  const netTotal = useMemo(() => {
+    return totalQuote - totalCollabQuote;
+  }, [totalQuote, totalCollabQuote]);
   // Enhanced calculation results that match QuoteManager structure
   const calculationResults = useMemo(() => {
     if (!quote?.sections) return [];
@@ -338,9 +373,9 @@ export function TaskListItem({
     return results;
   }, [quote, defaultColumns, calculateRowValue, T]);
 
-  // Enhanced collaborator calculation results
+  // Enhanced collaborator calculation results for all collaborator quotes
   const collaboratorCalculationResults = useMemo(() => {
-    if (!collaboratorQuote?.sections) return [];
+    if (!taskCollaboratorQuotes || taskCollaboratorQuotes.length === 0) return [];
     
     const results: Array<{
       id: string;
@@ -350,65 +385,79 @@ export function TaskListItem({
       type: ColumnCalculationType;
     }> = [];
 
-    (collaboratorQuote.columns || defaultColumns).filter(col => 
-      col.calculation && col.calculation.type && col.calculation.type !== 'none' && col.type === 'number'
-    ).forEach(col => {
-      if (!col.calculation) return;
+    // Aggregate calculations across all collaborator quotes
+    taskCollaboratorQuotes.forEach((collabQuote, index) => {
+      if (!collabQuote?.sections) return;
+      
+      (collabQuote.columns || defaultColumns).filter(col => 
+        col.calculation && col.calculation.type && col.calculation.type !== 'none' && col.type === 'number'
+      ).forEach(col => {
+        if (!col.calculation) return;
 
-      const allValues = collaboratorQuote.sections!.flatMap((section) => 
-        (section.items || []).map((item) => calculateRowValue(item, col, collaboratorQuote.columns || defaultColumns))
-          .filter((v: number) => !isNaN(v))
-      );
+        const allValues = collabQuote.sections!.flatMap((section) => 
+          (section.items || []).map((item) => calculateRowValue(item, col, collabQuote.columns || defaultColumns))
+            .filter((v: number) => !isNaN(v))
+        );
 
-      let result: number | string = 0;
-      let calculation = '';
-      const calcType = col.calculation.type;
+        let result: number | string = 0;
+        let calculation = '';
+        const calcType = col.calculation.type;
 
-      switch (calcType) {
-        case 'sum':
-          result = allValues.reduce((acc, val) => acc + val, 0);
-          calculation = 'Sum';
-          break;
-        case 'average':
-          result = allValues.length ? allValues.reduce((acc, val) => acc + val, 0) / allValues.length : 0;
-          calculation = 'Average';
-          break;
-        case 'min':
-          result = allValues.length ? Math.min(...allValues) : 0;
-          calculation = 'Min';
-          break;
-        case 'max':
-          result = allValues.length ? Math.max(...allValues) : 0;
-          calculation = 'Max';
-          break;
-        case 'custom':
-          try {
-            if (col.calculation.formula) {
-              const formula = col.calculation.formula.replace(/values/g, JSON.stringify(allValues));
-              result = eval(formula) || 0;
-            } else {
+        switch (calcType) {
+          case 'sum':
+            result = allValues.reduce((acc, val) => acc + val, 0);
+            calculation = 'Sum';
+            break;
+          case 'average':
+            result = allValues.length ? allValues.reduce((acc, val) => acc + val, 0) / allValues.length : 0;
+            calculation = 'Average';
+            break;
+          case 'min':
+            result = allValues.length ? Math.min(...allValues) : 0;
+            calculation = 'Min';
+            break;
+          case 'max':
+            result = allValues.length ? Math.max(...allValues) : 0;
+            calculation = 'Max';
+            break;
+          case 'custom':
+            try {
+              if (col.calculation.formula) {
+                const formula = col.calculation.formula.replace(/values/g, JSON.stringify(allValues));
+                result = eval(formula) || 0;
+              } else {
+                result = 0;
+              }
+            } catch {
               result = 0;
             }
-          } catch {
-            result = 0;
-          }
-          calculation = 'Custom';
-          break;
-        default:
-          return;
-      }
+            calculation = 'Custom';
+            break;
+          default:
+            return;
+        }
 
-      results.push({
-        id: col.id,
-        name: col.name,
-        calculation,
-        result,
-        type: calcType
+        // Only add unique column results (avoid duplicates across collaborator quotes)
+        const existingResult = results.find(r => r.id === col.id);
+        if (!existingResult) {
+          results.push({
+            id: col.id,
+            name: col.name,
+            calculation,
+            result,
+            type: calcType
+          });
+        } else {
+          // If it's a sum, add to existing result
+          if (calcType === 'sum' && typeof existingResult.result === 'number' && typeof result === 'number') {
+            existingResult.result += result;
+          }
+        }
       });
     });
 
     return results;
-  }, [collaboratorQuote, defaultColumns, calculateRowValue, T]);
+  }, [taskCollaboratorQuotes, defaultColumns, calculateRowValue, T]);
 
 
   const getDeadlineColor = (deadline: Date): string => {
@@ -620,6 +669,25 @@ export function TaskListItem({
             return <span>{client?.name}</span>;
         case 'category':
             return <span>{(category?.name && T.categories[category.id as keyof typeof T.categories]) || category?.name || ''}</span>;
+        case 'collaborator':
+            return assignedCollaborators.length > 0 ? (
+              <div className="flex gap-1">
+                {assignedCollaborators.slice(0, 3).map((collaborator, index) => (
+                  <div key={`${collaborator.id}-${index}`} className="inline-flex items-center gap-1">
+                    <div className="flex items-center justify-center w-6 h-6 bg-primary/10 rounded-full">
+                      <span className="text-xs font-medium">{collaborator.name.charAt(0)}</span>
+                    </div>
+                    <span className="text-sm">{collaborator.name}</span>
+                    {index < Math.min(assignedCollaborators.length - 1, 2) && <span className="text-muted-foreground">, </span>}
+                  </div>
+                ))}
+                {assignedCollaborators.length > 3 && (
+                  <span className="text-xs text-muted-foreground">+{assignedCollaborators.length - 3} more</span>
+                )}
+              </div>
+            ) : (
+              <span className="text-muted-foreground">-</span>
+            );
         case 'deadline':
             return <span className={deadlineColorClass}>{isValidDeadline ? format(task.deadline, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}</span>;
         case 'status':
@@ -856,7 +924,7 @@ export function TaskListItem({
               )}
               onClick={() => setSelectedNav('collaborator')}
               type="button"
-              disabled={!collaboratorQuote || !collaboratorQuote.sections || collaboratorQuote.sections.length === 0}
+              disabled={!taskCollaboratorQuotes || taskCollaboratorQuotes.length === 0}
             >{T.collaboratorCosts ?? 'Collaborator Quote'}</button>
           </nav>
 
@@ -918,6 +986,33 @@ export function TaskListItem({
                     {task.description || <em className="text-muted-foreground/70">{T.noDescription}</em>}
                   </div>
                 </Card>
+                {/* Financial Summary Card */}
+                {(totalQuote > 0 || totalCollabQuote > 0) && (
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Briefcase className="h-4 w-4" />
+                      {T.grandTotaltit || 'Financial Summary'}
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      {totalQuote > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">{T.priceQuote}:</span>
+                          <span className="font-medium">{totalQuote.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
+                        </div>
+                      )}
+                      {totalCollabQuote > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">{T.collaboratorCosts}:</span>
+                          <span className="font-medium text-red-600">-{totalCollabQuote.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between pt-2 border-t border-primary">
+                        <span className="font-bold text-primary">{T.netTotal}:</span>
+                        <span className="font-bold text-primary">{netTotal.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
+                      </div>
+                    </div>
+                  </Card>
+                )}
                 {/* Links & Collaborator Grid Layout */}
                 <div className="grid md:grid-cols-2 gap-4">
                   {/* Brief Links Card */}
@@ -954,23 +1049,27 @@ export function TaskListItem({
                       </div>
                     </Card>
                   )}
-                  {/* Collaborator Card */}
-                  {assignedCollaborator && (
+                  {/* Collaborator Card - Updated for multi-collaborator support */}
+                  {assignedCollaborators.length > 0 && (
                     <Card className="p-4">
                       <h4 className="font-semibold mb-3 flex items-center gap-2">
                         <Briefcase className="h-4 w-4" />
-                        {T.collaborator ?? 'Collaborator'}
+                        {assignedCollaborators.length === 1 ? (T.collaborator ?? 'Collaborator') : (T.collaborators ?? 'Collaborators')}
                       </h4>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-full">
-                          <span className="text-sm font-medium">{assignedCollaborator.name.charAt(0)}</span>
-                        </div>
-                        <div>
-                          <div className="font-medium">{assignedCollaborator.name}</div>
-                          {assignedCollaborator.specialty && (
-                            <div className="text-xs text-muted-foreground">{assignedCollaborator.specialty}</div>
-                          )}
-                        </div>
+                      <div className="space-y-3">
+                        {assignedCollaborators.map((collaborator, index) => (
+                          <div key={`${collaborator.id}-${index}`} className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-full">
+                              <span className="text-sm font-medium">{collaborator.name.charAt(0)}</span>
+                            </div>
+                            <div>
+                              <div className="font-medium">{collaborator.name}</div>
+                              {collaborator.specialty && (
+                                <div className="text-xs text-muted-foreground">{collaborator.specialty}</div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </Card>
                   )}
@@ -995,6 +1094,16 @@ export function TaskListItem({
                           <span className="font-semibold">{T.grandTotal}:</span>
                           <span className="font-semibold">{totalQuote.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
                         </div>
+                        {totalCollabQuote > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">{T.totalCollaboratorCosts || 'Total Collaborator Costs'}:</span>
+                            <span className="text-muted-foreground">-{totalCollabQuote.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between mt-2 pt-2 border-t border-primary">
+                          <span className="font-bold text-primary">{T.netTotal}:</span>
+                          <span className="font-bold text-primary">{netTotal.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
+                        </div>
                         <Separator/>
                       </div>
                     </div>
@@ -1007,9 +1116,28 @@ export function TaskListItem({
             {/* Collaborator Quote Section */}
             {selectedNav === 'collaborator' && (
               <div className="space-y-4">
-                {collaboratorQuote && collaboratorQuote.sections && collaboratorQuote.sections.length > 0 ? (
+                {taskCollaboratorQuotes.length > 0 ? (
                   <>
-                    {renderQuoteTable(T.collaboratorCosts, collaboratorQuote)}
+                    {taskCollaboratorQuotes.map((collabQuote, index) => {
+                      const collaboratorId = task.collaboratorQuotes?.[index]?.collaboratorId;
+                      const collaborator = collaborators.find(c => c.id === collaboratorId);
+                      
+                      return (
+                        <div key={`${collabQuote.id}-${index}`} className="space-y-2">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center justify-center w-6 h-6 bg-primary/10 rounded-full">
+                              <span className="text-xs font-medium">{collaborator?.name.charAt(0) || 'C'}</span>
+                            </div>
+                            <h5 className="font-medium">{collaborator?.name || `Collaborator ${index + 1}`}</h5>
+                            {collaborator?.specialty && (
+                              <span className="text-xs text-muted-foreground">({collaborator.specialty})</span>
+                            )}
+                          </div>
+                          {renderQuoteTable(`${T.collaboratorCosts} - ${collaborator?.name || `Collaborator ${index + 1}`}`, collabQuote)}
+                        </div>
+                      );
+                    })}
+                    
                     <div className="flex justify-end pt-4 mt-4 border-t">
                       <div className="text-sm space-y-2 w-full max-w-xs">
                         {collaboratorCalculationResults.map(calc => (
@@ -1019,8 +1147,18 @@ export function TaskListItem({
                           </div>
                         ))}
                         <div className="flex justify-between mt-2 pt-2 border-t">
-                          <span className="font-semibold">{T.collaboratorCosts}:</span>
+                          <span className="font-semibold">{T.totalCollaboratorCosts || 'Total Collaborator Costs'}:</span>
                           <span className="font-semibold">{totalCollabQuote.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
+                        </div>
+                        {totalQuote > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">{T.grandTotal}:</span>
+                            <span className="text-muted-foreground">{totalQuote.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between mt-2 pt-2 border-t border-primary">
+                          <span className="font-bold text-primary">{T.netTotal}:</span>
+                          <span className="font-bold text-primary">{netTotal.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
                         </div>
                         <Separator/>
                       </div>
@@ -1099,7 +1237,7 @@ export function TaskListItem({
                 taskToEdit={task} 
                 onSubmit={handleTaskFormSubmit} 
                 quote={quote} 
-                collaboratorQuote={collaboratorQuote} 
+                collaboratorQuotes={collaboratorQuotes} 
                 clients={clients} 
                 onAddClient={onAddClient} 
                 quoteTemplates={quoteTemplates} 

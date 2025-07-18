@@ -34,7 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import { i18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { Task, Client, Collaborator, Category, Quote, QuoteSection, QuoteColumn, QuoteTemplate, AppSettings } from "@/lib/types";
-import type { SuggestQuoteOutput } from "@/ai/flows/suggest-quote";
+import type { SuggestQuoteOutput } from "@/lib/ai-types";
 import { QuoteManager } from "./quote-manager";
 
 const formSchema = z.object({
@@ -54,7 +54,7 @@ const formSchema = z.object({
     { message: "Please enter a valid URL or local file link (file://)." }
   )).optional().default([]),
   clientId: z.string().min(1, "Please select a client."),
-  collaboratorId: z.string().optional(),
+  collaboratorIds: z.array(z.string()).optional().default([]), // Changed to array
   categoryId: z.string().min(1, "Please select a category."),
   status: z.enum(["todo", "inprogress", "done", "onhold", "archived"]),
   subStatusId: z.string().optional(),
@@ -74,20 +74,25 @@ const formSchema = z.object({
         })
     ).min(1, "A section must have at least one item."),
   })).min(1, "A quote must have at least one section."),
-  collaboratorSections: z.array(
+  collaboratorQuotes: z.array(
     z.object({
-      id: z.string(),
-      name: z.string().min(1, "Section name cannot be empty."),
-      items: z.array(
+      collaboratorId: z.string(),
+      sections: z.array(
         z.object({
-          id: z.string().optional(),
-          description: z.string().min(1, "Description cannot be empty."),
-          unitPrice: z.coerce.number().min(0, "Price cannot be negative.").default(0),
-          customFields: z.record(z.any()).optional(),
+          id: z.string(),
+          name: z.string().min(1, "Section name cannot be empty."),
+          items: z.array(
+            z.object({
+              id: z.string().optional(),
+              description: z.string().min(1, "Description cannot be empty."),
+              unitPrice: z.coerce.number().min(0, "Price cannot be negative.").default(0),
+              customFields: z.record(z.any()).optional(),
+            })
+          ).min(1, "A section must have at least one item."),
         })
-      ),
+      ).optional().default([]),
     })
-  ).optional(),
+  ).optional().default([]),
 });
 
 export type TaskFormValues = z.infer<typeof formSchema>;
@@ -117,6 +122,10 @@ export function CreateTaskForm({
   const T = {
     ...i18n[settings.language],
     addLink: ((i18n[settings.language] as any)?.addLink || "Thêm link"),
+    addCollaborator: ((i18n[settings.language] as any)?.addCollaborator || "Thêm Collaborator"),
+    addFirstCollaborator: ((i18n[settings.language] as any)?.addFirstCollaborator || "Thêm Collaborator đầu tiên"),
+    noCollaborators: ((i18n[settings.language] as any)?.noCollaborators || "Chưa có collaborator nào"),
+    collaborators: ((i18n[settings.language] as any)?.collaborators || "Collaborators"),
   };
   
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
@@ -158,7 +167,7 @@ export function CreateTaskForm({
       briefLink: [""],
       driveLink: [""],
       clientId: "",
-      collaboratorId: "",
+      collaboratorIds: [],
       categoryId: "",
       status: "todo",
       subStatusId: "",
@@ -171,7 +180,7 @@ export function CreateTaskForm({
         name: T.untitledSection, 
         items: [{ description: "", unitPrice: 0, customFields: {} }] 
       }],
-      collaboratorSections: [],
+      collaboratorQuotes: [],
     }
   });
 
@@ -179,13 +188,24 @@ export function CreateTaskForm({
     control: form.control, 
     name: "sections" 
   });
-  const { fields: collabSectionFields, append: collabAppendSection, remove: collabRemoveSection, move: moveCollabItem } = useFieldArray({ 
+  const { fields: collabQuoteFields, append: collabAppendQuote, remove: collabRemoveQuote, move: moveCollabQuote } = useFieldArray({ 
     control: form.control, 
-    name: "collaboratorSections" 
+    name: "collaboratorQuotes" 
   });
 
-  const onSubmit = (data: TaskFormValues) => {
-    onFormSubmit(data, columns, collaboratorColumns);
+  const handleFormSubmit = (data: TaskFormValues) => {
+    // Extract collaborator IDs from collaboratorQuotes
+    const collaboratorIds = data.collaboratorQuotes
+      ?.filter(quote => quote.collaboratorId)
+      .map(quote => quote.collaboratorId) || [];
+    
+    // Update the data with extracted collaborator IDs
+    const formDataWithCollaborators = {
+      ...data,
+      collaboratorIds
+    };
+    
+    onFormSubmit(formDataWithCollaborators, columns, collaboratorColumns);
   };
   
   const handleAddNewClient = () => {
@@ -220,7 +240,7 @@ export function CreateTaskForm({
   );
 
   const watchedSections = useWatch({ control: form.control, name: 'sections' });
-  const watchedCollabSections = useWatch({ control: form.control, name: 'collaboratorSections' });
+  const watchedCollabQuotes = useWatch({ control: form.control, name: 'collaboratorQuotes' });
 
   const handleApplySuggestion = (items: SuggestQuoteOutput['suggestedItems']) => {
     const newItems = items.map(item => ({
@@ -239,7 +259,14 @@ export function CreateTaskForm({
   
   const handleCopyFromQuote = () => {
     const currentSections = form.getValues('sections');
-    form.setValue('collaboratorSections', currentSections);
+    // When copying from quote, create a new collaborator quote entry
+    const newCollaboratorQuote = {
+      collaboratorId: '', // Will be set when collaborator is selected
+      sections: currentSections
+    };
+    
+    const currentQuotes = form.getValues('collaboratorQuotes') || [];
+    form.setValue('collaboratorQuotes', [...currentQuotes, newCollaboratorQuote]);
     setCollaboratorColumns([...columns]);
     toast({ 
       title: T.copiedFromQuote, 
@@ -256,7 +283,7 @@ export function CreateTaskForm({
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
           {/* Main task details */}
           <div className="space-y-4">
             <FormField 
@@ -599,46 +626,116 @@ export function CreateTaskForm({
               </div>
               
               <CollapsibleContent className="space-y-4 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                <FormField 
-                  control={form.control} 
-                  name="collaboratorId" 
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{T.collaborator}</FormLabel>
-                      <Select 
-                        onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} 
-                        defaultValue={field.value || '__none__'}
+                {/* Multiple Collaborators Manager */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-sm font-medium">{T.collaborators}</h4>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        const newQuote = {
+                          collaboratorId: '',
+                          sections: [{
+                            id: `section-${Date.now()}`,
+                            name: T.untitledSection,
+                            items: [{ description: "", unitPrice: 0, customFields: {} }]
+                          }]
+                        };
+                        collabAppendQuote(newQuote);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      {T.addCollaborator}
+                    </Button>
+                  </div>
+                  
+                  {collabQuoteFields.map((field, index) => (
+                    <div key={field.id} className="border rounded-lg p-4 space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 mr-4">
+                          <FormField 
+                            control={form.control} 
+                            name={`collaboratorQuotes.${index}.collaboratorId`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{T.collaborator}</FormLabel>
+                                <Select 
+                                  onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} 
+                                  value={field.value || '__none__'}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder={T.selectCollaborator} />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">{T.none}</SelectItem>
+                                    {(collaborators || []).map((collaborator) => (
+                                      <SelectItem key={collaborator.id} value={collaborator.id}>
+                                        {collaborator.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )} 
+                          />
+                        </div>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => collabRemoveQuote(index)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <QuoteManager
+                        control={form.control}
+                        form={form}
+                        fieldArrayName={`collaboratorQuotes.${index}.sections`}
+                        columns={collaboratorColumns}
+                        setColumns={setCollaboratorColumns}
+                        title={`${T.collaboratorCosts} #${index + 1}`}
+                        settings={settings}
+                        quoteTemplates={quoteTemplates}
+                        onCopyFromQuote={handleCopyFromQuote}
+                        showCopyFromQuote={true}
+                      />
+                    </div>
+                  ))}
+                  
+                  {collabQuoteFields.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>{T.noCollaborators}</p>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          const newQuote = {
+                            collaboratorId: '',
+                            sections: [{
+                              id: `section-${Date.now()}`,
+                              name: T.untitledSection,
+                              items: [{ description: "", unitPrice: 0, customFields: {} }]
+                            }]
+                          };
+                          collabAppendQuote(newQuote);
+                        }}
+                        className="mt-2"
                       >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={T.selectCollaborator} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="__none__">{T.none}</SelectItem>
-                          {(collaborators || []).map((collaborator) => (
-                            <SelectItem key={collaborator.id} value={collaborator.id}>
-                              {collaborator.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} 
-                />
-                
-                <QuoteManager
-                  control={form.control}
-                  form={form}
-                  fieldArrayName="collaboratorSections"
-                  columns={collaboratorColumns}
-                  setColumns={setCollaboratorColumns}
-                  title={T.collaboratorCosts}
-                  settings={settings}
-                  onCopyFromQuote={handleCopyFromQuote}
-                  showCopyFromQuote={true}
-                />
+                        <Plus className="h-4 w-4 mr-2" />
+                        {T.addFirstCollaborator}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CollapsibleContent>
             </div>
           </Collapsible>

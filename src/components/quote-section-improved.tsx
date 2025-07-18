@@ -81,7 +81,7 @@ interface QuoteSectionComponentProps {
   onMoveColumn: (index: number, direction: 'left' | 'right') => void;
   onEditColumn: (column: QuoteColumn) => void;
   onDeleteColumn: (column: QuoteColumn) => void;
-  onPaste: (sectionIndex: number, text: string) => void;
+  onPaste?: (sectionIndex: number, text: string) => void;
   onItemChange: any;
   onUpdateColumnCalculation?: (colId: string, calculation: { type: string; formula?: string }) => void;
   onAddColumn?: (column: Omit<QuoteColumn, 'id'>) => void;
@@ -153,74 +153,6 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
       setCustomFormula(configCalcCol.calculation?.formula || '');
     }
   }, [configCalcCol]);
-
-  // Improved paste event listener with better target detection
-  React.useEffect(() => {
-    const sectionElement = document.querySelector(`[data-section-index="${sectionIndex}"]`) as HTMLElement;
-    if (!sectionElement) return;
-
-    const handleKeyboardPaste = async (e: ClipboardEvent) => {
-      // More precise target checking - only handle if event target is within this specific section
-      const target = e.target as HTMLElement;
-      const targetSection = target.closest(`[data-section-index]`);
-      const targetSectionIndex = targetSection?.getAttribute('data-section-index');
-      
-      // Only handle paste if target is specifically in this section
-      if (targetSectionIndex !== sectionIndex.toString()) {
-        return;
-      }
-      
-      // Prevent default only for our section
-      e.preventDefault();
-      e.stopPropagation();
-      
-      try {
-        // Improved clipboard data retrieval with better error handling
-        let pasteText = '';
-        
-        // First try: clipboard event data
-        if (e.clipboardData) {
-          pasteText = e.clipboardData.getData('text/plain') || e.clipboardData.getData('text');
-        }
-        
-        // Second try: Clipboard API with permission check
-        if (!pasteText && navigator.clipboard) {
-          try {
-            // Check if we have permission or need to request it
-            const permission = await navigator.permissions.query({ name: 'clipboard-read' as PermissionName });
-            if (permission.state === 'granted' || permission.state === 'prompt') {
-              pasteText = await navigator.clipboard.readText();
-            }
-          } catch (permissionError) {
-            console.warn('Clipboard permission denied or API unavailable:', permissionError);
-          }
-        }
-        
-        // If we got valid text, process it
-        if (pasteText && pasteText.trim()) {
-          onPaste(sectionIndex, pasteText);
-          return;
-        }
-        
-        // Fallback: show manual paste dialog
-        setIsPasteDialogOpen(true);
-        setPasteText('');
-        
-      } catch (error) {
-        console.error('Paste operation failed:', error);
-        // Show manual paste dialog as fallback
-        setIsPasteDialogOpen(true);
-        setPasteText('');
-      }
-    };
-
-    // Add event listener to the specific section element, not document
-    sectionElement.addEventListener('paste', handleKeyboardPaste, { capture: true });
-    
-    return () => {
-      sectionElement.removeEventListener('paste', handleKeyboardPaste, { capture: true });
-    };
-  }, [sectionIndex, onPaste, setIsPasteDialogOpen, setPasteText]);
 
   const { fields, append, remove, move } = useFieldArray({
     control,
@@ -310,6 +242,15 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
 
   // Improved paste handler with better error handling and user feedback
   const handlePaste = async () => {
+    if (!onPaste) {
+      toast({
+        variant: 'destructive',
+        title: (T as any).pasteNotAvailable || 'Paste Not Available',
+        description: (T as any).pasteNotAvailableDesc || 'Paste functionality is not available for this section.'
+      });
+      return;
+    }
+
     try {
       let pasteText = '';
       
@@ -377,6 +318,15 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
   };
 
   const handleManualPaste = () => {
+    if (!onPaste) {
+      toast({
+        variant: 'destructive',
+        title: (T as any).pasteNotAvailable || 'Paste Not Available',
+        description: (T as any).pasteNotAvailableDesc || 'Paste functionality is not available for this section.'
+      });
+      return;
+    }
+
     if (pasteText.trim()) {
       onPaste(sectionIndex, pasteText);
       setIsPasteDialogOpen(false);
@@ -1015,17 +965,19 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
                   <TooltipContent><p>{(T as any).addItem}</p></TooltipContent>
               </Tooltip>
           </TooltipProvider>
-          <TooltipProvider>
-              <Tooltip>
-                  <TooltipTrigger asChild>
-                      <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={handlePaste}>
-                          <ClipboardPaste className="h-4 w-4" />
-                          <span className="sr-only">{(T as any).pasteTable}</span>
-                      </Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>{(T as any).pasteTable}</p></TooltipContent>
-              </Tooltip>
-          </TooltipProvider>
+          {onPaste && (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={handlePaste}>
+                            <ClipboardPaste className="h-4 w-4" />
+                            <span className="sr-only">{(T as any).pasteTable}</span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>{(T as any).pasteTable}</p></TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       </div>
 

@@ -1,93 +1,55 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useWatch } from "react-hook-form";
-import { useForm, useFieldArray } from "react-hook-form";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { CalendarIcon, PlusCircle, Trash2, MoreVertical, Pencil, ClipboardPaste, Copy, ChevronsUpDown, ChevronUp, ChevronDown, ArrowLeft, ArrowRight, Link as LinkIcon, Briefcase, FolderPlus, SplitSquareVertical } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
 import React, { useState, useMemo, useCallback } from "react";
-import type { Task, Quote, Client, QuoteColumn, QuoteTemplate, Collaborator, AppSettings, QuoteSection, Category } from "@/lib/types";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogClose,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Label } from "./ui/label";
-import { Checkbox } from "./ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
-import { Separator } from "./ui/separator";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { format } from "date-fns";
+import { 
+  CalendarIcon, PlusCircle, Trash2, MoreVertical, Pencil, ClipboardPaste, Copy, 
+  ChevronsUpDown, ChevronUp, ChevronDown, ArrowLeft, ArrowRight, 
+  SplitSquareVertical, Plus, Minus, Grip, Clock, DollarSign, 
+  Settings, MoreHorizontal, Edit2, X 
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Separator } from "@/components/ui/separator";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
 import { useToast } from "@/hooks/use-toast";
 import { i18n } from "@/lib/i18n";
-import { type SuggestQuoteOutput } from "@/ai/flows/suggest-quote";
-import { QuoteSuggestion } from "./quote-suggestion";
+import { cn } from "@/lib/utils";
+import type { Task, Client, Collaborator, Category, Quote, QuoteSection, QuoteColumn, QuoteTemplate, AppSettings } from "@/lib/types";
+import type { SuggestQuoteOutput } from "@/lib/ai-types";
 import { QuoteManager } from "./quote-manager";
-import { QuoteSectionComponent } from "./quote-section-improved";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 const formSchema = z.object({
   name: z.string().min(2, "Task name must be at least 2 characters."),
   description: z.string().optional(),
-  briefLink: z.array(z.string().url({ message: "Please enter a valid URL." })).optional().default([]),
+  briefLink: z.array(z.string().refine(
+    (val) => val.trim() === "" || z.string().url().safeParse(val).success,
+    { message: "Please enter a valid URL or leave empty." }
+  )).optional().default([]),
   driveLink: z.array(z.string().refine(
-    (val) => {
-      // Accept http(s) and file:// links
-      try {
-        const url = new URL(val);
-        return url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'file:';
-      } catch {
-        return false;
-      }
-    },
-    { message: "Please enter a valid URL or local file link (file://)." }
+    (val) => val.trim() === "" || z.string().url().safeParse(val).success,
+    { message: "Please enter a valid URL or leave empty." }
   )).optional().default([]),
   clientId: z.string().min(1, "Please select a client."),
-  collaboratorId: z.string().optional(),
+  collaboratorIds: z.array(z.string()).optional().default([]), // Changed to array
   categoryId: z.string().min(1, "Please select a category."),
   status: z.enum(["todo", "inprogress", "done", "onhold", "archived"]),
   subStatusId: z.string().optional(),
@@ -107,20 +69,25 @@ const formSchema = z.object({
         })
     ).min(1, "A section must have at least one item."),
   })).min(1, "A quote must have at least one section."),
-  collaboratorSections: z.array(
+  collaboratorQuotes: z.array(
     z.object({
-      id: z.string(),
-      name: z.string().min(1, "Section name cannot be empty."),
-      items: z.array(
+      collaboratorId: z.string().optional().default(''),
+      sections: z.array(
         z.object({
-          id: z.string().optional(),
-          description: z.string().min(1, "Description cannot be empty."),
-          unitPrice: z.coerce.number().min(0, "Price cannot be negative.").default(0),
-          customFields: z.record(z.any()).optional(),
+          id: z.string(),
+          name: z.string().min(1, "Section name cannot be empty."),
+          items: z.array(
+            z.object({
+              id: z.string().optional(),
+              description: z.string().min(1, "Description cannot be empty."),
+              unitPrice: z.coerce.number().min(0, "Price cannot be negative.").default(0),
+              customFields: z.record(z.any()).optional(),
+            })
+          ).min(1, "A section must have at least one item."),
         })
-      ),
+      ).optional().default([]),
     })
-  ).optional(),
+  ).optional().default([]),
 });
 
 export type TaskFormValues = z.infer<typeof formSchema>;
@@ -130,7 +97,7 @@ type EditTaskFormProps = {
   onSubmit: (values: TaskFormValues, quoteColumns: QuoteColumn[], collaboratorQuoteColumns: QuoteColumn[], taskId: string) => void;
   taskToEdit: Task | null;
   quote?: Quote;
-  collaboratorQuote?: Quote;
+  collaboratorQuotes?: Quote[];
   clients: Client[];
   collaborators: Collaborator[];
   categories: Category[];
@@ -145,7 +112,7 @@ export function EditTaskForm({
   onSubmit: onFormSubmit, 
   taskToEdit, 
   quote, 
-  collaboratorQuote, 
+  collaboratorQuotes, 
   clients, 
   collaborators, 
   categories, 
@@ -162,15 +129,15 @@ export function EditTaskForm({
   
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
   const [newClientName, setNewClientName] = useState("");
-  const [isCollaboratorSectionOpen, setIsCollaboratorSectionOpen] = useState(!!collaboratorQuote && (collaboratorQuote.sections || []).length > 0);
+  const [isCollaboratorSectionOpen, setIsCollaboratorSectionOpen] = useState(!!collaboratorQuotes && collaboratorQuotes.length > 0);
   
-  const defaultColumns: QuoteColumn[] = React.useMemo(() => [
+  const defaultColumns: QuoteColumn[] = useMemo(() => [
     { id: 'description', name: T.description, type: 'text' },
     { id: 'unitPrice', name: `${T.unitPrice} (${settings.currency})`, type: 'number', calculation: { type: 'sum' } },
   ], [T, settings.currency]);
 
   const [columns, setColumns] = useState<QuoteColumn[]>(quote?.columns || defaultColumns);
-  const [collaboratorColumns, setCollaboratorColumns] = useState<QuoteColumn[]>(collaboratorQuote?.columns || defaultColumns);
+  const [collaboratorColumns, setCollaboratorColumns] = useState<QuoteColumn[]>(collaboratorQuotes?.[0]?.columns || defaultColumns);
   
   // Column Dialog states
   const [isColumnDialogOpen, setIsColumnDialogOpen] = useState(false);
@@ -194,18 +161,9 @@ export function EditTaskForm({
   // Helper function to get initial sections
   const getInitialSections = (): QuoteSection[] => {
     if (quote?.sections && quote.sections.length > 0) {
-      return quote.sections.map((section, sectionIndex) => ({
-        ...section,
-        id: section.id || `section-edit-${sectionIndex}`,
-        items: (section.items && section.items.length > 0)
-          ? section.items.map((item, itemIndex) => ({ 
-              ...item, 
-              id: item.id || `item-edit-${sectionIndex}-${itemIndex}`
-            }))
-          : [{ id: `item-edit-${sectionIndex}-0`, description: "", unitPrice: 0, customFields: {} }]
-      }));
+      return quote.sections;
     }
-    const fallbackId = taskToEdit?.id || `new-${Date.now()}`;
+    const fallbackId = taskToEdit?.id || `edit-${Date.now()}`;
     return [{
       id: `section-edit-${fallbackId}`,
       name: T.untitledSection,
@@ -213,655 +171,395 @@ export function EditTaskForm({
     }];
   };
 
-  const getInitialCollabSections = (): QuoteSection[] => {
-    if (collaboratorQuote?.sections && collaboratorQuote.sections.length > 0) {
-      return collaboratorQuote.sections.map((section, sectionIndex) => ({
-        ...section,
-        id: section.id || `section-collab-edit-${sectionIndex}`,
-        items: (section.items || []).map((item, itemIndex) => ({ 
-          ...item, 
-          id: item.id || `item-collab-edit-${sectionIndex}-${itemIndex}` 
-        }))
+  const getInitialCollaboratorQuotes = () => {
+    if (collaboratorQuotes && collaboratorQuotes.length > 0 && taskToEdit?.collaboratorIds) {
+      return collaboratorQuotes.map((quote, index) => ({
+        collaboratorId: taskToEdit.collaboratorIds?.[index] || '',
+        sections: quote.sections || []
       }));
     }
     return [];
   };
 
-  const isCreate = !taskToEdit;
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: isCreate ? {
-      name: "",
-      description: "",
-      briefLink: [""],
-      driveLink: [""],
-      clientId: "",
-      collaboratorId: "",
-      categoryId: "",
-      status: "todo",
-      subStatusId: "",
-      dates: {
-        from: defaultDate || undefined,
-        to: defaultDate || undefined,
-      },
-      sections: [{ 
-        id: `section-create-${Date.now()}`, 
-        name: T.untitledSection, 
-        items: [{ description: "", unitPrice: 0, customFields: {} }] 
-      }],
-      collaboratorSections: [],
-    } : {
-      name: taskToEdit.name,
-      description: taskToEdit.description || "",
-      briefLink: Array.isArray(taskToEdit.briefLink) 
+    defaultValues: {
+      name: taskToEdit?.name || "",
+      description: taskToEdit?.description || "",
+      briefLink: Array.isArray(taskToEdit?.briefLink) 
         ? (taskToEdit.briefLink.length > 0 ? taskToEdit.briefLink : [""]) 
-        : (taskToEdit.briefLink ? [taskToEdit.briefLink] : [""]),
-      driveLink: Array.isArray(taskToEdit.driveLink) 
+        : (taskToEdit?.briefLink ? [taskToEdit.briefLink] : [""]),
+      driveLink: Array.isArray(taskToEdit?.driveLink) 
         ? (taskToEdit.driveLink.length > 0 ? taskToEdit.driveLink : [""]) 
-        : (taskToEdit.driveLink ? [taskToEdit.driveLink] : [""]),
-      clientId: taskToEdit.clientId,
-      collaboratorId: taskToEdit.collaboratorId || "",
-      categoryId: taskToEdit.categoryId,
-      status: taskToEdit.status,
-      subStatusId: taskToEdit.subStatusId || "",
+        : (taskToEdit?.driveLink ? [taskToEdit.driveLink] : [""]),
+      clientId: taskToEdit?.clientId || "",
+      collaboratorIds: taskToEdit?.collaboratorIds || [],
+      categoryId: taskToEdit?.categoryId || "",
+      status: taskToEdit?.status || "todo",
+      subStatusId: taskToEdit?.subStatusId || "",
       dates: { 
-        from: new Date(taskToEdit.startDate), 
-        to: new Date(taskToEdit.deadline) 
+        from: taskToEdit ? new Date(taskToEdit.startDate) : (defaultDate || new Date()), 
+        to: taskToEdit ? new Date(taskToEdit.deadline) : (defaultDate || new Date())
       },
       sections: getInitialSections(),
-      collaboratorSections: getInitialCollabSections(),
+      collaboratorQuotes: getInitialCollaboratorQuotes(),
     }
   });
 
-  const { fields: sectionFields, append: appendSection, remove: removeSection, move } = useFieldArray({ control: form.control, name: "sections" });
-  const { fields: collabSectionFields, append: collabAppendSection, remove: collabRemoveSection, move: moveCollabItem } = useFieldArray({ control: form.control, name: "collaboratorSections" });
-  // Remove these useFieldArray hooks for briefLink and driveLink, as they are not compatible with your TaskFormValues type.
+  const { fields: sectionFields, append: appendSection, remove: removeSection } = useFieldArray({ control: form.control, name: "sections" });
+  const { fields: collabQuoteFields, append: collabAppendQuote, remove: collabRemoveQuote } = useFieldArray({ control: form.control, name: "collaboratorQuotes" });
 
-  const onSubmit = (data: TaskFormValues) => {
-    const fallbackId = taskToEdit?.id || `new-${Date.now()}`;
-    onFormSubmit(data, columns, collaboratorColumns, fallbackId);
-  };
-  
-  const handleAddNewClient = () => {
-    if (newClientName.trim() && onAddClient) {
-        const newClient = onAddClient({ name: newClientName.trim() });
-        form.setValue("clientId", newClient.id, { shouldValidate: true });
-        setNewClientName("");
-        setIsAddClientOpen(false);
-    }
-  };
-  
-  const handleApplyTemplate = () => {
-    if (!templateToApply) return;
-    const sectionsWithIds = templateToApply.sections.map(s => ({ 
-      ...s, 
-      id: s.id || `section-tpl-${Date.now()}-${Math.random()}`, 
-      items: s.items.map(item => ({ 
-        ...item, 
-        id: `item-tpl-${Date.now()}-${Math.random()}`, 
-        customFields: item.customFields || {} 
-      })) 
-    }));
-    form.setValue('sections', sectionsWithIds);
-    setColumns(templateToApply.columns || defaultColumns);
-    setTemplateToApply(null);
-  };
-  
-  const categoryId = form.watch('categoryId');
-  const categoryName = useMemo(() => (categories || []).find(c => c.id === categoryId)?.name || '', [categories, categoryId]);
+  const watchedSections = useWatch({ control: form.control, name: "sections" });
+  const watchedCollabQuotes = useWatch({ control: form.control, name: "collaboratorQuotes" });
 
-  const watchedSections = useWatch({ control: form.control, name: 'sections' });
-  const watchedCollabSections = useWatch({ control: form.control, name: 'collaboratorSections' });
-
-  // Calculation results for main sections
-  const calculationResults = useMemo(() => {
-    return (columns || []).filter(col => col.type === 'number' && !!col.calculation).map(col => {
-      const values = (watchedSections || []).flatMap(section =>
-        section.items.map(item => {
-          if (col.id === 'unitPrice') return Number(item.unitPrice) || 0;
-          return Number(item.customFields?.[col.id]) || 0;
-        })
-      ).filter(v => !isNaN(v));
-      let result: number | string = '';
-      const calcType = (typeof col.calculation === 'string' ? col.calculation : (col.calculation?.type || '')) as "" | "sum" | "avg" | "min" | "max" | "custom";
-      switch (calcType) {
-        case 'sum':
-          result = values.reduce((a, b) => a + b, 0);
-          break;
-        case 'avg':
-          result = values.length ? (values.reduce((a, b) => a + b, 0) / values.length) : 0;
-          break;
-        case 'min':
-          result = values.length ? Math.min(...values) : '';
-          break;
-        case 'max':
-          result = values.length ? Math.max(...values) : '';
-          break;
-        case 'custom':
-          result = '';
-          break;
-        default:
-          result = '';
-      }
-      return { id: col.id, name: col.name, calculation: calcType, result };
-    });
-  }, [columns, watchedSections]);
-
-  // Calculation results for collaborator sections
-  const collabCalculationResults = useMemo(() => {
-    return (collaboratorColumns || []).filter(col => col.type === 'number' && !!col.calculation).map(col => {
-      const values = (watchedCollabSections || []).flatMap(section =>
-        section.items.map(item => {
-          if (col.id === 'unitPrice') return Number(item.unitPrice) || 0;
-          return Number(item.customFields?.[col.id]) || 0;
-        })
-      ).filter(v => !isNaN(v));
-      let result: number | string = '';
-      const calcType = (typeof col.calculation === 'string' ? col.calculation : (col.calculation?.type || '')) as "" | "sum" | "avg" | "min" | "max" | "custom";
-      switch (calcType) {
-        case 'sum':
-          result = values.reduce((a, b) => a + b, 0);
-          break;
-        case 'avg':
-          result = values.length ? (values.reduce((a, b) => a + b, 0) / values.length) : 0;
-          break;
-        case 'min':
-          result = values.length ? Math.min(...values) : '';
-          break;
-        case 'max':
-          result = values.length ? Math.max(...values) : '';
-          break;
-        case 'custom':
-          result = '';
-          break;
-        default:
-          result = '';
-      }
-      return { id: col.id, name: col.name, calculation: calcType, result };
-    });
-  }, [collaboratorColumns, watchedCollabSections]);
-
-  const total = useMemo(() => (watchedSections || []).reduce((acc, section) => acc + (section.items?.reduce((itemAcc, item) => itemAcc + (item.unitPrice || 0), 0) || 0), 0), [watchedSections]);
-  const collaboratorTotal = useMemo(() => 
-    (watchedCollabSections || []).reduce(
-      (acc, section) => acc + (section.items?.reduce(
-        (itemAcc, item) => itemAcc + (item.unitPrice || 0),
-        0
-      ) || 0),
-      0
-    ),
-    [watchedCollabSections]
-  );
-
-  const customColumnTotals = useMemo(() => {
-    const totals: { name: string; total: number }[] = [];
-    (columns || []).filter(c => c.type === 'number' && c.calculation?.type === 'sum').forEach(col => {
-      const colTotal = (watchedSections || []).reduce((acc, section) => acc + (section.items?.reduce((itemAcc, item) => {
-        if (col.id === 'unitPrice') {
-          return itemAcc + (Number(item.unitPrice) || 0);
-        }
-        return itemAcc + (Number(item.customFields?.[col.id]) || 0);
-      }, 0) || 0), 0);
-      totals.push({ name: col.name, total: colTotal });
-    });
-    return totals;
-  }, [watchedSections, columns]);
-
-  const collaboratorCustomColumnTotals = useMemo(() => {
-    const totals: { name: string; total: number }[] = [];
-    (collaboratorColumns || []).filter(c => c.type === 'number' && c.calculation?.type === 'sum').forEach(col => {
-      const colTotal = (watchedCollabSections || []).reduce((acc, section) => acc + (section.items?.reduce((itemAcc, item) => {
-        if (col.id === 'unitPrice') {
-          return itemAcc + (Number(item.unitPrice) || 0);
-        }
-        return itemAcc + (Number(item.customFields?.[col.id]) || 0);
-      }, 0) || 0), 0);
-      totals.push({ name: col.name, total: colTotal });
-    });
-    return totals;
-  }, [watchedCollabSections, collaboratorColumns]);
-
-  // Column management functions
-  const handleCloseColumnDialog = () => { 
-    setIsColumnDialogOpen(false); 
-    setEditingColumn(null); 
-    setNewColumnName(""); 
-    setNewColumnType("text"); 
-    setNewColumnSum(false); 
-  };
-
-  const handleAddColumn = () => { 
-    if (newColumnName.trim()) { 
-      const newId = `custom_${Date.now()}`; 
-      setColumns(prev => [...prev, { 
-        id: newId, 
-        name: newColumnName.trim(), 
-        type: newColumnType, 
-        calculation: newColumnType === 'number' && newColumnSum ? { type: 'sum' } : undefined 
-      }]); 
-      (form.getValues('sections') || []).forEach((section, sectionIndex) => { 
-        section.items.forEach((item, itemIndex) => { 
-          form.setValue(`sections.${sectionIndex}.items.${itemIndex}.customFields.${newId}`, newColumnType === 'number' ? 0 : ''); 
-        }); 
-      }); 
-      handleCloseColumnDialog(); 
-    } 
-  };
-
-  const handleStartEditColumn = (column: QuoteColumn) => { 
-    setEditingColumn(column); 
-    setNewColumnName(column.name); 
-    setNewColumnType(column.type); 
-    setNewColumnSum(column.calculation?.type === 'sum' || false); 
-    setIsColumnDialogOpen(true); 
-  };
-
-  const handleUpdateColumn = () => { 
-    if (!editingColumn || !newColumnName.trim()) return; 
-    setColumns(prev => prev.map(c => c.id === editingColumn.id ? { 
-      ...c, 
-      name: newColumnName.trim(), 
-      type: newColumnType, 
-      calculation: newColumnType === 'number' && newColumnSum ? { type: 'sum' } : undefined, 
-    } : c)); 
-    handleCloseColumnDialog(); 
-  };
-
-  const handleConfirmDeleteColumn = () => { 
-    if (!deletingColumn) return; 
-    setColumns(prev => prev.filter(c => c.id !== deletingColumn.id)); 
-    const sections = form.getValues('sections'); 
-    (sections || []).forEach((section, sectionIndex) => { 
-      section.items.forEach((item, itemIndex) => { 
-        if (item.customFields) { 
-          const newCustomFields = {...item.customFields}; 
-          delete newCustomFields[deletingColumn.id]; 
-          form.setValue(`sections.${sectionIndex}.items.${itemIndex}.customFields`, newCustomFields); 
-        } 
-      }); 
-    }); 
-    setDeletingColumn(null); 
-  };
-
-  const handleMoveColumn = useCallback((index: number, direction: 'left' | 'right') => { 
-    const newIndex = direction === 'left' ? index - 1 : index + 1; 
-    if (newIndex < 0 || newIndex >= columns.length) return; 
-    setColumns(currentColumns => { 
-      const newColumns = [...currentColumns]; 
-      const temp = newColumns[index]; 
-      newColumns[index] = newColumns[newIndex]; 
-      newColumns[newIndex] = temp; 
-      return newColumns; 
-    }); 
-  }, [columns.length]);
-  
-  // Collaborator column management functions
-  const handleCloseCollabColumnDialog = () => { 
-    setIsCollabColumnDialogOpen(false); 
-    setEditingCollabColumn(null); 
-    setNewCollabColumnName(""); 
-    setNewCollabColumnType("text"); 
-    setNewCollabColumnSum(false); 
-  };
-
-  const handleAddCollabColumn = () => { 
-    if (newCollabColumnName.trim()) { 
-      const newId = `custom_collab_${Date.now()}`; 
-      setCollaboratorColumns(prev => [...prev, { 
-        id: newId, 
-        name: newCollabColumnName.trim(), 
-        type: newCollabColumnType, 
-        calculation: newCollabColumnType === 'number' && newCollabColumnSum ? { type: 'sum' } : undefined, 
-      }]); 
-      (form.getValues('collaboratorSections') || []).forEach((section, sectionIndex) => { 
-        section.items.forEach((item, itemIndex) => { 
-          form.setValue(`collaboratorSections.${sectionIndex}.items.${itemIndex}.customFields.${newId}`, newCollabColumnType === 'number' ? 0 : ''); 
-        }); 
-      }); 
-      handleCloseCollabColumnDialog(); 
-    } 
-  };
-
-  const handleStartEditCollabColumn = (column: QuoteColumn) => { 
-    setEditingCollabColumn(column); 
-    setNewCollabColumnName(column.name); 
-    setNewCollabColumnType(column.type); 
-    setNewCollabColumnSum(column.calculation?.type === 'sum' || false); 
-    setIsCollabColumnDialogOpen(true); 
-  };
-
-  const handleUpdateCollabColumn = () => { 
-    if (!editingCollabColumn || !newCollabColumnName.trim()) return; 
-    setCollaboratorColumns(prev => prev.map(c => c.id === editingCollabColumn.id ? { 
-      ...c, 
-      name: newCollabColumnName.trim(), 
-      type: newCollabColumnType, 
-      calculation: newCollabColumnType === 'number' && newCollabColumnSum ? { type: 'sum' } : undefined, 
-    } : c)); 
-    handleCloseCollabColumnDialog(); 
-  };
-
-  const handleConfirmDeleteCollabColumn = () => { 
-    if (!deletingCollabColumn) return; 
-    setCollaboratorColumns(prev => prev.filter(c => c.id !== deletingCollabColumn.id)); 
-    const sections = form.getValues('collaboratorSections'); 
-    if (sections) { 
-      sections.forEach((section, sectionIndex) => { 
-        section.items.forEach((item, itemIndex) => { 
-          if (item.customFields) { 
-            const newCustomFields = {...item.customFields}; 
-            delete newCustomFields[deletingCollabColumn.id]; 
-            form.setValue(`collaboratorSections.${sectionIndex}.items.${itemIndex}.customFields`, newCustomFields); 
-          } 
-        }); 
-      }); 
-    } 
-    setDeletingCollabColumn(null); 
-  };
-
-  const handleMoveCollabColumn = useCallback((index: number, direction: 'left' | 'right') => { 
-    const newIndex = direction === 'left' ? index - 1 : index + 1; 
-    if (newIndex < 0 || newIndex >= collaboratorColumns.length) return; 
-    setCollaboratorColumns(currentColumns => { 
-      const newColumns = [...currentColumns]; 
-      const temp = newColumns[index]; 
-      newColumns[index] = newColumns[newIndex]; 
-      newColumns[newIndex] = temp; 
-      return newColumns; 
-    }); 
-  }, [collaboratorColumns.length]);
-
-  const handlePasteInSection = useCallback((sectionIndex: number, text: string, fieldArrayName: "sections" | "collaboratorSections", setCols: React.Dispatch<React.SetStateAction<QuoteColumn[]>>) => {
-    const rows = text.trim().split('\n').map((row: string) => row.split('\t'));
-    if (rows.length < 1) {
-      toast({ variant: 'destructive', title: T.pasteFailed, description: "Clipboard is empty or has invalid format" });
+  const handleCopyFromQuote = useCallback((targetCollaboratorIndex: number) => {
+    if (!quote?.sections || quote.sections.length === 0) {
+      toast({
+        title: "Lỗi",
+        description: "Không có dữ liệu báo giá để sao chép.",
+        variant: "destructive",
+      });
       return;
     }
 
-    const headerRow = rows.shift()!;
-    const newColumns = headerRow.map((header: string, index: number) => {
-      const isNumeric = rows.every((row: string[]) => !isNaN(parseFloat(row[index])));
-      return { id: `custom_${Date.now()}_${index}`, name: header, type: isNumeric ? 'number' : 'text' } as QuoteColumn;
-    });
-
-    const quantityColumnIndex = headerRow.findIndex((header: string) => header.toLowerCase().includes('quantity'));
-    if (quantityColumnIndex !== -1) {
-      newColumns[quantityColumnIndex].id = 'quantity';
-    }
-
-    if (sectionIndex === 0) {
-      setCols(newColumns);
-    }
-
-    const newItems = rows.map((row: string[]) => {
-      const item: { description?: string; unitPrice?: number; customFields: Record<string, any> } = { customFields: {} };
-      newColumns.forEach((col, index) => {
-        if (col.id === 'unitPrice') {
-          item.unitPrice = parseFloat(row[index]) || 0;
-        } else if (col.id === 'description') {
-          item.description = row[index] || "";
-        } else {
-          item.customFields[col.id] = row[index];
-        }
-      });
-      return {
-        description: item.description || "",
-        unitPrice: item.unitPrice || 0,
-        customFields: item.customFields || {},
-      };
-    });
-
-    const allSections = form.getValues(fieldArrayName) || [];
-    if (allSections[sectionIndex]) {
-      allSections[sectionIndex].items = newItems as any;
-      form.setValue(fieldArrayName, allSections);
-    }
-
+    const currentSections = quote.sections;
+    form.setValue(`collaboratorQuotes.${targetCollaboratorIndex}.sections`, currentSections);
+    
     toast({
-      title: T.pastedFromClipboard,
-      description: `${newItems.length} items and ${newColumns.length} columns have been imported.`
+      title: "Thành công",
+      description: T.copiedFromQuote || "Đã sao chép dữ liệu từ báo giá chính.",
     });
-  }, [T, toast, form]);
-  
-  const handleApplySuggestion = (items: SuggestQuoteOutput['suggestedItems']) => {
-    const newItems = items.map(item => ({
-      description: item.description,
-      unitPrice: item.unitPrice,
-      id: `item-sugg-${Date.now()}-${Math.random()}`,
-      customFields: {},
-    }));
-    form.setValue('sections', [{ id: 'section-ai-1', name: T.untitledSection, items: newItems }]);
-    setColumns(defaultColumns);
-    toast({ title: T.suggestionApplied, description: T.suggestionAppliedDesc.replace('{count}', String(items.length)) });
-  };
-  
-  const handleCopyFromQuote = () => {
-    const currentSections = form.getValues('sections');
-    form.setValue('collaboratorSections', currentSections);
-    setCollaboratorColumns([...columns]);
-    toast({ title: T.copiedFromQuote, description: T.copiedFromQuoteDesc });
-  };
+  }, [quote, form, toast, T]);
 
-  const watchedStatus = form.watch("status");
-  const availableSubStatuses = useMemo(() => {
-    const mainStatusConfig = (settings.statusSettings || []).find(s => s.id === watchedStatus);
-    return mainStatusConfig?.subStatuses || [];
-  }, [watchedStatus, settings.statusSettings]);
-  
+  const onSubmit = useCallback((values: TaskFormValues) => {
+    console.log('Form submitted with values:', values);
+    console.log('Collaborator quotes data:', {
+      collaboratorQuotes: values.collaboratorQuotes,
+      hasCollaboratorQuotes: values.collaboratorQuotes && values.collaboratorQuotes.length > 0,
+      collaboratorIds: values.collaboratorIds
+    });
+    
+    if (!taskToEdit) {
+      toast({
+        title: "Lỗi",
+        description: "No task to edit",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const filteredBriefLinks = values.briefLink?.filter(link => link.trim() !== "") || [];
+    const filteredDriveLinks = values.driveLink?.filter(link => link.trim() !== "") || [];
+
+    const filteredValues = {
+      ...values,
+      briefLink: filteredBriefLinks,
+      driveLink: filteredDriveLinks,
+    };
+
+    console.log('Final filtered values being submitted:', filteredValues);
+    onFormSubmit(filteredValues, columns, collaboratorColumns, taskToEdit.id);
+  }, [onFormSubmit, columns, collaboratorColumns, taskToEdit, toast, T]);
+
+  const onError = useCallback((errors: any) => {
+    console.error('Form validation errors:', errors);
+    
+    // Extract error messages from the errors object
+    const errorMessages: string[] = [];
+    const flattenErrors = (obj: any, path = '') => {
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          const currentPath = path ? `${path}.${key}` : key;
+          if (obj[key]?.message) {
+            errorMessages.push(`${currentPath}: ${obj[key].message}`);
+          } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+            flattenErrors(obj[key], currentPath);
+          }
+        }
+      }
+    };
+    
+    flattenErrors(errors);
+    
+    const errorDescription = errorMessages.length > 0 
+      ? errorMessages.join('; ') 
+      : "Có lỗi xảy ra khi xác thực form. Vui lòng kiểm tra lại.";
+    
+    toast({
+      title: "Lỗi xác thực",
+      description: errorDescription,
+      variant: "destructive",
+    });
+  }, [toast]);
+
+  const handleAddClient = useCallback(() => {
+    if (newClientName.trim() === "") {
+      toast({
+        title: "Lỗi",
+        description: "Tên client không được để trống.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newClient = onAddClient({ name: newClientName.trim() });
+    form.setValue("clientId", newClient.id);
+    setNewClientName("");
+    setIsAddClientOpen(false);
+    
+    toast({
+      title: "Thành công",
+      description: "Đã thêm client mới thành công.",
+    });
+  }, [newClientName, onAddClient, form, toast, T]);
+
+  if (!taskToEdit) {
+    return null;
+  }
+
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* Main task details */}
-          <div className="space-y-4">
-            <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>{T.taskName}</FormLabel><FormControl><Input placeholder="e.g., Animate new logo" {...field} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>{T.description}</FormLabel><FormControl><Textarea placeholder="Provide a brief description of the task." {...field} /></FormControl><FormMessage /></FormItem>)} />
-            {/* Brief Link dynamic fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="briefLink"
-                render={({ field }) => {
-                  const links = field.value || [];
-                  // Ensure we always have at least one field to show
-                  const linksToRender = links.length > 0 ? links : [""];
-                  return (
-                    <FormItem>
-                      <FormLabel>{T.briefLink}</FormLabel>
-                      <div className="space-y-2">
-                        {linksToRender.map((_: string, idx: number) => (
-                          <div key={idx} className="flex gap-2 items-center">
-                            <Input
-                              {...form.register(`briefLink.${idx}`)}
-                              placeholder="e.g., https://docs.google.com/document/..."
-                            />
-                            {idx > 0 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  if (links.length > 1) {
-                                    const updated = [...links];
-                                    updated.splice(idx, 1);
-                                    form.setValue('briefLink', updated);
-                                  } else {
-                                    form.setValue('briefLink.0', '');
-                                  }
-                                }}
-                                disabled={links.length === 1 && !form.getValues(`briefLink.${idx}`)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
-                            {idx === linksToRender.length - 1 && linksToRender.length < 5 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  const currentLinks = form.getValues('briefLink') || [];
-                                  form.setValue('briefLink', [...currentLinks, ""]);
-                                }}
-                                title={T.addLink || "Thêm link"}
-                              >
-                                <PlusCircle className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-              <FormField
-                control={form.control}
-                name="driveLink"
-                render={({ field }) => {
-                  const links = field.value || [];
-                  // Ensure we always have at least one field to show
-                  const linksToRender = links.length > 0 ? links : [""];
-                  return (
-                    <FormItem>
-                      <FormLabel>Storage Links</FormLabel>
-                      <div className="space-y-2">
-                        {linksToRender.map((_: string, idx: number) => (
-                          <div key={idx} className="flex gap-2 items-center">
-                            <Input
-                              {...form.register(`driveLink.${idx}`)}
-                              placeholder="e.g., https://drive.google.com/drive/... or file:///C:/Users/yourfile.pdf"
-                            />
-                            {idx > 0 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  if (links.length > 1) {
-                                    const updated = [...links];
-                                    updated.splice(idx, 1);
-                                    form.setValue('driveLink', updated);
-                                  } else {
-                                    form.setValue('driveLink.0', '');
-                                  }
-                                }}
-                                disabled={links.length === 1 && !form.getValues(`driveLink.${idx}`)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
-                            {idx === linksToRender.length - 1 && linksToRender.length < 5 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  const currentLinks = form.getValues('driveLink') || [];
-                                  form.setValue('driveLink', [...currentLinks, ""]);
-                                }}
-                                title={T.addLink || "Thêm link"}
-                              >
-                                <PlusCircle className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="clientId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Client</FormLabel>
-                    <div className="flex gap-2">
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder="Select client" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {(clients || []).map((client) => (
-                            <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setIsAddClientOpen(true)}
-                        title={T.addClient}
-                      >
-                        <PlusCircle className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="categoryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{T.category}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+        <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6">
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{T.taskName}</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Nhập tên công việc" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="clientId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{T.client}</FormLabel>
+                  <div className="flex gap-2">
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={T.selectCategory} />
+                          <SelectValue placeholder={T.selectClient} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {(categories || []).map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {T.categories[category.id as keyof typeof T.categories] || category.name}
+                        {clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField control={form.control} name="dates" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>{T.dates}</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value?.from && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value?.from ? (field.value.to ? (<>{format(field.value.from, "LLL dd, y")} - {format(field.value.to, "LLL dd, y")}</>) : (format(field.value.from, "LLL dd, y"))) : (<span>{T.pickDateRange}</span>)}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="range" selected={{ from: field.value?.from, to: field.value?.to }} onSelect={(range) => field.onChange({ from: range?.from, to: range?.to })} numberOfMonths={2} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
-              <div className="space-y-4">
-                <div className="flex gap-4">
-                  <FormField control={form.control} name="status" render={({ field }) => (<FormItem className="flex-1"><FormLabel>{T.status}</FormLabel><Select onValueChange={(value) => { field.onChange(value); form.setValue('subStatusId', ''); }} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={T.selectStatus} /></SelectTrigger></FormControl><SelectContent>{(settings.statusSettings || []).map((status) => (<SelectItem key={status.id} value={status.id}>{status.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
-                  {availableSubStatuses.length > 0 && (<FormField control={form.control} name="subStatusId" render={({ field }) => (<FormItem className="flex-1"><FormLabel>{T.subStatuses}</FormLabel><Select onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} defaultValue={field.value || '__none__'}><FormControl><SelectTrigger><SelectValue placeholder={T.selectSubStatus} /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">{T.none}</SelectItem>{availableSubStatuses.map((sub) => (<SelectItem key={sub.id} value={sub.id}>{sub.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />)}
-                </div>
-              </div>
-            </div>
+                    <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>
+                      <DialogTrigger asChild>
+                        <Button type="button" variant="outline" size="sm">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>{T.addClient}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="newClientName">{T.clientNameRequired || "Tên client"}</Label>
+                            <Input
+                              id="newClientName"
+                              value={newClientName}
+                              onChange={(e) => setNewClientName(e.target.value)}
+                              placeholder="Nhập tên client"
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button type="button" variant="ghost" onClick={() => setIsAddClientOpen(false)}>
+                            {T.cancel}
+                          </Button>
+                          <Button type="button" onClick={handleAddClient}>
+                            {T.add}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
-          {/* Price Quote Section */}
-          <Separator />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="categoryId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{T.category}</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={T.selectCategory} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{T.status}</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={T.selectStatus} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="todo">Báo giá</SelectItem>
+                      <SelectItem value="inprogress">Đang thực hiện</SelectItem>
+                      <SelectItem value="done">Hoàn thành</SelectItem>
+                      <SelectItem value="onhold">Tạm dừng</SelectItem>
+                      <SelectItem value="archived">Lưu trữ</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{T.description}</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Nhập mô tả công việc"
+                    className="min-h-[100px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Date Range */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="dates.from"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{T.startDate}</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>{T.pickDate}</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="dates.to"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{T.deadline}</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>{T.pickDate}</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Quote Manager */}
           <QuoteManager
             control={form.control}
             form={form}
             fieldArrayName="sections"
             columns={columns}
             setColumns={setColumns}
-            title={T.priceQuote}
-            quoteTemplates={quoteTemplates}
+            title="Báo giá"
             settings={settings}
-            taskDescription={form.getValues('description') || ''}
-            taskCategory={categoryName}
-            onApplySuggestion={handleApplySuggestion}
+            onCopyFromQuote={undefined}
+            showCopyFromQuote={false}
           />
 
-          <Separator />
           {/* Collaborator Section */}
           <Collapsible open={isCollaboratorSectionOpen} onOpenChange={setIsCollaboratorSectionOpen}>
             <div className="space-y-4">
@@ -875,43 +573,115 @@ export function EditTaskForm({
               </div>
               
               <CollapsibleContent className="space-y-4 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                <FormField 
-                  control={form.control} 
-                  name="collaboratorId" 
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{T.collaborator}</FormLabel>
-                      <Select onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} defaultValue={field.value || '__none__'}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={T.selectCollaborator} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="__none__">{T.none}</SelectItem>
-                          {(collaborators || []).map((collaborator) => (
-                            <SelectItem key={collaborator.id} value={collaborator.id}>
-                              {collaborator.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} 
-                />
-                
-                <QuoteManager
-                  control={form.control}
-                  form={form}
-                  fieldArrayName="collaboratorSections"
-                  columns={collaboratorColumns}
-                  setColumns={setCollaboratorColumns}
-                  title={T.collaboratorCosts}
-                  settings={settings}
-                  onCopyFromQuote={handleCopyFromQuote}
-                  showCopyFromQuote={true}
-                />
+                {/* Multiple Collaborators Manager */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-sm font-medium">{T.collaborator || "Collaborators"}</h4>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        const newQuote = {
+                          collaboratorId: '',
+                          sections: [{
+                            id: `section-${Date.now()}`,
+                            name: T.untitledSection,
+                            items: [{ description: "", unitPrice: 0, customFields: {} }]
+                          }]
+                        };
+                        collabAppendQuote(newQuote);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      {T.addCollaborator || "Thêm Collaborator"}
+                    </Button>
+                  </div>
+                  
+                  {collabQuoteFields.map((field, index) => (
+                    <div key={field.id} className="border rounded-lg p-4 space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 mr-4">
+                          <FormField 
+                            control={form.control} 
+                            name={`collaboratorQuotes.${index}.collaboratorId`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{T.collaborator}</FormLabel>
+                                <Select 
+                                  onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} 
+                                  value={field.value || '__none__'}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder={T.selectCollaborator} />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">{T.none}</SelectItem>
+                                    {(collaborators || []).map((collaborator) => (
+                                      <SelectItem key={collaborator.id} value={collaborator.id}>
+                                        {collaborator.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )} 
+                          />
+                        </div>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => collabRemoveQuote(index)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <QuoteManager
+                        control={form.control}
+                        form={form}
+                        fieldArrayName={`collaboratorQuotes.${index}.sections`}
+                        columns={collaboratorColumns}
+                        setColumns={setCollaboratorColumns}
+                        title={`${T.collaboratorCosts} #${index + 1}`}
+                        settings={settings}
+                        onCopyFromQuote={() => handleCopyFromQuote(index)}
+                        showCopyFromQuote={true}
+                      />
+                    </div>
+                  ))}
+                  
+                  {collabQuoteFields.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>{T.noCollaboratorsFound || "Chưa có collaborator nào"}</p>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          const newQuote = {
+                            collaboratorId: '',
+                            sections: [{
+                              id: `section-${Date.now()}`,
+                              name: T.untitledSection,
+                              items: [{ description: "", unitPrice: 0, customFields: {} }]
+                            }]
+                          };
+                          collabAppendQuote(newQuote);
+                        }}
+                        className="mt-2"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        {T.addCollaborator || "Thêm Collaborator đầu tiên"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CollapsibleContent>
             </div>
           </Collapsible>
@@ -920,53 +690,10 @@ export function EditTaskForm({
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               {T.cancel}
             </Button>
-            <Button type="submit">{T.saveChanges}</Button>
+            <Button type="submit">{T.save}</Button>
           </div>
         </form>
       </Form>
-      {/* Dialogs and AlertDialogs */}
-      <AlertDialog open={!!templateToApply} onOpenChange={() => setTemplateToApply(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{T.applyTemplate}?</AlertDialogTitle><AlertDialogDescription>{T.applyTemplateWarning}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setTemplateToApply(null)}>{T.cancel}</AlertDialogCancel><AlertDialogAction onClick={handleApplyTemplate}>{T.applyTemplate.replace('...','')}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
-      <Dialog open={isColumnDialogOpen} onOpenChange={(isOpen) => !isOpen && handleCloseColumnDialog()}><DialogContent><DialogHeader><DialogTitle>{editingColumn ? T.edit + " Column" : T.addColumn}</DialogTitle><DialogDescription>{editingColumn ? "Update your column details." : "Enter a name and type for your new column."}</DialogDescription></DialogHeader><div className="py-4 space-y-4"><div className="space-y-2"><Label htmlFor="new-column-name">Column Name</Label><Input id="new-column-name" value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') e.preventDefault()}}/></div><div className="space-y-2"><Label>Column Type</Label><RadioGroup value={newColumnType} onValueChange={(value: QuoteColumn['type']) => setNewColumnType(value)} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="text" id="type-text" /><Label htmlFor="type-text" className="font-normal">Text</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="number" id="type-number" /><Label htmlFor="type-number" className="font-normal">Number</Label></div></RadioGroup></div>{newColumnType === 'number' && (<div className="flex items-center space-x-2 pl-1 pt-2"><Checkbox id="sum-total" checked={newColumnSum} onCheckedChange={(checked) => setNewColumnSum(Boolean(checked))} /><Label htmlFor="sum-total" className="text-sm font-normal">Calculate total for this column</Label></div>)}</div><DialogFooter><Button type="button" variant="ghost" onClick={handleCloseColumnDialog}>{T.cancel}</Button><Button type="button" onClick={editingColumn ? handleUpdateColumn : handleAddColumn}>{editingColumn ? T.saveChanges : T.addColumn}</Button></DialogFooter></DialogContent></Dialog>
-      <AlertDialog open={!!deletingColumn} onOpenChange={(isOpen) => !isOpen && setDeletingColumn(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{T.areYouSure}?</AlertDialogTitle><AlertDialogDescription>{T.deletePermanently} "{deletingColumn?.name}" column.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setDeletingColumn(null)}>{T.cancel}</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDeleteColumn}>{T.delete}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
-      <Dialog open={isCollabColumnDialogOpen} onOpenChange={(isOpen) => !isOpen && handleCloseCollabColumnDialog()}><DialogContent><DialogHeader><DialogTitle>{editingCollabColumn ? T.edit + " " + T.collaborator + " Column" : T.add + " " + T.collaborator + " Column"}</DialogTitle><DialogDescription>{editingCollabColumn ? "Update your column details." : "Enter a name and type for your new column."}</DialogDescription></DialogHeader><div className="py-4 space-y-4"><div className="space-y-2"><Label htmlFor="new-collab-column-name">Column Name</Label><Input id="new-collab-column-name" value={newCollabColumnName} onChange={(e) => setNewCollabColumnName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}/></div><div className="space-y-2"><Label>Column Type</Label><RadioGroup value={newCollabColumnType} onValueChange={(value: QuoteColumn['type']) => setNewCollabColumnType(value)} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="text" id="collab-type-text" /><Label htmlFor="collab-type-text" className="font-normal">Text</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="number" id="collab-type-number" /><Label htmlFor="collab-type-number" className="font-normal">Number</Label></div></RadioGroup></div>{newCollabColumnType === 'number' && (<div className="flex items-center space-x-2 pl-1 pt-2"><Checkbox id="collab-sum-total" checked={newCollabColumnSum} onCheckedChange={(checked) => setNewCollabColumnSum(Boolean(checked))} /><Label htmlFor="collab-sum-total" className="text-sm font-normal">Calculate total for this column</Label></div>)}</div><DialogFooter><Button type="button" variant="ghost" onClick={handleCloseCollabColumnDialog}>{T.cancel}</Button><Button type="button" onClick={editingCollabColumn ? handleUpdateCollabColumn : handleAddCollabColumn}>{editingCollabColumn ? T.saveChanges : T.addColumn}</Button></DialogFooter></DialogContent></Dialog>
-      <AlertDialog open={!!deletingCollabColumn} onOpenChange={(isOpen) => !isOpen && setDeletingCollabColumn(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{T.areYouSure}?</AlertDialogTitle><AlertDialogDescription>{T.deletePermanently} "{deletingCollabColumn?.name}" column.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setDeletingCollabColumn(null)}>{T.cancel}</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDeleteCollabColumn}>{T.delete}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
-      <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{T.addClient}</DialogTitle>
-            <DialogDescription>
-              Enter a name for the new client.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Input
-              placeholder={T.clientNameRequired}
-              value={newClientName}
-              onChange={(e) => setNewClientName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && newClientName.trim()) {
-                  handleAddNewClient();
-                }
-              }}
-            />
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => {
-              setIsAddClientOpen(false);
-              setNewClientName("");
-            }}>
-              {T.cancel}
-            </Button>
-            <Button 
-              type="button" 
-              onClick={handleAddNewClient}
-              disabled={!newClientName.trim()}
-            >
-              {T.addClient}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

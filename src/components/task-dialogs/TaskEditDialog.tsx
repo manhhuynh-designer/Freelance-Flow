@@ -18,7 +18,7 @@ import { i18n } from "@/lib/i18n";
 export interface TaskEditDialogProps {
   task: Task | null;
   quote?: Quote;
-  collaboratorQuote?: Quote;
+  collaboratorQuotes?: Quote[]; // Changed to array
   clients: Client[];
   collaborators: Collaborator[];
   categories: Category[];
@@ -39,7 +39,7 @@ export interface TaskEditDialogProps {
 export function TaskEditDialog({ 
   task, 
   quote,
-  collaboratorQuote,
+  collaboratorQuotes,
   clients,
   collaborators,
   categories,
@@ -104,7 +104,7 @@ export function TaskEditDialog({
             taskToEdit={task} 
             onSubmit={handleTaskFormSubmit} 
             quote={quote} 
-            collaboratorQuote={collaboratorQuote} 
+            collaboratorQuotes={collaboratorQuotes} 
             clients={clients} 
             onAddClient={onAddClient || (() => ({ id: '', name: '', email: '', phone: '' } as Client))} 
             quoteTemplates={quoteTemplates} 
