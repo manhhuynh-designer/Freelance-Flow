@@ -1,0 +1,49 @@
+/* CompactTaskCard styles */
+.statusDot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  border: 1px solid hsl(var(--border));
+  background-color: var(--status-color, #64748b);
+}
+
+.statusDotSmall {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  background-color: var(--status-color, #64748b);
+}
+
+.matrixCard {
+  transition: all 0.2s ease-in-out;
+  border-left-width: 4px;
+  border-left-color: var(--status-color, #64748b);
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  min-height: 50px;
+  max-height: 80px;
+}
+
+ .matrixCard:hover {
+  background-color: hsl(var(--accent) / 0.5);
+}
+
+.matrixCard:active {
+  transform: translateY(0);
+  
+}
+
+/* Better drag interaction */
+.matrixCard[data-state="dragging"] {
+  opacity: 0.5;
+  transform: rotate(5deg);
+  z-index: 999;
+}
+
+/* Improve drop zone sensitivity */
+.matrixCard + .matrixCard {
+  margin-top: 0.5rem;
+}

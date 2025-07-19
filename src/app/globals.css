@@ -3,6 +3,81 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Sticky Header CSS for Table View */
+.sticky-header {
+  height: 100% !important;
+  min-height: 100% !important;
+  overflow: auto;
+  position: relative;
+  flex: 1;
+}
+
+.sticky-header table {
+  position: relative;
+  width: 100%;
+}
+
+.sticky-header thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: hsl(var(--background));
+}
+
+.sticky-header thead tr {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: hsl(var(--background));
+}
+
+.sticky-header th,
+.sticky-header thead th,
+.sticky-header thead tr th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background: hsl(var(--background)) !important;
+  border-bottom: 2px solid hsl(var(--border)) !important;
+  box-shadow: 0 2px 4px -1px rgba(0,0,0,0.1) !important;
+}
+
+/* Force sticky behavior on desktop */
+@media (min-width: 768px) {
+  .sticky-header {
+    height: 100% !important;
+    min-height: 100% !important;
+    overflow-y: auto;
+    flex: 1 !important;
+  }
+  
+  .sticky-header thead {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    background: hsl(var(--background)) !important;
+  }
+  
+  .sticky-header th,
+  .sticky-header thead th,
+  .sticky-header thead tr th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    background: hsl(var(--background)) !important;
+    border-bottom: 2px solid hsl(var(--border)) !important;
+    box-shadow: 0 2px 4px -1px rgba(0,0,0,0.1) !important;
+  }
+}
+
+/* Dark mode support for sticky headers */
+.dark .sticky-header th,
+.dark .sticky-header thead th,
+.dark .sticky-header thead tr th {
+  background: hsl(var(--background)) !important;
+  box-shadow: 0 2px 4px -1px rgba(255,255,255,0.1) !important;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -151,4 +226,25 @@
   left: 100% !important;
   top: 0 !important;
   margin-left: 4px !important;
+}
+
+/* UncategorizedTasksCarousel overflow fix */
+@layer utilities {
+  .carousel-container-constrained {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+  
+  .carousel-container-constrained * {
+    box-sizing: border-box !important;
+  }
+  
+  .carousel-scroll-area {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+  }
 }

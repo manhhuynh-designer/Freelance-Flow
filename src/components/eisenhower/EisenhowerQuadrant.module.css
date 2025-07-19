@@ -1,0 +1,234 @@
+/* Default Color Scheme */
+.quadrantDo {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+.quadrantDecide {
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e3a8a;
+}
+.quadrantDelegate {
+  background-color: #fef9c3;
+  border-color: #fde047;
+  color: #92400e;
+}
+.quadrantDelete {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+/* Color Scheme 1 - Default (Red/Blue/Yellow/Gray) */
+.colorScheme1 .quadrantDo {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+.colorScheme1 .quadrantDecide {
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e3a8a;
+}
+.colorScheme1 .quadrantDelegate {
+  background-color: #fef9c3;
+  border-color: #fde047;
+  color: #92400e;
+}
+.colorScheme1 .quadrantDelete {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+/* Color Scheme 2 - Purple/Green/Orange/Blue */
+.colorScheme2 .quadrantDo {
+  background-color: #faf5ff;
+  border-color: #d8b4fe;
+  color: #6b21a8;
+}
+.colorScheme2 .quadrantDecide {
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+.colorScheme2 .quadrantDelegate {
+  background-color: #fff7ed;
+  border-color: #fed7aa;
+  color: #c2410c;
+}
+.colorScheme2 .quadrantDelete {
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+/* Color Scheme 3 - Teal/Pink/Amber/Indigo */
+.colorScheme3 .quadrantDo {
+  background-color: #f0fdfa;
+  border-color: #99f6e4;
+  color: #134e4a;
+}
+.colorScheme3 .quadrantDecide {
+  background-color: #fdf2f8;
+  border-color: #fbcfe8;
+  color: #9d174d;
+}
+.colorScheme3 .quadrantDelegate {
+  background-color: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+.colorScheme3 .quadrantDelete {
+  background-color: #eef2ff;
+  border-color: #c7d2fe;
+  color: #3730a3;
+}
+
+/* Dark mode - Default */
+:global(.dark) .quadrantDo {
+  background-color: rgba(69, 10, 10, 0.2);
+  border-color: #7f1d1d;
+  color: #fee2e2;
+}
+:global(.dark) .quadrantDecide {
+  background-color: rgba(30, 58, 138, 0.2);
+  border-color: #1e40af;
+  color: #dbeafe;
+}
+:global(.dark) .quadrantDelegate {
+  background-color: rgba(113, 63, 18, 0.2);
+  border-color: #fbbf24;
+  color: #fef9c3;
+}
+:global(.dark) .quadrantDelete {
+  background-color: rgba(31, 41, 55, 0.2);
+  border-color: #6b7280;
+  color: #f3f4f6;
+}
+
+/* Dark mode - Color Scheme 1 */
+:global(.dark) .colorScheme1 .quadrantDo {
+  background-color: rgba(69, 10, 10, 0.2);
+  border-color: #7f1d1d;
+  color: #fee2e2;
+}
+:global(.dark) .colorScheme1 .quadrantDecide {
+  background-color: rgba(30, 58, 138, 0.2);
+  border-color: #1e40af;
+  color: #dbeafe;
+}
+:global(.dark) .colorScheme1 .quadrantDelegate {
+  background-color: rgba(113, 63, 18, 0.2);
+  border-color: #fbbf24;
+  color: #fef9c3;
+}
+:global(.dark) .colorScheme1 .quadrantDelete {
+  background-color: rgba(31, 41, 55, 0.2);
+  border-color: #6b7280;
+  color: #f3f4f6;
+}
+
+/* Dark mode - Color Scheme 2 */
+:global(.dark) .colorScheme2 .quadrantDo {
+  background-color: rgba(107, 33, 168, 0.2);
+  border-color: #7c3aed;
+  color: #e9d5ff;
+}
+:global(.dark) .colorScheme2 .quadrantDecide {
+  background-color: rgba(22, 101, 52, 0.2);
+  border-color: #16a34a;
+  color: #dcfce7;
+}
+:global(.dark) .colorScheme2 .quadrantDelegate {
+  background-color: rgba(194, 65, 12, 0.2);
+  border-color: #ea580c;
+  color: #fed7aa;
+}
+:global(.dark) .colorScheme2 .quadrantDelete {
+  background-color: rgba(30, 64, 175, 0.2);
+  border-color: #2563eb;
+  color: #dbeafe;
+}
+
+/* Dark mode - Color Scheme 3 */
+:global(.dark) .colorScheme3 .quadrantDo {
+  background-color: rgba(19, 78, 74, 0.2);
+  border-color: #14b8a6;
+  color: #99f6e4;
+}
+:global(.dark) .colorScheme3 .quadrantDecide {
+  background-color: rgba(157, 23, 77, 0.2);
+  border-color: #e11d48;
+  color: #fce7f3;
+}
+:global(.dark) .colorScheme3 .quadrantDelegate {
+  background-color: rgba(146, 64, 14, 0.2);
+  border-color: #f59e0b;
+  color: #fde68a;
+}
+:global(.dark) .colorScheme3 .quadrantDelete {
+  background-color: rgba(55, 48, 163, 0.2);
+  border-color: #6366f1;
+  color: #e0e7ff;
+}
+
+/* Enhanced drop zone styles */
+.dropZone {
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+
+.dropZone:hover {
+  transform: translateY(-1px);
+}
+
+.dropZoneActive {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+  border: 2px dashed #3b82f6 !important;
+  transform: scale(1.02);
+}
+
+.emptyDropZone {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+}
+
+.emptyDropZone:hover {
+  border-color: rgba(107, 114, 128, 0.6);
+  background-color: rgba(243, 244, 246, 0.3);
+}
+
+:global(.dark) .emptyDropZone:hover {
+  background-color: rgba(55, 65, 81, 0.3);
+}
+
+/* Sortable item improvements */
+.sortableItem {
+  transition: transform 0.2s ease-in-out;
+}
+
+.sortableItem:hover {
+  transform: scale(1.02);
+  z-index: 10;
+}
+
+.sortableItem.isDragging {
+  opacity: 0.5;
+  transform: rotate(5deg) scale(1.05);
+  z-index: 999;
+}
+
+.dropIndicator {
+  height: 2px;
+  background-color: #3b82f6;
+  border-radius: 1px;
+  margin: 4px 0;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}

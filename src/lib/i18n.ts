@@ -1,6 +1,9 @@
 "use client";
 // Vietnamese translations
 export const vi = {
+  noTasksFound: 'Không tìm thấy task nào',
+  forKeyword: 'cho từ khóa',
+  clearSearch: 'Xóa tìm kiếm',
   overview: 'Tổng quan',
   analytics: 'Phân tích',
   collaboratorCosts: 'Chi phí cộng tác viên',
@@ -377,6 +380,9 @@ export const vi = {
 
 // English translations (default)
 export const en = {
+  noTasksFound: 'No tasks found',
+  forKeyword: 'for keyword',
+  clearSearch: 'Clear search',
   overview: 'Overview',
   analytics: 'Analytics',
   collaboratorCosts: 'Collaborator Quote',
@@ -761,6 +767,12 @@ export const T = vi;
 
 export const i18n = {
   en: {
+    // Search
+    noTasksFound: 'No tasks found',
+    forKeyword: 'for keyword',
+    clearSearch: 'Clear search',
+    searchTasks: 'Search tasks...',
+    
     // General
     cancel: 'Cancel',
     delete: 'Delete',
@@ -856,6 +868,32 @@ export const i18n = {
     views: 'Views',
     tableView: 'Table View',
     calendarView: 'Calendar View',
+    eisenhowerView: 'Eisenhower Matrix',
+    kanbanView: 'Kanban Board',
+    quadrants: {
+      do: {
+        title: 'DO',
+        description: 'Do immediately. Important tasks that need to be resolved right away.'
+      },
+      decide: {
+        title: 'DECIDE',
+        description: 'Schedule. Important tasks that don\'t need to be done immediately. Schedule for later.'
+      },
+      delegate: {
+        title: 'DELEGATE',
+        description: 'Delegate. Urgent tasks that aren\'t important to you. Delegate to others if possible.'
+      },
+      delete: {
+        title: 'DELETE',
+        description: 'Delete. Tasks that are neither important nor urgent. Eliminate them.'
+      }
+    },
+    uncategorizedTasks: {
+      title: 'Uncategorized Tasks',
+      empty: 'No uncategorized tasks found.'
+    },
+    quadrantFull: 'Quadrant Full',
+    quadrantFullDesc: 'Cannot add more than {count} tasks to this quadrant.',
     trash: 'Trash',
     manage: 'Manage',
     manageClients: 'Manage Clients',
@@ -1110,6 +1148,16 @@ export const i18n = {
     otherColorsAndSettings: 'Other Settings',
     stickyNoteBackground: 'Sticky Note Background',
     autoDeleteTrash: 'Auto-delete trash after',
+     eisenhower: {
+      dragTaskHere: 'Drag task here',
+    },
+    eisenhowerMaxTasks: 'Max tasks per Eisenhower quadrant',
+    eisenhowerMaxTasksDesc: 'Maximum number of tasks allowed in each Eisenhower matrix quadrant',
+    eisenhowerColorScheme: 'Eisenhower Matrix Color Scheme',
+    eisenhowerColorSchemeDesc: 'Choose a color scheme for the Eisenhower Matrix quadrants.',
+    colorScheme1: 'Classic (Red/Blue/Yellow/Gray)',
+    colorScheme2: 'Vibrant (Purple/Green/Orange/Blue)',
+    colorScheme3: 'Modern (Teal/Pink/Amber/Indigo)',
     days: 'days',
     resetToDefaults: 'Reset to Defaults',
     resetSettings: 'Reset All Settings',
@@ -1249,6 +1297,12 @@ export const i18n = {
     }
   },
   vi: {
+    // Search
+    noTasksFound: 'Không tìm thấy task nào',
+    forKeyword: 'cho từ khóa',
+    clearSearch: 'Xóa tìm kiếm',
+    searchTasks: 'Tìm kiếm task...',
+    
     // General
     cancel: 'Hủy',
     delete: 'Xóa',
@@ -1343,6 +1397,32 @@ export const i18n = {
     views: 'Chế độ xem',
     tableView: 'Chế độ xem Bảng',
     calendarView: 'Lịch',
+    eisenhowerView: 'Ma trận Eisenhower',
+    kanbanView: 'Bảng Kanban',
+    quadrants: {
+      do: {
+        title: 'Quan trọng & Khẩn cấp',
+        description: 'Làm ngay lập tức. Các task quan trọng và cần được giải quyết ngay.'
+      },
+      decide: {
+        title: 'Quan trọng & Không khẩn cấp',
+        description: 'Lên kế hoạch. Các task quan trọng nhưng không cần làm ngay. Lên lịch để làm sau.'
+      },
+      delegate: {
+        title: 'Không quan trọng & Khẩn cấp',
+        description: 'Giao phó. Các task khẩn cấp nhưng không quan trọng với bạn. Giao cho người khác nếu có thể.'
+      },
+      delete: {
+        title: 'Không quan trọng & Không khẩn cấp',
+        description: 'Xóa bỏ. Các task không quan trọng và không khẩn cấp. Loại bỏ chúng.'
+      }
+    },
+    uncategorizedTasks: {
+      title: 'Task chưa phân loại',
+      empty: 'Không có task nào chưa được phân loại.'
+    },
+    quadrantFull: 'Quadrant Đầy',
+    quadrantFullDesc: 'Không thể thêm quá {count} task vào quadrant này.',
     trash: 'Thùng rác',
     manage: 'Quản lý',
     manageClients: 'Quản lý khách hàng',
@@ -1597,6 +1677,16 @@ export const i18n = {
     otherColorsAndSettings: 'Cài đặt khác',
     stickyNoteBackground: 'Nền ghi chú',
     autoDeleteTrash: 'Tự động xóa thùng rác sau',
+    eisenhower: {
+      dragTaskHere: 'Kéo thả task vào đây',
+    },
+    eisenhowerMaxTasks: 'Tối đa tasks mỗi ô Eisenhower',
+    eisenhowerMaxTasksDesc: 'Số lượng tối đa tasks cho phép trong mỗi ô của ma trận Eisenhower',
+    eisenhowerColorScheme: 'Bảng màu ma trận Eisenhower',
+    eisenhowerColorSchemeDesc: 'Chọn bảng màu cho các ô trong ma trận Eisenhower.',
+    colorScheme1: 'Cổ điển (Đỏ/Xanh dương/Vàng/Xám)',
+    colorScheme2: 'Rực rỡ (Tím/Xanh lá/Cam/Xanh dương)',
+    colorScheme3: 'Hiện đại (Xanh ngọc/Hồng/Hổ phách/Indigo)',
     days: 'ngày',
     resetToDefaults: 'Đặt lại về mặc định',
     resetSettings: 'Đặt lại Tất cả Cài đặt',

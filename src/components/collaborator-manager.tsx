@@ -117,7 +117,7 @@ export function CollaboratorManager({ collaborators, tasks, onAddCollaborator, o
 
   const confirmDeleteCollaborator = (e: React.MouseEvent, collaboratorId: string) => {
     e.stopPropagation();
-    const isCollaboratorInUse = tasks.some(task => task.collaboratorId === collaboratorId);
+    const isCollaboratorInUse = tasks.some(task => Array.isArray(task.collaboratorIds) && task.collaboratorIds.includes(collaboratorId));
     if (isCollaboratorInUse) {
       toast({
         variant: "destructive",

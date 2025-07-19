@@ -34,11 +34,11 @@ export default function RootLayout({
   return (
     <html lang={language} suppressHydrationWarning>
       <head>
+          <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
           <title>Freelance Flow</title>
           <meta name="description" content="The ultimate dashboard to manage your freelance tasks, clients, and quotes with ease." />
           <link rel="icon" href="/icons/fav-icon.png" type="image/png" />
           <link rel="manifest" href="/manifest.json" />
-          <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
           <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
           <meta name="theme-color" content="#111827" media="(prefers-color-scheme: dark)" />
       </head>

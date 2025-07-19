@@ -1,4 +1,3 @@
-
 // Calendar view mode for calendar components
 export type CalendarViewMode = 'week' | 'month';
 
@@ -74,6 +73,7 @@ export type Task = {
   briefLink?: string[];
   driveLink?: string[];
   deletedAt?: string;
+  eisenhowerQuadrant?: 'do' | 'decide' | 'delegate' | 'delete';
 };
 
 export type Client = {
@@ -155,6 +155,8 @@ export type AppSettings = {
   openaiModel?: string;
   dashboardColumns?: DashboardColumn[];
   widgets: WidgetSetting[];
+  eisenhowerMaxTasksPerQuadrant?: number; // New setting for Eisenhower matrix
+  eisenhowerColorScheme?: 'colorScheme1' | 'colorScheme2' | 'colorScheme3'; // Color scheme for Eisenhower matrix
 };
 
 export type FilterPreset = {

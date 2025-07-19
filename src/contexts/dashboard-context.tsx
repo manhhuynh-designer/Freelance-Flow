@@ -1,8 +1,9 @@
 "use client";
 
 import { createContext, useContext } from 'react';
-import type { AppData, Client, QuoteColumn, Collaborator, Category } from '@/lib/types';
+import type { AppData, Client, QuoteColumn, Collaborator, Category, Task } from '@/lib/types';
 import type { TaskFormValues } from '@/components/create-task-form';
+import { EisenhowerQuadrantType } from '@/components/eisenhower/EisenhowerView';
 
 // Using a more specific type instead of 'any' for better type safety.
 // This context will hold all the shared state and functions for the dashboard.
@@ -34,6 +35,11 @@ type DashboardContextType = AppData & {
   handleAiCreateTask: (data: any) => void;
   handleAiEditTask: (data: any) => void;
   handleClearAllData: () => void;
+  updateTask: (updatedTask: Task) => void; // Add updateTask
+  updateTaskEisenhowerQuadrant: (taskId: string, quadrant: EisenhowerQuadrantType | undefined) => void;
+  reorderTasksInQuadrant: (quadrant: EisenhowerQuadrantType | 'uncategorized', orderedTaskIds: string[]) => void;
+  settings: AppData['appSettings']; // Add settings
+  language: AppData['appSettings']['language']; // Add language
 };
 
 export const DashboardContext = createContext<DashboardContextType | null>(null);

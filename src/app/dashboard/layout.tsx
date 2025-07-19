@@ -57,6 +57,7 @@ import { WIDGETS } from "@/lib/widgets";
 import { BackupService } from "@/lib/backup-service";
 import { LocalBackupService } from "@/lib/local-backup-service";
 import { DataPersistenceService } from "@/lib/data-persistence";
+import { EisenhowerQuadrantType } from "@/components/eisenhower/EisenhowerView";
 
 const defaultSettings: AppSettings = {
     theme: {
@@ -112,7 +113,9 @@ const defaultSettings: AppSettings = {
     widgets: [
         { id: 'calculator', enabled: true, showInSidebar: true, colSpan: 1, rowSpan: 1 },
         { id: 'sticky-notes', enabled: true, showInSidebar: true, colSpan: 2, rowSpan: 2 },
-    ]
+    ],
+    eisenhowerMaxTasksPerQuadrant: 10, // Default max tasks per quadrant
+    eisenhowerColorScheme: 'colorScheme1', // Default color scheme
 };
 
 export default function DashboardLayout({
@@ -994,6 +997,53 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
     return `${days} ${T.daysAgo}`;
   }, [lastBackupDate, T]);
 
+  const updateTask = useCallback((updatedTask: Task) => {
+    setAppData(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(task => (task.id === updatedTask.id ? updatedTask : task)),
+    }));
+  }, []);
+
+  const updateTaskEisenhowerQuadrant = useCallback((taskId: string, quadrant: EisenhowerQuadrantType | undefined) => {
+    setAppData(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(task =>
+        task.id === taskId ? { ...task, eisenhowerQuadrant: quadrant } : task
+      ),
+    }));
+  }, []);
+
+  const reorderTasksInQuadrant = useCallback((quadrant: EisenhowerQuadrantType | 'uncategorized', orderedTaskIds: string[]) => {
+    setAppData(prev => {
+      const newTasks = [...prev.tasks];
+      
+      // Get tasks in the quadrant and other tasks
+      const tasksInQuadrant = newTasks.filter(task => 
+        quadrant === 'uncategorized' 
+          ? task.eisenhowerQuadrant === undefined || task.eisenhowerQuadrant === null 
+          : task.eisenhowerQuadrant === quadrant
+      );
+      const otherTasks = newTasks.filter(task => 
+        quadrant === 'uncategorized' 
+          ? task.eisenhowerQuadrant !== undefined && task.eisenhowerQuadrant !== null 
+          : task.eisenhowerQuadrant !== quadrant
+      );
+      
+      // Reorder tasks in quadrant according to orderedTaskIds
+      const reorderedTasksInQuadrant = orderedTaskIds.map(id => 
+        tasksInQuadrant.find(task => task.id === id)
+      ).filter(Boolean) as Task[];
+      
+      // Combine reordered quadrant tasks with other tasks
+      const finalTasks = [...otherTasks, ...reorderedTasksInQuadrant];
+      
+      return {
+        ...prev,
+        tasks: finalTasks,
+      };
+    });
+  }, []);
+
   const dashboardContextValue = {
     // Always reference latest appData for reactivity
     tasks: appData.tasks,
@@ -1032,6 +1082,11 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
     handleAddCategory,
     handleEditCategory,
     handleDeleteCategory,
+    updateTask,
+    updateTaskEisenhowerQuadrant,
+    reorderTasksInQuadrant,
+    settings: appData.appSettings,
+    language: appData.appSettings.language,
   };
 
   return (

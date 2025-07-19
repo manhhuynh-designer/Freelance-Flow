@@ -3,7 +3,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import type { Task, AppSettings } from '@/lib/types';
 import { DateRange } from 'react-day-picker';
 
-export type ViewMode = 'table' | 'calendar';
+export type ViewMode = 'table' | 'calendar' | 'eisenhower' | 'kanban';
 
 export function useFilterLogic(tasks: Task[], appSettings: AppSettings, view: 'active' | 'trash') {
   const router = useRouter();

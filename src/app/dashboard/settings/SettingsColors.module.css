@@ -8,3 +8,72 @@
 .status-color-bg {
   background-color: var(--status-color-bg);
 }
+
+/* Eisenhower Color Scheme Previews */
+.colorPreview {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border: 1px solid;
+}
+
+.eisenhowerPreview {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid;
+}
+
+/* Scheme 1 - Classic */
+.scheme1Do {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+}
+.scheme1Decide {
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+}
+.scheme1Delegate {
+  background-color: #fef9c3;
+  border-color: #fde047;
+}
+.scheme1Delete {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+/* Scheme 2 - Vibrant */
+.scheme2Do {
+  background-color: #faf5ff;
+  border-color: #d8b4fe;
+}
+.scheme2Decide {
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.scheme2Delegate {
+  background-color: #fff7ed;
+  border-color: #fed7aa;
+}
+.scheme2Delete {
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+/* Scheme 3 - Modern */
+.scheme3Do {
+  background-color: #f0fdfa;
+  border-color: #99f6e4;
+}
+.scheme3Decide {
+  background-color: #fdf2f8;
+  border-color: #fbcfe8;
+}
+.scheme3Delegate {
+  background-color: #fffbeb;
+  border-color: #fde68a;
+}
+.scheme3Delete {
+  background-color: #eef2ff;
+  border-color: #c7d2fe;
+}

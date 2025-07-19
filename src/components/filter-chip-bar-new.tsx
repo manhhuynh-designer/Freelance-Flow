@@ -269,7 +269,7 @@ export function FilterChipBar({
                );
                })}
 
-               {viewMode !== 'calendar' && (
+               {viewMode !== 'calendar' && viewMode !== 'kanban' && (
                  <div className="flex items-center gap-2 mt-2 w-full">
                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">
                      {T.sortBy || 'Sort By'}
@@ -356,7 +356,7 @@ export function FilterChipBar({
                  </SelectContent>
                </Select>
              </div>
-           {viewMode !== 'calendar' && (
+           {viewMode !== 'calendar' && viewMode !== 'kanban' && (
              <div className="space-y-2">
                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                  {T.dateRange || 'Date Range'}

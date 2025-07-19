@@ -14,6 +14,7 @@ import type { Task, Quote, Client, QuoteColumn, QuoteTemplate, Collaborator, App
 import type { TaskFormValues } from './edit-task-form';
 import { i18n } from "@/lib/i18n";
 import { STATUS_INFO } from '@/lib/data';
+import './task-list.sticky.css';
 
 type TaskListProps = {
     tasks: Task[];
@@ -60,8 +61,8 @@ export function TaskList({
   
   return (
     <div className="h-full flex flex-col">
-      <div className="flex-1 sticky-header min-h-0">
-        <div className="relative w-full h-full">
+      <div className="flex-1 overflow-x-auto md:sticky-header">
+        <div className="relative w-full">
           <table className="w-full caption-bottom text-sm">
             <thead className="hidden md:table-header-group">
               {view === 'active' ? (
@@ -70,10 +71,7 @@ export function TaskList({
                         const labelKey = col.id === 'name' ? 'taskName' : col.id === 'priceQuote' ? 'priceQuote' : col.id;
                         const columnLabel = T[labelKey as keyof typeof T] || col.label;
                         return (
-                            <th 
-                              key={col.id} 
-                              className={`h-12 px-4 text-left align-middle font-bold text-foreground ${col.id === 'priceQuote' ? 'text-right' : ''}`}
-                            >
+                            <th key={col.id} className={`h-12 px-4 text-left align-middle font-bold text-foreground ${col.id === 'priceQuote' ? 'text-right' : ''}`}>
                                 {typeof columnLabel === 'string' ? columnLabel : JSON.stringify(columnLabel)}
                             </th>
                         );

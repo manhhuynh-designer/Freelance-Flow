@@ -45,22 +45,24 @@ export function TableView({
   settings,
 }: TableViewProps) {
   return (
-    <TaskList
-      tasks={tasks}
-      quotes={quotes}
-      collaboratorQuotes={collaboratorQuotes}
-      clients={clients}
-      collaborators={collaborators}
-      categories={categories}
-      onEditTask={onEditTask}
-      onTaskStatusChange={onTaskStatusChange}
-      onDeleteTask={onDeleteTask}
-      onAddClient={onAddClient}
-      quoteTemplates={quoteTemplates}
-      view={view}
-      onRestoreTask={onRestoreTask}
-      onPermanentDeleteTask={onPermanentDeleteTask}
-      settings={settings}
-    />
+    <div className="h-full flex flex-col">
+      <TaskList
+        tasks={tasks}
+        quotes={quotes}
+        collaboratorQuotes={collaboratorQuotes}
+        clients={clients}
+        collaborators={collaborators}
+        categories={categories}
+        onEditTask={onEditTask}
+        onTaskStatusChange={onTaskStatusChange}
+        onDeleteTask={onDeleteTask}
+        onAddClient={onAddClient}
+        quoteTemplates={quoteTemplates}
+        view={view}
+        onRestoreTask={onRestoreTask}
+        onPermanentDeleteTask={onPermanentDeleteTask}
+        settings={settings}
+      />
+    </div>
   );
 }

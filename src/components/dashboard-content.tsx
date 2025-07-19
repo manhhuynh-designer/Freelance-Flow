@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CalendarIcon, XCircle, Trash2, Filter, Table, CalendarDays, ChevronDown, ChevronUp } from "lucide-react"; // Thêm CalendarDays và Table icon
+import { CalendarIcon, XCircle, Trash2, Filter, Table, CalendarDays, ChevronDown, ChevronUp, LayoutGrid, Columns3 } from "lucide-react"; // Thêm CalendarDays, Table, LayoutGrid và Columns3 icon
 import { TaskList } from '@/components/task-list'; // Sẽ được thay thế bằng TableView
 import { STATUS_INFO } from '@/lib/data';
 import type { Task } from "@/lib/types";
@@ -56,6 +56,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import styles from "./DashboardContentColors.module.css";
 import { TableView } from './table-view'; // Import TableView mới
 import { CalendarView, type CalendarViewMode } from './calendar-view';
+import { EisenhowerView } from './eisenhower/EisenhowerView'; // Import EisenhowerView
 
 export default function DashboardContent() {
     return (
@@ -76,7 +77,7 @@ function DashboardContentSearchParamsWrapper() {
 
 import type { ReadonlyURLSearchParams } from 'next/navigation';
 
-type ViewMode = 'table' | 'calendar'; // Định nghĩa các chế độ xem
+type ViewMode = 'table' | 'calendar' | 'eisenhower' | 'kanban'; // Định nghĩa các chế độ xem
 
 function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSearchParams }) {
   const context = useDashboard();
@@ -281,6 +282,38 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
         }
     });
   }, [tasks, selectedStatuses, categoryFilter, clientFilter, startDateFilter, endDateFilter, view, searchParams]);
+
+  // Create a separate filtered tasks for Eisenhower view without sorting
+  // This preserves manual order in matrix while allowing sort for uncategorized tasks
+  const filteredTasksForMatrix = useMemo(() => {
+    let sourceTasks = view === 'active' 
+        ? tasks.filter((task: Task) => !task.deletedAt)
+        : tasks.filter((task: Task) => !!task.deletedAt).sort((a: Task,b: Task) => new Date(b.deletedAt!).getTime() - new Date(a.deletedAt!).getTime());
+
+    if (view === 'trash') {
+        return sourceTasks;
+    }
+
+    const filterStartDate = startDateFilter ? new Date(startDateFilter) : null;
+    const filterEndDate = endDateFilter ? new Date(endDateFilter) : null;
+
+    if (filterStartDate) filterStartDate.setHours(0, 0, 0, 0);
+    if (filterEndDate) filterEndDate.setHours(23, 59, 59, 999);
+    
+    // Only apply filters, no sorting for matrix view
+    return sourceTasks.filter((task: Task) => {
+        const statusMatch = selectedStatuses.includes(task.status);
+        const categoryMatch = !categoryFilter || task.categoryId === categoryFilter;
+        const clientMatch = !clientFilter || task.clientId === clientFilter;
+        
+        const taskStartDate = new Date(task.startDate);
+        const taskEndDate = new Date(task.deadline);
+        
+        const dateMatch = (!filterStartDate || taskEndDate >= filterStartDate) && (!filterEndDate || taskStartDate <= filterEndDate);
+
+        return statusMatch && categoryMatch && clientMatch && dateMatch;
+    });
+  }, [tasks, selectedStatuses, categoryFilter, clientFilter, startDateFilter, endDateFilter, view]);
 
   const totalPages = Math.ceil(filteredTasks.length / limit);
   const paginatedTasks = useMemo(() => {
@@ -541,7 +574,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
                 </div>
 
                 {/* Hide Date Range and Sort By filters in calendar view */}
-                {currentViewMode !== 'calendar' && (
+                {currentViewMode !== 'calendar' && currentViewMode !== 'kanban' && (
                   <>
                     {/* Date Range Filter */}
                     <div className="space-y-1">
@@ -601,27 +634,45 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
             {/* Right side: View mode buttons - 50% còn lại */}
             {!inSheet && (
               <div className="w-1/2 flex justify-end items-start">
-                <div className="flex flex-col space-y-1">
+                <div className="grid grid-cols-2 gap-1">
                   <Button
                     onClick={() => setCurrentViewMode('table')}
                     variant={currentViewMode === 'table' ? 'default' : 'outline'}
                     size="sm"
-                    className="h-7 min-w-[100px] text-xs"
+                    className="h-7 min-w-[100px] text-xs justify-start text-left flex flex-row items-center gap-x-2 pl-3"
                   >
-                    <Table className="mr-1 h-3 w-3" />
+                    <Table className="h-3 w-3" />
                     {T.tableView}
                   </Button>
                   <Button
                     onClick={() => setCurrentViewMode('calendar')}
                     variant={currentViewMode === 'calendar' ? 'default' : 'outline'}
                     size="sm"
-                    className="h-7 min-w-[100px] text-xs"
+                    className="h-7 min-w-[100px] text-xs justify-start pl-3"
                   >
-                    <CalendarDays className="mr-1 h-3 w-3" />
+                    <CalendarDays className="h-3 w-3" />
                     {T.calendarView}
                   </Button>
+                  <Button
+                    onClick={() => setCurrentViewMode('eisenhower')}
+                    variant={currentViewMode === 'eisenhower' ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-7 min-w-[100px] text-xs justify-start pl-3"
+                  >
+                    <LayoutGrid className="h-3 w-3" />
+                    {T.eisenhowerView}
+                  </Button>
+                  <Button
+                    onClick={() => setCurrentViewMode('kanban')}
+                    variant={currentViewMode === 'kanban' ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-7 min-w-[100px] text-xs justify-start pl-3"
+                  >
+                    <Columns3 className="h-3 w-3" />
+                    {T.kanbanView}
+                  </Button>
                 </div>
-              </div>
+              </div>  
             )}
           </div>
         </div>
@@ -634,7 +685,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
           <div className="w-1/2"></div>
           {/* Right side - view buttons */}
           <div className="w-1/2 flex justify-end">
-            <div className="flex flex-col space-y-1">
+            <div className="grid grid-cols-2 gap-1">
               <Button
                 onClick={() => setCurrentViewMode('table')}
                 variant={currentViewMode === 'table' ? 'default' : 'outline'}
@@ -652,6 +703,24 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
               >
                 <CalendarDays className="mr-1 h-3 w-3" />
                 {T.calendarView}
+              </Button>
+              <Button
+                onClick={() => setCurrentViewMode('eisenhower')}
+                variant={currentViewMode === 'eisenhower' ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 min-w-[100px] text-xs"
+              >
+                <LayoutGrid className="mr-1 h-3 w-3" />
+                {T.eisenhowerView}
+              </Button>
+              <Button
+                onClick={() => setCurrentViewMode('kanban')}
+                variant={currentViewMode === 'kanban' ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 min-w-[100px] text-xs"
+              >
+                <Columns3 className="mr-1 h-3 w-3" />
+                {T.kanbanView}
               </Button>
             </div>
           </div>
@@ -767,6 +836,27 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
             onViewModeChange={handleCalendarModeChange}
           />
         );
+      case 'eisenhower':
+        // EisenhowerView integration for Eisenhower Matrix view mode
+        // Pass both filtered tasks (with sort for uncategorized) and filtered tasks for matrix (no sort)
+        return (
+          <EisenhowerView 
+            filteredTasks={filteredTasksForMatrix} 
+            sortedTasksForUncategorized={filteredTasks}
+          />
+        );
+      case 'kanban':
+        // Placeholder for Kanban view - to be implemented
+        return (
+          <div className="flex items-center justify-center h-96 border-2 border-dashed border-muted-foreground/25 rounded-lg bg-muted/10">
+            <div className="text-center space-y-2">
+              <Columns3 className="h-12 w-12 mx-auto text-muted-foreground/50" />
+              <h3 className="text-lg font-medium text-muted-foreground">Kanban Board</h3>
+              <p className="text-sm text-muted-foreground">Coming soon...</p>
+              <p className="text-xs text-muted-foreground">This view mode is under development</p>
+            </div>
+          </div>
+        );
       default:
         return (
           <TableView
@@ -869,6 +959,24 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
                             <CalendarDays className="mr-2 h-4 w-4" />
                             {T.calendarView}
                           </Button>
+                          <Button
+                            onClick={() => setCurrentViewMode('eisenhower')}
+                            variant={currentViewMode === 'eisenhower' ? 'default' : 'outline'}
+                            size="sm"
+                            className="w-full"
+                          >
+                            <LayoutGrid className="mr-2 h-4 w-4" />
+                            {T.eisenhowerView}
+                          </Button>
+                          <Button
+                            onClick={() => setCurrentViewMode('kanban')}
+                            variant={currentViewMode === 'kanban' ? 'default' : 'outline'}
+                            size="sm"
+                            className="w-full"
+                          >
+                            <Columns3 className="mr-2 h-4 w-4" />
+                            {T.kanbanView}
+                          </Button>
                         </div>
                     </div>
                     <SheetFooter>
@@ -882,13 +990,13 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
       </div>
       
       <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <CardContent className={cn("flex-1 min-h-0 flex flex-col", currentViewMode === 'calendar' ? "p-0" : "p-0 overflow-y-auto")}>
+        <CardContent className={cn("flex-1 min-h-0 flex flex-col", currentViewMode === 'calendar' ? "p-0" : currentViewMode === 'table' ? "p-0" : "p-0 overflow-y-auto")}>
             {renderView()}
         </CardContent>
       </Card>
       
-      {/* Hide pagination in calendar view */}
-      {currentViewMode !== 'calendar' && (
+      {/* Hide pagination in calendar, eisenhower and kanban views */}
+      {currentViewMode !== 'calendar' && currentViewMode !== 'eisenhower' && currentViewMode !== 'kanban' && (
         <div className="flex-shrink-0 border-t pt-4">
           <PaginationControls
               page={page}

@@ -35,6 +35,40 @@ const predefinedStatusColors: { name: string; colors: StatusColors }[] = [
     }
 ];
 
+// Eisenhower color schemes
+const predefinedEisenhowerSchemes = [
+    {
+        name: 'colorScheme1',
+        label: 'Classic',
+        colors: {
+            do: { background: '#fef2f2', border: '#fecaca' },
+            decide: { background: '#eff6ff', border: '#bfdbfe' },
+            delegate: { background: '#fef9c3', border: '#fde047' },
+            delete: { background: '#f3f4f6', border: '#d1d5db' }
+        }
+    },
+    {
+        name: 'colorScheme2', 
+        label: 'Vibrant',
+        colors: {
+            do: { background: '#faf5ff', border: '#d8b4fe' },
+            decide: { background: '#f0fdf4', border: '#bbf7d0' },
+            delegate: { background: '#fff7ed', border: '#fed7aa' },
+            delete: { background: '#eff6ff', border: '#bfdbfe' }
+        }
+    },
+    {
+        name: 'colorScheme3',
+        label: 'Modern', 
+        colors: {
+            do: { background: '#f0fdfa', border: '#99f6e4' },
+            decide: { background: '#fdf2f8', border: '#fbcfe8' },
+            delegate: { background: '#fffbeb', border: '#fde68a' },
+            delete: { background: '#eef2ff', border: '#c7d2fe' }
+        }
+    }
+];
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { QuestionMarkIcon } from '@/components/ui/question-mark-icon';
@@ -71,6 +105,7 @@ import { CollaboratorDataService } from '@/lib/collaborator-data-service';
 import { StatusSettings } from '@/components/status-settings';
 import { LocalBackupManager } from '@/components/local-backup-manager';
 import { getThemeBackgroundColorHsl, getContrastingTextColor } from "@/lib/colors";
+import styles from './SettingsColors.module.css';
 
 import { WIDGETS } from '@/lib/widgets';
 
@@ -377,6 +412,40 @@ function SettingsPageContent() {
                                 </div>
                                 <Separator />
                                 <div className="space-y-3">
+                                    <Label>{T.eisenhowerColorScheme}</Label>
+                                    <p className="text-sm text-muted-foreground">{T.eisenhowerColorSchemeDesc}</p>
+                                    <RadioGroup 
+                                        value={appSettings.eisenhowerColorScheme || 'colorScheme1'} 
+                                        onValueChange={(value: 'colorScheme1' | 'colorScheme2' | 'colorScheme3') => onSettingsChange(s => ({ ...s, eisenhowerColorScheme: value }))}
+                                        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                                    >
+                                        {predefinedEisenhowerSchemes.map(scheme => (
+                                            <div key={scheme.name}>
+                                                <RadioGroupItem value={scheme.name} id={`eisenhower-${scheme.name}`} className="peer sr-only" />
+                                                <Label
+                                                    htmlFor={`eisenhower-${scheme.name}`}
+                                                    className={cn("flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer","peer-data-[state=checked]:border-primary")}
+                                                >
+                                                    <div className="flex gap-1 w-full h-8 items-center justify-center">
+                                                        <div className={`${styles.eisenhowerPreview} ${styles[`scheme${scheme.name.slice(-1)}Do`]}`}></div>
+                                                        <div className={`${styles.eisenhowerPreview} ${styles[`scheme${scheme.name.slice(-1)}Decide`]}`}></div>
+                                                        <div className={`${styles.eisenhowerPreview} ${styles[`scheme${scheme.name.slice(-1)}Delegate`]}`}></div>
+                                                        <div className={`${styles.eisenhowerPreview} ${styles[`scheme${scheme.name.slice(-1)}Delete`]}`}></div>
+                                                    </div>
+                                                    <span className="mt-2 font-semibold">
+                                                        {
+                                                            typeof T[`colorScheme${scheme.name.slice(-1)}` as keyof typeof T] === 'string'
+                                                                ? T[`colorScheme${scheme.name.slice(-1)}` as keyof typeof T] as string
+                                                                : scheme.label
+                                                        }
+                                                    </span>
+                                                </Label>
+                                            </div>
+                                        ))}
+                                    </RadioGroup>
+                                </div>
+                                <Separator />
+                                <div className="space-y-3">
                                     <Label>{T.dashboardColumns}</Label>
                                     <div className="grid grid-cols-2 gap-4">
                                         {(appSettings.dashboardColumns || []).map((column) => {
@@ -452,6 +521,12 @@ function SettingsPageContent() {
                                 <div className="space-y-2">
                                     <Label htmlFor="trash-days">{T.autoDeleteTrash}: {appSettings.trashAutoDeleteDays} {T.days}</Label>
                                     <Slider id="trash-days" min={7} max={90} step={1} value={[appSettings.trashAutoDeleteDays]} onValueChange={(value) => onSettingsChange(s => ({ ...s, trashAutoDeleteDays: value[0] }))} />
+                                </div>
+                                <Separator />
+                                <div className="space-y-2">
+                                    <Label htmlFor="eisenhower-max-tasks">{T.eisenhowerMaxTasks}: {appSettings.eisenhowerMaxTasksPerQuadrant || 10}</Label>
+                                    <Slider id="eisenhower-max-tasks" min={3} max={20} step={1} value={[appSettings.eisenhowerMaxTasksPerQuadrant || 10]} onValueChange={(value) => onSettingsChange(s => ({ ...s, eisenhowerMaxTasksPerQuadrant: value[0] }))} />
+                                    <p className="text-sm text-muted-foreground">{T.eisenhowerMaxTasksDesc}</p>
                                 </div>
                             </CardContent>
                         </Card>
