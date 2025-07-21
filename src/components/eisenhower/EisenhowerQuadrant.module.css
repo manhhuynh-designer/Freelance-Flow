@@ -1,23 +1,44 @@
+.debugMatrixOuter {
+  outline: 2px solid #e11d48 !important;
+  background: rgba(225,29,72,0.07) !important;
+  min-height: 240px !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  box-sizing: border-box;
+}
+.debugMatrixFlexCol {
+  outline: 2px dashed #2563eb !important;
+  background: rgba(37,99,235,0.07) !important;
+}
+.debugMatrixScroll {
+  outline: 2px solid #059669 !important;
+  background: rgba(5,150,105,0.07) !important;
+  height: 100% !important;
+}
 /* Default Color Scheme */
 .quadrantDo {
   background-color: #fef2f2;
   border-color: #fecaca;
   color: #991b1b;
+  border-radius: 12px;
 }
 .quadrantDecide {
   background-color: #eff6ff;
   border-color: #bfdbfe;
   color: #1e3a8a;
+  border-radius: 12px;
 }
 .quadrantDelegate {
   background-color: #fef9c3;
   border-color: #fde047;
   color: #92400e;
+  border-radius: 12px;
 }
 .quadrantDelete {
   background-color: #f3f4f6;
   border-color: #d1d5db;
   color: #374151;
+  border-radius: 12px;
 }
 
 /* Color Scheme 1 - Default (Red/Blue/Yellow/Gray) */
@@ -25,21 +46,25 @@
   background-color: #fef2f2;
   border-color: #fecaca;
   color: #991b1b;
+  border-radius: 12px;
 }
 .colorScheme1 .quadrantDecide {
   background-color: #eff6ff;
   border-color: #bfdbfe;
   color: #1e3a8a;
+  border-radius: 12px;
 }
 .colorScheme1 .quadrantDelegate {
   background-color: #fef9c3;
   border-color: #fde047;
   color: #92400e;
+  border-radius: 12px;
 }
 .colorScheme1 .quadrantDelete {
   background-color: #f3f4f6;
   border-color: #d1d5db;
   color: #374151;
+  border-radius: 12px;
 }
 
 /* Color Scheme 2 - Purple/Green/Orange/Blue */
@@ -47,21 +72,25 @@
   background-color: #faf5ff;
   border-color: #d8b4fe;
   color: #6b21a8;
+  border-radius: 12px;
 }
 .colorScheme2 .quadrantDecide {
   background-color: #f0fdf4;
   border-color: #bbf7d0;
   color: #166534;
+  border-radius: 12px;
 }
 .colorScheme2 .quadrantDelegate {
   background-color: #fff7ed;
   border-color: #fed7aa;
   color: #c2410c;
+  border-radius: 12px;
 }
 .colorScheme2 .quadrantDelete {
   background-color: #eff6ff;
   border-color: #bfdbfe;
   color: #1e40af;
+  border-radius: 12px;
 }
 
 /* Color Scheme 3 - Teal/Pink/Amber/Indigo */
@@ -69,21 +98,25 @@
   background-color: #f0fdfa;
   border-color: #99f6e4;
   color: #134e4a;
+  border-radius: 12px;
 }
 .colorScheme3 .quadrantDecide {
   background-color: #fdf2f8;
   border-color: #fbcfe8;
   color: #9d174d;
+  border-radius: 12px;
 }
 .colorScheme3 .quadrantDelegate {
   background-color: #fffbeb;
   border-color: #fde68a;
   color: #92400e;
+  border-radius: 12px;
 }
 .colorScheme3 .quadrantDelete {
   background-color: #eef2ff;
   border-color: #c7d2fe;
   color: #3730a3;
+  border-radius: 12px;
 }
 
 /* Dark mode - Default */
@@ -91,21 +124,25 @@
   background-color: rgba(69, 10, 10, 0.2);
   border-color: #7f1d1d;
   color: #fee2e2;
+  border-radius: 12px;
 }
 :global(.dark) .quadrantDecide {
   background-color: rgba(30, 58, 138, 0.2);
   border-color: #1e40af;
   color: #dbeafe;
+  border-radius: 12px;
 }
 :global(.dark) .quadrantDelegate {
   background-color: rgba(113, 63, 18, 0.2);
   border-color: #fbbf24;
   color: #fef9c3;
+  border-radius: 12px;
 }
 :global(.dark) .quadrantDelete {
   background-color: rgba(31, 41, 55, 0.2);
   border-color: #6b7280;
   color: #f3f4f6;
+  border-radius: 12px;
 }
 
 /* Dark mode - Color Scheme 1 */
@@ -113,21 +150,25 @@
   background-color: rgba(69, 10, 10, 0.2);
   border-color: #7f1d1d;
   color: #fee2e2;
+  border-radius: 12px;
 }
 :global(.dark) .colorScheme1 .quadrantDecide {
   background-color: rgba(30, 58, 138, 0.2);
   border-color: #1e40af;
   color: #dbeafe;
+  border-radius: 12px;
 }
 :global(.dark) .colorScheme1 .quadrantDelegate {
   background-color: rgba(113, 63, 18, 0.2);
   border-color: #fbbf24;
   color: #fef9c3;
+  border-radius: 12px;
 }
 :global(.dark) .colorScheme1 .quadrantDelete {
   background-color: rgba(31, 41, 55, 0.2);
   border-color: #6b7280;
   color: #f3f4f6;
+  border-radius: 12px;
 }
 
 /* Dark mode - Color Scheme 2 */
@@ -135,21 +176,25 @@
   background-color: rgba(107, 33, 168, 0.2);
   border-color: #7c3aed;
   color: #e9d5ff;
+  border-radius: 12px;
 }
 :global(.dark) .colorScheme2 .quadrantDecide {
   background-color: rgba(22, 101, 52, 0.2);
   border-color: #16a34a;
   color: #dcfce7;
+  border-radius: 12px;
 }
 :global(.dark) .colorScheme2 .quadrantDelegate {
   background-color: rgba(194, 65, 12, 0.2);
   border-color: #ea580c;
   color: #fed7aa;
+  border-radius: 12px;
 }
 :global(.dark) .colorScheme2 .quadrantDelete {
   background-color: rgba(30, 64, 175, 0.2);
   border-color: #2563eb;
   color: #dbeafe;
+  border-radius: 12px;
 }
 
 /* Dark mode - Color Scheme 3 */
@@ -157,21 +202,25 @@
   background-color: rgba(19, 78, 74, 0.2);
   border-color: #14b8a6;
   color: #99f6e4;
+  border-radius: 12px;
 }
 :global(.dark) .colorScheme3 .quadrantDecide {
   background-color: rgba(157, 23, 77, 0.2);
   border-color: #e11d48;
   color: #fce7f3;
+  border-radius: 12px;
 }
 :global(.dark) .colorScheme3 .quadrantDelegate {
   background-color: rgba(146, 64, 14, 0.2);
   border-color: #f59e0b;
   color: #fde68a;
+  border-radius: 12px;
 }
 :global(.dark) .colorScheme3 .quadrantDelete {
   background-color: rgba(55, 48, 163, 0.2);
   border-color: #6366f1;
   color: #e0e7ff;
+  border-radius: 12px;
 }
 
 /* Enhanced drop zone styles */

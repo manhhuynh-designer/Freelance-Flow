@@ -2,9 +2,9 @@ import { Circle, CircleCheck, CircleDashed, CircleHelp, Archive } from 'lucide-r
 import type { Client, Category, Task, Quote, StatusInfo, QuoteTemplate, Collaborator, AppData } from './types';
 
 export const initialClients: Client[] = [
-  { id: 'client-1', name: 'Stark Industries', email: 'tony@stark.com', phone: '212-970-4133', taxInfo: 'STARK-US-123', type: 'brand', driveLink: ['https://drive.google.com/drive/folders/stark-industries'] },
-  { id: 'client-2', name: 'Wayne Enterprises', email: 'bruce@wayne.com', phone: '212-555-0100', taxInfo: 'WAYNE-US-456', type: 'brand' },
-  { id: 'client-3', name: 'Ogilvy', email: 'contact@ogilvy.com', taxInfo: 'OGILVY-GL-789', type: 'agency', driveLink: ['https://drive.google.com/drive/folders/ogilvy'] },
+  { id: 'client-1', name: 'Stark Industries', email: ['tony@stark.com'], phone: ['212-970-4133'], taxInfo: ['STARK-US-123'], type: 'brand', driveLink: ['https://drive.google.com/drive/folders/stark-industries'] },
+  { id: 'client-2', name: 'Wayne Enterprises', email: ['bruce@wayne.com'], phone: ['212-555-0100'], taxInfo: ['WAYNE-US-456'], type: 'brand' },
+  { id: 'client-3', name: 'Ogilvy', email: ['contact@ogilvy.com'], taxInfo: ['OGILVY-GL-789'], type: 'agency', driveLink: ['https://drive.google.com/drive/folders/ogilvy'] },
   { id: 'client-4', name: 'Acme Corporation', type: 'agency' },
 ];
 

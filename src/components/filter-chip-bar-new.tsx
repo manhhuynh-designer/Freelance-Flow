@@ -113,7 +113,7 @@ export function FilterChipBar({
 
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Bordered filter area */}
       <div className="border border-border rounded-lg p-2 bg-background">
         {/* Filter Presets removed */}

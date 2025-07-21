@@ -74,14 +74,15 @@ export type Task = {
   driveLink?: string[];
   deletedAt?: string;
   eisenhowerQuadrant?: 'do' | 'decide' | 'delegate' | 'delete';
+kanbanOrder?: number;
 };
 
 export type Client = {
   id: string;
   name: string;
-  email?: string;
-  phone?: string;
-  taxInfo?: string;
+  email?: string[];
+  phone?: string[];
+  taxInfo?: string[];
   type?: 'agency' | 'brand';
   driveLink?: string[];
 };
@@ -156,6 +157,9 @@ export type AppSettings = {
   dashboardColumns?: DashboardColumn[];
   widgets: WidgetSetting[];
   eisenhowerMaxTasksPerQuadrant?: number; // New setting for Eisenhower matrix
+kanbanColumnOrder?: string[];
+  kanbanColumnVisibility?: Record<string, boolean>;
+  kanbanSubStatusMode?: 'grouped' | 'separate';
   eisenhowerColorScheme?: 'colorScheme1' | 'colorScheme2' | 'colorScheme3'; // Color scheme for Eisenhower matrix
 };
 

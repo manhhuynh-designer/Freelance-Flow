@@ -1,6 +1,7 @@
 "use client";
 
 import { TaskList } from '@/components/task-list';
+import { SubStatusToggle } from '@/components/sub-status-toggle';
 import type { Task, Quote, Client, QuoteColumn, QuoteTemplate, Collaborator, AppSettings, Category } from '@/lib/types';
 import type { TaskFormValues } from './edit-task-form'; // Import TaskFormValues
 

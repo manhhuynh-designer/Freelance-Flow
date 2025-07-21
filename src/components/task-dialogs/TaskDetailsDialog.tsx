@@ -153,8 +153,21 @@ export function TaskDetailsDialog({
   const statusSetting = (settings.statusSettings || []).find(s => s.id === task.status);
   const subStatusLabel = statusSetting?.subStatuses.find(ss => ss.id === task.subStatusId)?.label;
 
-  const isValidDeadline = task.deadline instanceof Date && !isNaN(task.deadline.getTime());
-  const isValidStartDate = task.startDate instanceof Date && !isNaN(task.startDate.getTime());
+
+  // Parse deadline and startDate to Date objects for reliable display and calculation
+  const parsedDeadline = useMemo(() => {
+    if (!task.deadline) return null;
+    const d = typeof task.deadline === 'string' ? new Date(task.deadline) : task.deadline;
+    return d instanceof Date && !isNaN(d.getTime()) ? d : null;
+  }, [task.deadline]);
+  const isValidDeadline = !!parsedDeadline;
+
+  const parsedStartDate = useMemo(() => {
+    if (!task.startDate) return null;
+    const d = typeof task.startDate === 'string' ? new Date(task.startDate) : task.startDate;
+    return d instanceof Date && !isNaN(d.getTime()) ? d : null;
+  }, [task.startDate]);
+  const isValidStartDate = !!parsedStartDate;
   
   const defaultColumns: QuoteColumn[] = [
     { id: 'description', name: T.description, type: 'text' },
@@ -425,7 +438,7 @@ export function TaskDetailsDialog({
     return "text-deadline-safe";
   };
 
-  const deadlineColorClass = isValidDeadline ? getDeadlineColor(task.deadline as Date) : "text-deadline-overdue font-semibold";
+  const deadlineColorClass = isValidDeadline ? getDeadlineColor(parsedDeadline as Date) : "text-deadline-overdue font-semibold";
 
   const copyQuoteToClipboard = useCallback((quoteToCopy: Quote | undefined) => {
     if (!quoteToCopy) return;
@@ -621,13 +634,13 @@ export function TaskDetailsDialog({
                     <div>
                       <div className="font-medium">{T.startDate ?? 'Start Date'}</div>
                       <div className="text-muted-foreground">
-                        {isValidStartDate ? format(task.startDate, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}
+                        {isValidStartDate ? format(parsedStartDate as Date, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="font-medium">{T.deadline ?? 'Deadline'}</div>
                       <div className={cn("text-muted-foreground", deadlineColorClass)}>
-                        {isValidDeadline ? format(task.deadline, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}
+                        {isValidDeadline ? format(parsedDeadline as Date, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}
                       </div>
                     </div>
                   </div>
@@ -636,16 +649,16 @@ export function TaskDetailsDialog({
                     <div className="space-y-2">
                       <Progress 
                         value={Math.max(0, Math.min(100, 
-                          (differenceInDays(new Date(), new Date(task.startDate)) / 
-                           differenceInDays(new Date(task.deadline), new Date(task.startDate))) * 100
+                          (differenceInDays(new Date(), parsedStartDate as Date) / 
+                           differenceInDays(parsedDeadline as Date, parsedStartDate as Date)) * 100
                         ))} 
                         className="h-2" 
                       />
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>{T.progress ?? 'Progress'}</span>
                         <span>
-                          {Math.max(0, differenceInDays(new Date(), new Date(task.startDate)))} / {" "}
-                          {differenceInDays(new Date(task.deadline), new Date(task.startDate))} {T.days ?? 'days'}
+                          {Math.max(0, differenceInDays(new Date(), parsedStartDate as Date))} / {" "}
+                          {differenceInDays(parsedDeadline as Date, parsedStartDate as Date)} {T.days ?? 'days'}
                         </span>
                       </div>
                     </div>
@@ -827,9 +840,16 @@ export function TaskDetailsDialog({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          <Button variant="outline" size="sm" onClick={onEdit}>
-              <Pencil className="w-4 h-4 mr-2" />
-              {T.editTask}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              onEdit();
+              onClose && onClose();
+            }}
+          >
+            <Pencil className="w-4 h-4 mr-2" />
+            {T.editTask}
           </Button>
         </div>
       </DialogContent>

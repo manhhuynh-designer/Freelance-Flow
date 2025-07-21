@@ -95,6 +95,7 @@ type CreateTaskFormProps = {
   onAddClient: (data: Omit<Client, 'id'>) => Client;
   quoteTemplates: QuoteTemplate[];
   settings: AppSettings;
+  defaultDate?: Date;
 };
 
 export function CreateTaskForm({ 
@@ -105,7 +106,8 @@ export function CreateTaskForm({
   categories, 
   onAddClient, 
   quoteTemplates, 
-  settings 
+  settings, 
+  defaultDate 
 }: CreateTaskFormProps) {
   const { toast } = useToast();
   const T = {
@@ -157,8 +159,8 @@ export function CreateTaskForm({
       status: "todo",
       subStatusId: "",
       dates: {
-        from: undefined,
-        to: undefined,
+        from: defaultDate ?? undefined,
+        to: defaultDate ?? undefined,
       },
       sections: [{ 
         id: `section-${Date.now()}`, 

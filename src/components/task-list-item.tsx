@@ -3,7 +3,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { i18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
-import { useEffect, useRef } from "react";
+
+import { Flag, FlagOff } from 'lucide-react';
 
 // LinkPreview: fetches page title and favicon for a given URL
 function LinkPreview({ url, fallback, maxLength = 40 }: { url: string; fallback?: string; maxLength?: number }) {
@@ -73,7 +74,7 @@ import { FileText } from "lucide-react";
 import { Pencil, Link as LinkIcon, Folder, Expand, Shrink, Copy, Trash2, ArchiveRestore, Briefcase, ChevronDown, Calendar, Building2 } from "lucide-react";
 
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { format, differenceInDays } from "date-fns";
 import {
   Table,
@@ -192,8 +193,23 @@ export function TaskListItem({
   const statusSetting = (settings.statusSettings || []).find(s => s.id === task.status);
   const subStatusLabel = statusSetting?.subStatuses.find(ss => ss.id === task.subStatusId)?.label;
 
-  const isValidDeadline = task.deadline instanceof Date && !isNaN(task.deadline.getTime());
-  const isValidStartDate = task.startDate instanceof Date && !isNaN(task.startDate.getTime());
+  // Ensure deadline and startDate are always Date objects
+  let deadline: Date | null = null;
+  if (typeof task.deadline === 'string') {
+    const d = new Date(task.deadline);
+    deadline = isNaN(d.getTime()) ? null : d;
+  } else if (task.deadline instanceof Date) {
+    deadline = task.deadline;
+  }
+  let startDate: Date | null = null;
+  if (typeof task.startDate === 'string') {
+    const d = new Date(task.startDate);
+    startDate = isNaN(d.getTime()) ? null : d;
+  } else if (task.startDate instanceof Date) {
+    startDate = task.startDate;
+  }
+  const isValidDeadline = deadline instanceof Date && !isNaN(deadline.getTime());
+  const isValidStartDate = startDate instanceof Date && !isNaN(startDate.getTime());
   
   // Use first quote for backward compatibility
   // Get all collaborator quotes for this task
@@ -475,7 +491,7 @@ export function TaskListItem({
     return "text-deadline-safe";
   };
 
-  const deadlineColorClass = isValidDeadline ? getDeadlineColor(task.deadline as Date) : "text-deadline-overdue font-semibold";
+  const deadlineColorClass = isValidDeadline ? getDeadlineColor(deadline as Date) : "text-deadline-overdue font-semibold";
 
   const handleTaskFormSubmit = (
     values: TaskFormValues, 
@@ -663,8 +679,53 @@ export function TaskListItem({
 
   const renderCellContent = (columnId: (typeof visibleColumns)[number]['id']) => {
     switch (columnId) {
-        case 'name':
-            return <span>{task.name}</span>;
+        case 'name': {
+            // Eisenhower flag color logic
+            const quadrant = task.eisenhowerQuadrant;
+            // Eisenhower color schemes (should match settings/page.tsx)
+            const eisenhowerSchemes = {
+              colorScheme1: {
+                do: '#ef4444',
+                decide: '#3b82f6',
+                delegate: '#f59e42',
+                delete: '#6b7280',
+              },
+              colorScheme2: {
+                do: '#d8b4fe',
+                decide: '#bbf7d0',
+                delegate: '#fed7aa',
+                delete: '#bfdbfe',
+              },
+              colorScheme3: {
+                do: '#99f6e4',
+                decide: '#fbcfe8',
+                delegate: '#fde68a',
+                delete: '#c7d2fe',
+              },
+            };
+            const scheme = settings?.eisenhowerColorScheme || 'colorScheme1';
+            const flagColors = eisenhowerSchemes[scheme] || eisenhowerSchemes['colorScheme1'];
+            const flagColor = quadrant ? (flagColors[quadrant] || '#e5e7eb') : '#e5e7eb';
+            // Tooltip text: just the raw key (do/decide/delegate/delete)
+            const flagLabel = quadrant ? quadrant : (T.eisenhower?.none || T.noPriority || 'No priority');
+            return (
+              <span className="inline-flex items-center gap-1">
+                {/* Flag icon with tooltip - dùng lucide-react giống Kanban */}
+                <span className="group relative">
+                  {quadrant ? (
+                    <Flag size={16} color={flagColor} fill={flagColor} className="mr-1 drop-shadow" />
+                  ) : (
+                    <FlagOff size={16} color="#e5e7eb" className="mr-1 opacity-60 drop-shadow" />
+                  )}
+                  {/* Tooltip */}
+                  <span className="pointer-events-none absolute left-1/2 z-20 -translate-x-1/2 mt-2 whitespace-nowrap rounded bg-black/90 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                    {flagLabel}
+                  </span>
+                </span>
+                <span>{task.name}</span>
+              </span>
+            );
+        }
         case 'client':
             return <span>{client?.name}</span>;
         case 'category':
@@ -689,7 +750,7 @@ export function TaskListItem({
               <span className="text-muted-foreground">-</span>
             );
         case 'deadline':
-            return <span className={deadlineColorClass}>{isValidDeadline ? format(task.deadline, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}</span>;
+            return <span className={deadlineColorClass}>{isValidDeadline ? format(deadline as Date, "MMM dd, yyyy") : '-'}</span>;
         case 'status':
             return StatusIcon && status && (
               <DropdownMenu open={isStatusDropdownOpen} onOpenChange={setIsStatusDropdownOpen}>
@@ -945,13 +1006,13 @@ export function TaskListItem({
                       <div>
                         <div className="font-medium">{T.startDate ?? 'Start Date'}</div>
                         <div className="text-muted-foreground">
-                          {isValidStartDate ? format(task.startDate, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}
+                          {isValidStartDate ? format(startDate as Date, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="font-medium">{T.deadline ?? 'Deadline'}</div>
                         <div className={cn("text-muted-foreground", deadlineColorClass)}>
-                          {isValidDeadline ? format(task.deadline, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}
+                          {isValidDeadline ? format(deadline as Date, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}
                         </div>
                       </div>
                     </div>
@@ -960,16 +1021,16 @@ export function TaskListItem({
                       <div className="space-y-2">
                         <Progress 
                           value={Math.max(0, Math.min(100, 
-                            (differenceInDays(new Date(), new Date(task.startDate)) / 
-                             differenceInDays(new Date(task.deadline), new Date(task.startDate))) * 100
+                            (differenceInDays(new Date(), startDate as Date) / 
+                             differenceInDays(deadline as Date, startDate as Date)) * 100
                           ))} 
                           className="h-2" 
                         />
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>{T.progress ?? 'Progress'}</span>
                           <span>
-                            {Math.max(0, differenceInDays(new Date(), new Date(task.startDate)))} / {" "}
-                            {differenceInDays(new Date(task.deadline), new Date(task.startDate))} {T.days ?? 'days'}
+                            {Math.max(0, differenceInDays(new Date(), startDate as Date))} / {" "}
+                            {differenceInDays(deadline as Date, startDate as Date)} {T.days ?? 'days'}
                           </span>
                         </div>
                       </div>

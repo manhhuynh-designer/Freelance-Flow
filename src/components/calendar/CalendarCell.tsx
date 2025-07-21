@@ -1,6 +1,71 @@
+// Component con cho task draggable trong popover, dùng đúng rules of hooks
+import { useDraggable } from '@dnd-kit/core';
+
+interface PopoverTaskDraggableProps {
+  task: Task;
+  statusColor: string | undefined;
+  clientName?: string;
+  categoryName?: string;
+  onTaskClick?: (task: Task) => void;
+  setShowPopover: (show: boolean) => void;
+}
+
+const PopoverTaskDraggable: React.FC<PopoverTaskDraggableProps> = ({
+  task,
+  statusColor,
+  clientName,
+  categoryName,
+  onTaskClick,
+  setShowPopover,
+}) => {
+  const draggableId = `task-${task.id}`;
+  const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: draggableId });
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "mb-1 last:mb-0 cursor-pointer rounded px-2 py-1 flex items-center gap-2 border-l-4",
+        statusColor ? undefined : "border-l-muted",
+        isDragging && 'opacity-50',
+        "hover:bg-muted/30"
+      )}
+      style={statusColor ? { borderLeftColor: statusColor, background: statusColor + '22' } : {}}
+      onClick={e => {
+        e.stopPropagation();
+        setShowPopover(false);
+        onTaskClick?.(task);
+      }}
+    >
+      {/* Drag handle 3 chấm dọc */}
+      <span
+        {...attributes}
+        {...listeners}
+        className="flex items-center justify-start cursor-grab active:cursor-grabbing select-none"
+        style={{ marginLeft: '-2px' }}
+        tabIndex={-1}
+        aria-label="Drag task"
+        onClick={e => e.stopPropagation()}
+      >
+        <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="6" cy="3" r="1.5" fill="#888" />
+          <circle cx="6" cy="8" r="1.5" fill="#888" />
+          <circle cx="6" cy="13" r="1.5" fill="#888" />
+        </svg>
+      </span>
+      <span className="font-medium flex-1 truncate">{task.name}</span>
+      {clientName && (
+        <span className="ml-2 text-xs text-muted-foreground">{clientName}</span>
+      )}
+      {categoryName && (
+        <span className="ml-2 text-xs text-muted-foreground">{categoryName}</span>
+      )}
+    </div>
+  );
+};
 import { Task } from '@/lib/types';
 import { CalendarViewMode } from '@/lib/types';
 import React, { useMemo, useRef, useState } from 'react';
+import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { TaskCard } from './TaskCard';
 import { getStatusColor } from '@/lib/colors';
@@ -20,6 +85,7 @@ export type CalendarCellProps = {
   clients: Client[];
   categories: Category[];
   currentMonth?: number; // tháng đang xem (0-11)
+  updateTask?: (task: Task) => void;
 }
 
 function isSameDay(a: Date, b: Date) {
@@ -27,22 +93,24 @@ function isSameDay(a: Date, b: Date) {
 }
 
 
-export const CalendarCell: React.FC<CalendarCellProps> = ({
-  date,
-  tasks,
-  viewMode = 'week',
-  isSelected,
-  onTaskClick,
-  onDateSelect,
-  onViewAllTasks,
-  statusColors,
-  containerRef,
-  clients,
-  categories,
-  currentMonth,
-}) => {
-  // Xác định ngày này có thuộc tháng đang xem (currentMonth) không (chỉ dùng cho month view)
-  const monthToCompare = typeof currentMonth === 'number' ? currentMonth : (new Date()).getMonth();
+// Đã xóa khai báo thừa CalendarCell, chỉ giữ lại khai báo đúng bên dưới
+export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellProps) => {
+  const monthToCompare = typeof props.currentMonth === 'number' ? props.currentMonth : (new Date()).getMonth();
+  const {
+    date,
+    tasks,
+    viewMode = 'week',
+    isSelected,
+    onTaskClick,
+    onDateSelect,
+    onViewAllTasks,
+    statusColors,
+    containerRef,
+    clients,
+    categories,
+    currentMonth,
+    updateTask,
+  } = props;
   const isOutsideMonth = viewMode === 'month' && date.getMonth() !== monthToCompare;
   const isToday = isSameDay(date, new Date());
   const sortedTasks = useMemo(() => {
@@ -59,6 +127,9 @@ export const CalendarCell: React.FC<CalendarCellProps> = ({
   }, [tasks]);
 
   const cellRef = useRef<HTMLDivElement>(null);
+  // Tạo id cho droppable cell theo dạng date-YYYY-MM-DD
+  const cellId = `date-${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: cellId });
   const [showPopover, setShowPopover] = useState(false);
   const [popoverPosition, setPopoverPosition] = useState<'top' | 'bottom'>('bottom');
   const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
@@ -117,9 +188,21 @@ export const CalendarCell: React.FC<CalendarCellProps> = ({
   };
   const handleMouseLeave = () => setShowPopover(false);
 
+  // State để quản lý task nào đang mở input date và giá trị ngày mới
+  const [dateInputTaskId, setDateInputTaskId] = React.useState<string | null>(null);
+  const [newDate, setNewDate] = React.useState("");
+
   return (
     <div
-      ref={cellRef}
+      ref={node => {
+        setDroppableRef(node);
+        if (cellRef && typeof cellRef !== 'function') {
+          // Only assign if not read-only
+          try {
+            (cellRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          } catch {}
+        }
+      }}
       className={[
         'calendar-cell p-1 border rounded-md cursor-pointer relative',
         'h-full min-h-0 flex flex-col',
@@ -128,7 +211,8 @@ export const CalendarCell: React.FC<CalendarCellProps> = ({
         isToday && styles['calendar-today'],
         isOutsideMonth && !showPopover && styles['calendar-outside-month'],
         tasks.length > 0 && 'has-tasks',
-        'group' // for hover
+        'group', // for hover
+        isOver && 'ring-2 ring-blue-400 z-10' // highlight khi drag over
       ].filter(Boolean).join(' ')}
       onClick={(e) => {
         // Nếu click vào task thì đã stopPropagation, chỉ click vào vùng trống mới tạo task
@@ -147,8 +231,10 @@ export const CalendarCell: React.FC<CalendarCellProps> = ({
           title="Thêm task mới"
           tabIndex={-1}
           onClick={e => {
+            e.preventDefault();
             e.stopPropagation();
-            onDateSelect?.(date);
+            setShowPopover(false); // Always close popover if open
+            if (onDateSelect) onDateSelect(date);
           }}
         >
           <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -207,7 +293,7 @@ export const CalendarCell: React.FC<CalendarCellProps> = ({
               onClick={e => {
                 e.stopPropagation();
                 setShowPopover(false);
-                onDateSelect?.(date);
+                if (onDateSelect) onDateSelect(date); // Only trigger parent dialog open
               }}
             >
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -216,33 +302,20 @@ export const CalendarCell: React.FC<CalendarCellProps> = ({
               </svg>
             </button>
           </div>
-          {sortedTasks.map((task) => {
+          {sortedTasks.map((task: Task) => {
             const statusColor = getStatusColor(task.status, statusColors);
             const clientName = clients.find((c: Client) => c.id === task.clientId)?.name;
             const categoryName = categories.find((cat: Category) => cat.id === task.categoryId)?.name;
             return (
-              <div
+              <PopoverTaskDraggable
                 key={task.id}
-                className={cn(
-                  "mb-1 last:mb-0 cursor-pointer rounded px-2 py-1 flex items-center gap-2 border-l-4",
-                  statusColor ? undefined : "border-l-muted",
-                  "hover:bg-muted/30"
-                )}
-                style={statusColor ? { borderLeftColor: statusColor, background: statusColor + '22' } : {}}
-                onClick={e => {
-                  e.stopPropagation();
-                  setShowPopover(false);
-                  onTaskClick?.(task);
-                }}
-              >
-                <span className="font-medium flex-1 truncate">{task.name}</span>
-                {clientName && (
-                  <span className="ml-2 text-xs text-muted-foreground">{clientName}</span>
-                )}
-                {categoryName && (
-                  <span className="ml-2 text-xs text-muted-foreground">{categoryName}</span>
-                )}
-              </div>
+                task={task}
+                statusColor={statusColor}
+                clientName={clientName}
+                categoryName={categoryName}
+                onTaskClick={onTaskClick}
+                setShowPopover={setShowPopover}
+              />
             );
           })}
         </div>

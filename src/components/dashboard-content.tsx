@@ -57,6 +57,7 @@ import styles from "./DashboardContentColors.module.css";
 import { TableView } from './table-view'; // Import TableView mới
 import { CalendarView, type CalendarViewMode } from './calendar-view';
 import { EisenhowerView } from './eisenhower/EisenhowerView'; // Import EisenhowerView
+import { KanbanView } from './kanban/KanbanView'; // Import KanbanView
 
 export default function DashboardContent() {
     return (
@@ -87,7 +88,10 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   const clients = context?.clients ?? [];
   const collaborators = context?.collaborators ?? [];
   const appSettings = context?.appSettings;
+  const setAppSettings = context?.setAppSettings ?? (() => {});
+  const updateKanbanSettings = context?.updateKanbanSettings ?? (() => {});
   const handleEditTask = context?.handleEditTask ?? (() => {});
+  const handleAddTask = context?.handleAddTask ?? (() => {});
   const handleTaskStatusChange = context?.handleTaskStatusChange ?? (() => {});
   const handleDeleteTask = context?.handleDeleteTask ?? (() => {});
   const handleRestoreTask = context?.handleRestoreTask ?? (() => {});
@@ -130,9 +134,9 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   const calendarDateParam = searchParams.get('calendarDate');
   const calendarViewMode = searchParams.get('calendarMode') as 'week' | 'month' | null;
 
-  // Default statuses: all except archived
+  // Default statuses: all statuses
   const defaultStatuses = useMemo(() => 
-    STATUS_INFO.filter(s => s.id !== 'archived').map(s => s.id), 
+    STATUS_INFO.map(s => s.id), 
   []);
 
   const selectedStatuses: string[] = useMemo(() => {
@@ -152,9 +156,9 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   // State để quản lý chế độ xem hiện tại
   const [currentViewMode, setCurrentViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
-      return (localStorage.getItem(VIEW_MODE_STORAGE_KEY) as ViewMode) || 'table';
+      return (localStorage.getItem(VIEW_MODE_STORAGE_KEY) as ViewMode) || 'kanban';
     }
-    return 'table';
+    return (localStorage.getItem(VIEW_MODE_STORAGE_KEY) as ViewMode) || 'table';
   });
 
   // Additional state for FilterChipBar compatibility
@@ -825,6 +829,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
             collaborators={collaborators}
             categories={categories}
             onEditTask={handleEditTask}
+            onAddTask={handleAddTask}
             onTaskStatusChange={handleTaskStatusChange}
             onDeleteTask={handleDeleteTask}
             onAddClient={handleAddClientAndSelect}
@@ -846,16 +851,10 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
           />
         );
       case 'kanban':
-        // Placeholder for Kanban view - to be implemented
         return (
-          <div className="flex items-center justify-center h-96 border-2 border-dashed border-muted-foreground/25 rounded-lg bg-muted/10">
-            <div className="text-center space-y-2">
-              <Columns3 className="h-12 w-12 mx-auto text-muted-foreground/50" />
-              <h3 className="text-lg font-medium text-muted-foreground">Kanban Board</h3>
-              <p className="text-sm text-muted-foreground">Coming soon...</p>
-              <p className="text-xs text-muted-foreground">This view mode is under development</p>
-            </div>
-          </div>
+          <KanbanView 
+            filteredTasks={filteredTasks}
+          />
         );
       default:
         return (
@@ -990,7 +989,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
       </div>
       
       <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <CardContent className={cn("flex-1 min-h-0 flex flex-col", currentViewMode === 'calendar' ? "p-0" : currentViewMode === 'table' ? "p-0" : "p-0 overflow-y-auto")}>
+        <CardContent className={cn("flex-1 min-h-0 flex flex-col", currentViewMode === 'calendar' ? "p-0" : currentViewMode === 'table' ? "p-0" : currentViewMode === 'kanban' ? "p-0 overflow-hidden" : "p-0 overflow-y-auto")}>
             {renderView()}
         </CardContent>
       </Card>

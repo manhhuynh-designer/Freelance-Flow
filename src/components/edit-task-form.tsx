@@ -107,20 +107,22 @@ type EditTaskFormProps = {
   defaultDate?: Date | null;
 };
 
-export function EditTaskForm({ 
-  setOpen, 
-  onSubmit: onFormSubmit, 
-  taskToEdit, 
-  quote, 
-  collaboratorQuotes, 
-  clients, 
-  collaborators, 
-  categories, 
-  onAddClient, 
-  quoteTemplates, 
-  settings, 
-  defaultDate 
+import { Expand, Shrink } from "lucide-react";
+export function EditTaskForm({
+  setOpen,
+  onSubmit: onFormSubmit,
+  taskToEdit,
+  quote,
+  collaboratorQuotes,
+  clients,
+  collaborators,
+  categories,
+  onAddClient,
+  quoteTemplates,
+  settings,
+  defaultDate
 }: EditTaskFormProps) {
+  // Dialog size state for resize toggle
   const { toast } = useToast();
   const T = {
     ...i18n[settings.language],
@@ -317,12 +319,12 @@ export function EditTaskForm({
     return null;
   }
 
+  // Trả lại form thuần, không bọc dialog/toggle
   return (
-    <>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6">
-          {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
+          {/* Main task details */}
+          <div className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -330,222 +332,305 @@ export function EditTaskForm({
                 <FormItem>
                   <FormLabel>{T.taskName}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Nhập tên công việc" {...field} />
+                    <Input placeholder="e.g., Animate new logo" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{T.description}</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Provide a brief description of the task." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="clientId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{T.client}</FormLabel>
-                  <div className="flex gap-2">
+            {/* Brief Link dynamic fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="briefLink"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{T.briefLink || "Brief Link"}</FormLabel>
+                    <div className="space-y-2">
+                      {field.value && field.value.length > 0 && field.value.map((link: string, idx: number) => (
+                        <div key={idx} className="flex gap-2 items-center">
+                          <Input
+                            value={link}
+                            placeholder="https://..."
+                            className="flex-1 min-w-[120px]"
+                            onChange={e => {
+                              const newLinks = [...field.value];
+                              newLinks[idx] = e.target.value;
+                              field.onChange(newLinks);
+                            }}
+                          />
+                          {idx > 0 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                if (field.value.length > 1) {
+                                  const updated = [...field.value];
+                                  updated.splice(idx, 1);
+                                  field.onChange(updated);
+                                } else {
+                                  field.onChange([""]);
+                                }
+                              }}
+                              disabled={field.value.length === 1 && !field.value[idx]}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {idx === field.value.length - 1 && field.value.length < 5 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => field.onChange([...field.value, ""])}
+                              title={T.addLink || "Thêm link"}
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="driveLink"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{T.driveLink || "Drive Link"}</FormLabel>
+                    <div className="space-y-2">
+                      {field.value && field.value.length > 0 && field.value.map((link: string, idx: number) => (
+                        <div key={idx} className="flex gap-2 items-center">
+                          <Input
+                            value={link}
+                            placeholder="https://..."
+                            className="flex-1 min-w-[120px]"
+                            onChange={e => {
+                              const newLinks = [...field.value];
+                              newLinks[idx] = e.target.value;
+                              field.onChange(newLinks);
+                            }}
+                          />
+                          {idx > 0 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                if (field.value.length > 1) {
+                                  const updated = [...field.value];
+                                  updated.splice(idx, 1);
+                                  field.onChange(updated);
+                                } else {
+                                  field.onChange([""]);
+                                }
+                              }}
+                              disabled={field.value.length === 1 && !field.value[idx]}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {idx === field.value.length - 1 && field.value.length < 5 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => field.onChange([...field.value, ""])}
+                              title={T.addLink || "Thêm link"}
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="clientId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{T.client}</FormLabel>
+                    <div className="flex gap-2">
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={T.selectClient} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {clients.map((client) => (
+                            <SelectItem key={client.id} value={client.id}>
+                              {client.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>
+                        <DialogTrigger asChild>
+                          <Button type="button" variant="outline" size="sm">
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>{T.addClient}</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="newClientName">{T.clientNameRequired || "Tên client"}</Label>
+                              <Input
+                                id="newClientName"
+                                value={newClientName}
+                                onChange={(e) => setNewClientName(e.target.value)}
+                                placeholder="Nhập tên client"
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button type="button" variant="ghost" onClick={() => setIsAddClientOpen(false)}>
+                              {T.cancel}
+                            </Button>
+                            <Button type="button" onClick={handleAddClient}>
+                              {T.add}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="categoryId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{T.category}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={T.selectClient} />
+                          <SelectValue placeholder={T.selectCategory} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {clients.map((client) => (
-                          <SelectItem key={client.id} value={client.id}>
-                            {client.name}
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>
-                      <DialogTrigger asChild>
-                        <Button type="button" variant="outline" size="sm">
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>{T.addClient}</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="newClientName">{T.clientNameRequired || "Tên client"}</Label>
-                            <Input
-                              id="newClientName"
-                              value={newClientName}
-                              onChange={(e) => setNewClientName(e.target.value)}
-                              placeholder="Nhập tên client"
-                            />
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button type="button" variant="ghost" onClick={() => setIsAddClientOpen(false)}>
-                            {T.cancel}
-                          </Button>
-                          <Button type="button" onClick={handleAddClient}>
-                            {T.add}
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="categoryId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{T.category}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={T.selectCategory} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{T.status}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={T.selectStatus} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="todo">Báo giá</SelectItem>
-                      <SelectItem value="inprogress">Đang thực hiện</SelectItem>
-                      <SelectItem value="done">Hoàn thành</SelectItem>
-                      <SelectItem value="onhold">Tạm dừng</SelectItem>
-                      <SelectItem value="archived">Lưu trữ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{T.description}</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Nhập mô tả công việc"
-                    className="min-h-[100px]"
-                    {...field}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField 
+                control={form.control} 
+                name="dates" 
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>{T.dates}</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !field.value?.from && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value?.from ? (
+                              field.value.to ? (
+                                <>
+                                  {format(field.value.from, "LLL dd, y")} -{" "}
+                                  {format(field.value.to, "LLL dd, y")}
+                                </>
+                              ) : (
+                                format(field.value.from, "LLL dd, y")
+                              )
+                            ) : (
+                              <span>{T.pickDateRange}</span>
+                            )}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="range"
+                          selected={{ from: field.value?.from, to: field.value?.to }}
+                          onSelect={(range) => field.onChange({ from: range?.from, to: range?.to })}
+                          numberOfMonths={2}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )} 
+              />
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <FormField 
+                    control={form.control} 
+                    name="status" 
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormLabel>{T.status}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={T.selectStatus} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="todo">{T.statuses?.todo || 'Báo giá'}</SelectItem>
+                            <SelectItem value="inprogress">{T.statuses?.inprogress || 'Đang thực hiện'}</SelectItem>
+                            <SelectItem value="done">{T.statuses?.done || 'Hoàn thành'}</SelectItem>
+                            <SelectItem value="onhold">{T.statuses?.onhold || 'Tạm dừng'}</SelectItem>
+                            <SelectItem value="archived">{T.statuses?.archived || 'Lưu trữ'}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} 
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Date Range */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="dates.from"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{T.startDate}</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>{T.pickDate}</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="dates.to"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{T.deadline}</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>{T.pickDate}</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Price Quote Section */}
+          <Separator />
 
           {/* Quote Manager */}
           <QuoteManager
@@ -692,8 +777,7 @@ export function EditTaskForm({
             </Button>
             <Button type="submit">{T.save}</Button>
           </div>
-        </form>
-      </Form>
-    </>
+      </form>
+    </Form>
   );
 }

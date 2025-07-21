@@ -106,6 +106,8 @@ type CreateTaskFormProps = {
   onAddClient: (data: Omit<Client, 'id'>) => Client;
   quoteTemplates: QuoteTemplate[];
   settings: AppSettings;
+  defaultDate?: { from: Date; to: Date };
+  task?: Task;
 };
 
 export function CreateTaskForm({ 
@@ -116,7 +118,9 @@ export function CreateTaskForm({
   categories, 
   onAddClient, 
   quoteTemplates, 
-  settings 
+  settings, 
+  defaultDate, 
+  task
 }: CreateTaskFormProps) {
   const { toast } = useToast();
   const T = {
@@ -126,6 +130,7 @@ export function CreateTaskForm({
     addFirstCollaborator: ((i18n[settings.language] as any)?.addFirstCollaborator || "Thêm Collaborator đầu tiên"),
     noCollaborators: ((i18n[settings.language] as any)?.noCollaborators || "Chưa có collaborator nào"),
     collaborators: ((i18n[settings.language] as any)?.collaborators || "Collaborators"),
+    createTaskDialogTitle: ((i18n[settings.language] as any)?.createTaskDialogTitle || "Tạo task mới"),
   };
   
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
@@ -159,9 +164,53 @@ export function CreateTaskForm({
   
   const [templateToApply, setTemplateToApply] = useState<QuoteTemplate | null>(null);
 
+  // Tìm quote tương ứng với task.quoteId nếu có
+  // Đảm bảo sections từ quote đều có id cho từng item
+  let quoteSections: QuoteSection[] | undefined = undefined;
+  if (task && task.quoteId && Array.isArray(quoteTemplates)) {
+    const quote = quoteTemplates.find(q => q.id === task.quoteId);
+    if (quote && Array.isArray(quote.sections) && quote.sections.length > 0) {
+      quoteSections = quote.sections.map(section => ({
+        ...section,
+        id: section.id || `section-${Date.now()}-${Math.random()}`,
+        items: (Array.isArray(section.items) ? section.items : []).map(item => ({
+          ...item,
+          id: 'id' in item && typeof item.id === 'string' && item.id ? item.id : `item-${Date.now()}-${Math.random()}`,
+          customFields: item.customFields || {}
+        }))
+      }));
+    }
+  }
+
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: task ? {
+      name: task.name || "",
+      description: task.description || "",
+      briefLink: Array.isArray(task.briefLink) ? task.briefLink : [],
+      driveLink: Array.isArray(task.driveLink) ? task.driveLink : [],
+      clientId: task.clientId || "",
+      collaboratorIds: Array.isArray(task.collaboratorIds) ? task.collaboratorIds : [],
+      categoryId: task.categoryId || "",
+      status: task.status || "todo",
+      subStatusId: task.subStatusId || "",
+      dates: {
+        from: task.startDate ? new Date(task.startDate) : undefined,
+        to: task.deadline ? new Date(task.deadline) : undefined,
+      },
+      sections: quoteSections && quoteSections.length > 0
+        ? quoteSections.map(s => ({
+            ...s,
+            id: s.id || `section-${Date.now()}-${Math.random()}`,
+            items: (Array.isArray(s.items) ? s.items : []).map(item => ({
+              ...item,
+              id: typeof item.id === 'string' && item.id ? item.id : `item-${Date.now()}-${Math.random()}`,
+              customFields: item.customFields || {}
+            }))
+          }))
+        : [{ id: `section-${Date.now()}`, name: T.untitledSection, items: [{ id: `item-${Date.now()}-${Math.random()}`, description: "", unitPrice: 0, customFields: {} }] }],
+      collaboratorQuotes: Array.isArray(task.collaboratorQuotes) ? task.collaboratorQuotes : [],
+    } : {
       name: "",
       description: "",
       briefLink: [""],
@@ -172,8 +221,8 @@ export function CreateTaskForm({
       status: "todo",
       subStatusId: "",
       dates: {
-        from: undefined,
-        to: undefined,
+        from: defaultDate?.from ?? undefined,
+        to: defaultDate?.to ?? undefined,
       },
       sections: [{ 
         id: `section-${Date.now()}`, 
@@ -284,6 +333,7 @@ export function CreateTaskForm({
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
+          {/* Dialog title is now handled by parent DialogTitle, do not duplicate here */}
           {/* Main task details */}
           <div className="space-y-4">
             <FormField 
@@ -744,7 +794,7 @@ export function CreateTaskForm({
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               {T.cancel}
             </Button>
-            <Button type="submit">{T.createTask}</Button>
+            <Button type="submit">{task ? T.editTask : T.createTask}</Button>
           </div>
         </form>
       </Form>

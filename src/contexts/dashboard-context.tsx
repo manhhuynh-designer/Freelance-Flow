@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from 'react';
-import type { AppData, Client, QuoteColumn, Collaborator, Category, Task } from '@/lib/types';
+import type { AppData, Client, QuoteColumn, Collaborator, Category, Task, QuoteTemplate } from '@/lib/types'; // Import QuoteTemplate
 import type { TaskFormValues } from '@/components/create-task-form';
 import { EisenhowerQuadrantType } from '@/components/eisenhower/EisenhowerView';
 
@@ -28,7 +28,7 @@ type DashboardContextType = AppData & {
   handleDeleteClient: (clientId: string) => void;
   handleAddCollaborator: (data: Omit<Collaborator, 'id'>) => void;
   handleEditCollaborator: (collaboratorId: string, updates: Partial<Omit<Collaborator, 'id'>>) => void;
-  handleDeleteCollaborator: (collaboratorId: string) => void;
+  handleDeleteCollaborator: (collaboratorId: string) => void; // Removed trailing comma
   handleAddCategory: (data: Omit<Category, 'id'>) => void;
   handleEditCategory: (categoryId: string, updates: Partial<Omit<Category, 'id'>>) => void;
   handleDeleteCategory: (categoryId: string) => void;
@@ -38,8 +38,11 @@ type DashboardContextType = AppData & {
   updateTask: (updatedTask: Task) => void; // Add updateTask
   updateTaskEisenhowerQuadrant: (taskId: string, quadrant: EisenhowerQuadrantType | undefined) => void;
   reorderTasksInQuadrant: (quadrant: EisenhowerQuadrantType | 'uncategorized', orderedTaskIds: string[]) => void;
+  reorderTasksInStatus: (statusId: string, orderedTaskIds: string[]) => void;
+  updateKanbanSettings: (settings: Partial<{ kanbanColumnOrder: string[], kanbanColumnVisibility: Record<string, boolean>, kanbanSubStatusMode: 'grouped' | 'separate' }>) => void;
   settings: AppData['appSettings']; // Add settings
   language: AppData['appSettings']['language']; // Add language
+  quoteTemplates: AppData['quoteTemplates']; // Add quoteTemplates
 };
 
 export const DashboardContext = createContext<DashboardContextType | null>(null);

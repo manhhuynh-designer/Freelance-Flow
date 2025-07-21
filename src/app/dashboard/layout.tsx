@@ -1044,6 +1044,29 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
     });
   }, []);
 
+  const reorderTasksInStatus = useCallback((statusId: string, orderedTaskIds: string[]) => {
+    setAppData(prev => {
+      const newTasks = prev.tasks.map(task => {
+        if (task.status === statusId) {
+          const order = orderedTaskIds.indexOf(task.id);
+          return { ...task, kanbanOrder: order };
+        }
+        return task;
+      });
+      return { ...prev, tasks: newTasks };
+    });
+  }, []);
+
+  const updateKanbanSettings = useCallback((settings: Partial<AppSettings>) => {
+    setAppData(prev => ({
+      ...prev,
+      appSettings: {
+        ...prev.appSettings,
+        ...settings,
+      }
+    }));
+  }, []);
+
   const dashboardContextValue = {
     // Always reference latest appData for reactivity
     tasks: appData.tasks,
@@ -1085,6 +1108,8 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
     updateTask,
     updateTaskEisenhowerQuadrant,
     reorderTasksInQuadrant,
+    reorderTasksInStatus,
+    updateKanbanSettings,
     settings: appData.appSettings,
     language: appData.appSettings.language,
   };
@@ -1194,7 +1219,7 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
                          </Dialog>
                      </div>
                    </header>
-                   <main className={cn("flex-1 min-h-0", pathname === '/dashboard/chat' || pathname === '/dashboard/settings' || pathname === '/dashboard/widgets' ? 'flex flex-col p-0' : 'flex flex-col p-4')}>
+                   <main className={cn("flex-1 min-h-0 overflow-x-auto", pathname === '/dashboard/chat' || pathname === '/dashboard/settings' || pathname === '/dashboard/widgets' ? 'flex flex-col p-0' : 'flex flex-col p-4')}>
                      {showInstallPrompt && (
                          <Alert className="mb-4 relative">
                              <Download className="h-4 w-4" />

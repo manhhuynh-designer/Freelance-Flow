@@ -15,8 +15,9 @@ export class CollaboratorDataService {
     missingCollaborators: string[];
   } {
     const collaboratorIds = new Set(collaborators.map(c => c.id));
+    // Lấy tất cả collaboratorIds từ các task (kiểu mảng)
     const usedCollaboratorIds = new Set(
-      tasks.map(t => t.collaboratorId).filter((id): id is string => Boolean(id))
+      tasks.flatMap(t => Array.isArray(t.collaboratorIds) ? t.collaboratorIds.filter(Boolean) : []).filter((id): id is string => Boolean(id))
     );
 
     const orphanedIds = Array.from(usedCollaboratorIds).filter(id => !collaboratorIds.has(id));
@@ -86,10 +87,14 @@ export class CollaboratorDataService {
     const { collaborators, tasks } = appData;
     const collaboratorIds = new Set(collaborators.map(c => c.id));
     
+    // Loại bỏ các collaboratorIds không tồn tại khỏi từng task
     const cleanedTasks = tasks.map(task => {
-      if (task.collaboratorId && !collaboratorIds.has(task.collaboratorId)) {
-        console.warn(`Removing orphaned collaborator reference ${task.collaboratorId} from task ${task.name}`);
-        return { ...task, collaboratorId: undefined };
+      if (Array.isArray(task.collaboratorIds)) {
+        const validIds = task.collaboratorIds.filter(id => collaboratorIds.has(id));
+        if (validIds.length !== task.collaboratorIds.length) {
+          console.warn(`Removing orphaned collaborator references from task ${task.name}`);
+        }
+        return { ...task, collaboratorIds: validIds };
       }
       return task;
     });
@@ -136,7 +141,7 @@ export class CollaboratorDataService {
       // If imported data has collaborators, only supplement with missing initial ones 
       // if they are referenced in tasks (to fix orphaned references)
       const usedCollaboratorIds = new Set(
-        importedData.tasks?.map(t => t.collaboratorId).filter(Boolean) || []
+        importedData.tasks?.flatMap(t => Array.isArray(t.collaboratorIds) ? t.collaboratorIds.filter(Boolean) : []).filter(Boolean) || []
       );
       
       const existingIds = new Set(importedData.collaborators.map(c => c.id));

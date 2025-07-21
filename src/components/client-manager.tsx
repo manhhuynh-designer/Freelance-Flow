@@ -45,11 +45,11 @@ type ClientManagerProps = {
 
 const defaultClientData = {
     name: "",
-    email: "",
-    phone: "",
-    taxInfo: "",
+    email: [""],
+    phone: [""],
+    taxInfo: [""],
     type: "brand" as "agency" | "brand",
-    driveLink: "",
+    driveLink: [""],
 }
 
 export function ClientManager({ clients, tasks, onAddClient, onEditClient, onDeleteClient, language }: ClientManagerProps) {
@@ -68,14 +68,14 @@ export function ClientManager({ clients, tasks, onAddClient, onEditClient, onDel
   }
 
   const handleAddClient = () => {
-    if (newClientData.name.trim()) {
+    if (typeof newClientData.name === 'string' && newClientData.name.trim()) {
       onAddClient({
         name: newClientData.name.trim(),
-        email: newClientData.email?.trim() || undefined,
-        phone: newClientData.phone?.trim() || undefined,
-        taxInfo: newClientData.taxInfo?.trim() || undefined,
+        email: newClientData.email.map(e => e.trim()).filter(e => e),
+        phone: newClientData.phone.map(e => e.trim()).filter(e => e),
+        taxInfo: newClientData.taxInfo.map(e => e.trim()).filter(e => e),
         type: newClientData.type,
-        driveLink: newClientData.driveLink?.trim() || undefined,
+        driveLink: newClientData.driveLink.map(e => e.trim()).filter(e => e),
       });
       toast({ title: T.clientAdded, description: `"${newClientData.name.trim()}" ${T.clientAddedDesc}` });
       resetAddForm();
@@ -93,8 +93,10 @@ export function ClientManager({ clients, tasks, onAddClient, onEditClient, onDel
 
   const handleConfirmEdit = (editedData: Omit<Client, 'id'>) => {
     if (editingClient) {
-      onEditClient(editingClient.id, editedData);
-      toast({ title: T.clientUpdated, description: `${T.client} "${editedData.name}" ${T.clientUpdatedDesc}` });
+      // Đảm bảo name là string
+      const safeName = typeof editedData.name === 'string' ? editedData.name : Array.isArray(editedData.name) ? editedData.name[0] : '';
+      onEditClient(editingClient.id, { ...editedData, name: safeName });
+      toast({ title: T.clientUpdated, description: `${T.client} "${safeName}" ${T.clientUpdatedDesc}` });
       handleCancelEdit();
     }
   };
@@ -132,10 +134,10 @@ export function ClientManager({ clients, tasks, onAddClient, onEditClient, onDel
               </DialogHeader>
               <div className="py-4 space-y-4">
                 <Input placeholder={T.clientNameRequired} value={newClientData.name} onChange={(e) => setNewClientData({...newClientData, name: e.target.value})} />
-                <Input placeholder={T.email} type="email" value={newClientData.email} onChange={(e) => setNewClientData({...newClientData, email: e.target.value})} />
-                <Input placeholder={T.phone} type="tel" value={newClientData.phone} onChange={(e) => setNewClientData({...newClientData, phone: e.target.value})} />
-                <Input placeholder={T.taxInfo} value={newClientData.taxInfo} onChange={(e) => setNewClientData({...newClientData, taxInfo: e.target.value})} />
-                <Input placeholder={T.driveLink} type="url" value={newClientData.driveLink} onChange={(e) => setNewClientData({...newClientData, driveLink: e.target.value})} />
+                <Input placeholder={T.email} type="email" value={newClientData.email[0] || ""} onChange={(e) => setNewClientData({...newClientData, email: [e.target.value]})} />
+                <Input placeholder={T.phone} type="tel" value={newClientData.phone[0] || ""} onChange={(e) => setNewClientData({...newClientData, phone: [e.target.value]})} />
+                <Input placeholder={T.taxInfo} value={newClientData.taxInfo[0] || ""} onChange={(e) => setNewClientData({...newClientData, taxInfo: [e.target.value]})} />
+                <Input placeholder={T.driveLink} type="url" value={newClientData.driveLink[0] || ""} onChange={(e) => setNewClientData({...newClientData, driveLink: [e.target.value]})} />
                 <div>
                     <Label className="text-sm font-medium text-muted-foreground">{T.clientType}</Label>
                     <RadioGroup value={newClientData.type} onValueChange={(value: "agency" | "brand") => setNewClientData({...newClientData, type: value})} className="flex gap-4 pt-2">
@@ -167,7 +169,7 @@ export function ClientManager({ clients, tasks, onAddClient, onEditClient, onDel
                       <p className="font-medium">{client.name}</p>
                       {taskCount > 0 && <Badge variant="outline">{taskCount}</Badge>}
                       {client.type && <Badge variant="secondary" className="capitalize">{client.type === 'brand' ? T.brand : T.agency}</Badge>}
-                      {client.driveLink && <a href={client.driveLink} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-muted-foreground hover:text-primary"><LinkIcon className="h-3 w-3" /></a>}
+                      {client.driveLink && <a href={Array.isArray(client.driveLink) ? client.driveLink[0] : client.driveLink} target="_blank" rel="noopener noreferrer" title={Array.isArray(client.driveLink) ? client.driveLink[0] : client.driveLink} onClick={(e) => e.stopPropagation()} className="text-muted-foreground hover:text-primary"><LinkIcon className="h-3 w-3" /></a>}
                     </div>
                     {client.email && <div className="flex items-center gap-2 text-xs text-muted-foreground"><Mail className="h-3 w-3" /><span>{client.email}</span></div>}
                     {client.phone && <div className="flex items-center gap-2 text-xs text-muted-foreground"><Phone className="h-3 w-3" /><span>{client.phone}</span></div>}
@@ -264,7 +266,7 @@ function ViewClientDialog({ client, taskCount, onClose, onEdit, language }: { cl
                     {client.driveLink && (
                         <div className="grid grid-cols-3 items-center gap-4">
                             <Label className="text-muted-foreground text-right">{T.driveLink}</Label>
-                            <a href={client.driveLink} target="_blank" rel="noopener noreferrer" className="col-span-2 text-sm text-primary hover:underline truncate">{client.driveLink}</a>
+                            <a href={Array.isArray(client.driveLink) ? client.driveLink[0] : client.driveLink} target="_blank" rel="noopener noreferrer" className="col-span-2 text-sm text-primary hover:underline truncate">{Array.isArray(client.driveLink) ? client.driveLink[0] : client.driveLink}</a>
                         </div>
                     )}
                 </div>
@@ -289,18 +291,18 @@ type EditClientDialogProps = {
 }
 
 function EditClientDialog({ client, onClose, onSave, language }: EditClientDialogProps) {
-    const [formData, setFormData] = useState<Omit<Client, 'id'>>({ name: '', email: '', phone: '', taxInfo: '', type: 'brand', driveLink: '' });
+    const [formData, setFormData] = useState<Omit<Client, 'id'>>({ name: '', email: [""], phone: [""], taxInfo: [""], type: 'brand', driveLink: [""] });
     const T = i18n[language];
 
     useEffect(() => {
         if (client) {
             setFormData({
                 name: client.name,
-                email: client.email || '',
-                phone: client.phone || '',
-                taxInfo: client.taxInfo || '',
+                email: Array.isArray(client.email) ? client.email : typeof client.email === 'string' ? [client.email] : [""] ,
+                phone: Array.isArray(client.phone) ? client.phone : typeof client.phone === 'string' ? [client.phone] : [""] ,
+                taxInfo: Array.isArray(client.taxInfo) ? client.taxInfo : typeof client.taxInfo === 'string' ? [client.taxInfo] : [""] ,
                 type: client.type || 'brand',
-                driveLink: client.driveLink || ''
+                driveLink: Array.isArray(client.driveLink) ? client.driveLink : typeof client.driveLink === 'string' ? [client.driveLink] : [""]
             });
         }
     }, [client]);
@@ -310,10 +312,10 @@ function EditClientDialog({ client, onClose, onSave, language }: EditClientDialo
             onSave({
               ...formData,
               name: formData.name.trim(),
-              email: formData.email?.trim() || undefined,
-              phone: formData.phone?.trim() || undefined,
-              taxInfo: formData.taxInfo?.trim() || undefined,
-              driveLink: formData.driveLink?.trim() || undefined,
+              email: (formData.email ?? [""]).map((e: string) => e.trim()).filter(e => e),
+              phone: (formData.phone ?? [""]).map((e: string) => e.trim()).filter(e => e),
+              taxInfo: (formData.taxInfo ?? [""]).map((e: string) => e.trim()).filter(e => e),
+              driveLink: (formData.driveLink ?? [""]).map((e: string) => e.trim()).filter(e => e),
             });
         }
     };
@@ -329,10 +331,10 @@ function EditClientDialog({ client, onClose, onSave, language }: EditClientDialo
                 </DialogHeader>
                 <div className="py-4 space-y-4">
                     <Input placeholder={T.clientNameRequired} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
-                    <Input placeholder={T.email} type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
-                    <Input placeholder={T.phone} type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
-                    <Input placeholder={T.taxInfo} value={formData.taxInfo} onChange={(e) => setFormData({...formData, taxInfo: e.target.value})} />
-                    <Input placeholder={T.driveLink} type="url" value={formData.driveLink} onChange={(e) => setFormData({...formData, driveLink: e.target.value})} />
+                    <Input placeholder={T.email} type="email" value={(formData.email ?? [""])[0] || ""} onChange={(e) => setFormData({...formData, email: [e.target.value]})} />
+                    <Input placeholder={T.phone} type="tel" value={(formData.phone ?? [""])[0] || ""} onChange={(e) => setFormData({...formData, phone: [e.target.value]})} />
+                    <Input placeholder={T.taxInfo} value={(formData.taxInfo ?? [""])[0] || ""} onChange={(e) => setFormData({...formData, taxInfo: [e.target.value]})} />
+                    <Input placeholder={T.driveLink} type="url" value={(formData.driveLink ?? [""])[0] || ""} onChange={(e) => setFormData({...formData, driveLink: [e.target.value]})} />
                     <div>
                         <Label className="text-sm font-medium text-muted-foreground">{T.clientType}</Label>
                         <RadioGroup value={formData.type} onValueChange={(value: "agency" | "brand") => setFormData({...formData, type: value})} className="flex gap-4 pt-2">

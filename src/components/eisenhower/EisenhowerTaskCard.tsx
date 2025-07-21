@@ -54,10 +54,10 @@ export function EisenhowerTaskCard({ task, onClearQuadrant }: EisenhowerTaskCard
       }}
       {...attributes} 
       {...listeners}
-      className="cursor-move  transition-all duration-200 border-l-4"
+      className="cursor-move transition-all duration-200 border-l-4 mx-2 mb-2 p-2"
     >
-      <CardContent className="p-2">
-        <div className="flex items-center justify-between gap-2">
+      <CardContent className="p-0">
+        <div className="flex items-center justify-between gap-2 ">
           <div className="flex-1 min-w-0">
             <h4 className="text-xs font-medium truncate leading-tight">{task.name}</h4>
             <div className="flex items-center gap-1 mt-1">

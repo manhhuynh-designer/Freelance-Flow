@@ -15,9 +15,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
-import { vi, enUS } from 'date-fns/locale';
+import { vi as viLocale, enUS } from 'date-fns/locale';
 import { TaskDetailsDialog } from '@/components/task-dialogs/TaskDetailsDialog';
+import { TaskEditDialog } from '@/components/task-dialogs/TaskEditDialog';
 import styles from './CompactTaskCard.module.css';
+import { vi, en } from '@/lib/i18n';
 
 interface CompactTaskCardProps {
   task: Task;
@@ -40,6 +42,7 @@ export function CompactTaskCard({ task, onClearQuadrant, variant = 'matrix' }: C
   });
   const dashboard = useDashboard();
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(0);
   
   // Force re-render key to ensure component updates when eisenhowerQuadrant changes
@@ -63,6 +66,8 @@ export function CompactTaskCard({ task, onClearQuadrant, variant = 'matrix' }: C
   const { appSettings, clients, collaborators, categories, quoteTemplates, quotes, collaboratorQuotes, handleEditTask, handleDeleteTask } = dashboard;
   const settings = appSettings;
   const language = appSettings.language;
+  const lang = (language === 'vi' || language === 'en') ? language : 'vi';
+  const T = lang === 'vi' ? vi : en;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -74,7 +79,7 @@ export function CompactTaskCard({ task, onClearQuadrant, variant = 'matrix' }: C
     return statusColors[task.status] || '#64748b';
   };
 
-  const locale = language === 'vi' ? vi : enUS;
+  const locale = language === 'vi' ? viLocale : enUS;
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -83,7 +88,7 @@ export function CompactTaskCard({ task, onClearQuadrant, variant = 'matrix' }: C
 
   const handleEdit = () => {
     setIsDetailsOpen(false);
-    // Implement edit logic if needed
+    setIsEditDialogOpen(true);
   };
 
   const taskQuote = quotes.find(q => q.id === task.quoteId);
@@ -123,7 +128,7 @@ export function CompactTaskCard({ task, onClearQuadrant, variant = 'matrix' }: C
                     <DropdownMenuContent align="end" className="w-40">
                       <DropdownMenuItem onClick={handleClearQuadrant} className="text-sm">
                         <FlagOff className="mr-2 h-3 w-3" />
-                        Xóa phân loại
+                        {T.clearQuadrant}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -155,6 +160,19 @@ export function CompactTaskCard({ task, onClearQuadrant, variant = 'matrix' }: C
           onClose={() => setIsDetailsOpen(false)}
           onEdit={handleEdit}
           onDelete={handleDeleteTask}
+        />
+        <TaskEditDialog
+          task={task}
+          quote={taskQuote}
+          collaboratorQuotes={taskCollaboratorQuotes}
+          clients={clients}
+          collaborators={collaborators}
+          categories={categories}
+          quoteTemplates={quoteTemplates}
+          settings={settings}
+          isOpen={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onSubmit={handleEditTask}
         />
       </>
     );
@@ -200,7 +218,7 @@ export function CompactTaskCard({ task, onClearQuadrant, variant = 'matrix' }: C
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={handleClearQuadrant}>
                     <FlagOff className="mr-2 h-3 w-3" />
-                    Xóa phân loại
+                    {T.clearQuadrant}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -222,6 +240,19 @@ export function CompactTaskCard({ task, onClearQuadrant, variant = 'matrix' }: C
         onClose={() => setIsDetailsOpen(false)}
         onEdit={handleEdit}
         onDelete={handleDeleteTask}
+      />
+      <TaskEditDialog
+        task={task}
+        quote={taskQuote}
+        collaboratorQuotes={taskCollaboratorQuotes}
+        clients={clients}
+        collaborators={collaborators}
+        categories={categories}
+        quoteTemplates={quoteTemplates}
+        settings={settings}
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSubmit={handleEditTask}
       />
     </>
   );

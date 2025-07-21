@@ -1,6 +1,8 @@
 "use client";
 // Vietnamese translations
 export const vi = {
+  createTaskDialogTitle: 'Tạo task mới',
+  clearQuadrant: 'Xóa phân loại',
   noTasksFound: 'Không tìm thấy task nào',
   forKeyword: 'cho từ khóa',
   clearSearch: 'Xóa tìm kiếm',
@@ -380,6 +382,8 @@ export const vi = {
 
 // English translations (default)
 export const en = {
+  createTaskDialogTitle: 'Create New Task',
+  clearQuadrant: 'Clear categorization',
   noTasksFound: 'No tasks found',
   forKeyword: 'for keyword',
   clearSearch: 'Clear search',
@@ -870,6 +874,14 @@ export const i18n = {
     calendarView: 'Calendar View',
     eisenhowerView: 'Eisenhower Matrix',
     kanbanView: 'Kanban Board',
+    kanbanSettings: {
+      title: 'Kanban Settings',
+      description: 'Configure your Kanban board display options.',
+      subStatusMode: 'Sub-status Display Mode',
+      grouped: 'Grouped under main status',
+      separate: 'Separate columns for each sub-status',
+      columnVisibility: 'Column Visibility'
+    },
     quadrants: {
       do: {
         title: 'DO',
@@ -1399,6 +1411,14 @@ export const i18n = {
     calendarView: 'Lịch',
     eisenhowerView: 'Ma trận Eisenhower',
     kanbanView: 'Bảng Kanban',
+    kanbanSettings: {
+      title: 'Cài đặt Kanban',
+      description: 'Cấu hình các tùy chọn hiển thị bảng Kanban.',
+      subStatusMode: 'Chế độ hiển thị trạng thái phụ',
+      grouped: 'Nhóm dưới trạng thái chính',
+      separate: 'Cột riêng cho mỗi trạng thái phụ',
+      columnVisibility: 'Hiển thị cột'
+    },
     quadrants: {
       do: {
         title: 'Quan trọng & Khẩn cấp',
