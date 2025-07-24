@@ -283,6 +283,8 @@ export function FilterChipBar({
                        <SelectItem value="deadline-desc">{T.sortDeadlineFarthest || 'Deadline (Farthest)'}</SelectItem>
                        <SelectItem value="startDate-desc">{T.sortNewest || 'Start Date (Newest)'}</SelectItem>
                        <SelectItem value="startDate-asc">{T.sortOldest || 'Start Date (Oldest)'}</SelectItem>
+                      <SelectItem value="createdAt-desc">{T.sortDateAddedNewest || 'Date Added (Newest)'}</SelectItem>
+                      <SelectItem value="createdAt-asc">{T.sortDateAddedOldest || 'Date Added (Oldest)'}</SelectItem>
                      </SelectContent>
                    </Select>
                  </div>

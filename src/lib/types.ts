@@ -1,7 +1,3 @@
-// Calendar view mode for calendar components
-export type CalendarViewMode = 'week' | 'month';
-
-
 export type DashboardColumn = {
   id: 'name' | 'client' | 'category' | 'collaborator' | 'deadline' | 'status' | 'priceQuote';
   label: string;
@@ -75,6 +71,11 @@ export type Task = {
   deletedAt?: string;
   eisenhowerQuadrant?: 'do' | 'decide' | 'delegate' | 'delete';
 kanbanOrder?: number;
+endDate?: string; // ISO string, ngày kết thúc của nhiệm vụ
+  duration?: number; // số ngày, thời lượng của nhiệm vụ
+  progress?: number; // 0-100, tiến độ hoàn thành nhiệm vụ
+  dependencies?: string[]; // mảng các task ID mà nhiệm vụ này phụ thuộc vào
+createdAt?: string; // Ngày thêm task
 };
 
 export type Client = {

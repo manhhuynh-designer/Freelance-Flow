@@ -1,6 +1,10 @@
 "use client";
 // Vietnamese translations
 export const vi = {
+  pathCopied: 'Đã copy đường dẫn',
+  taskNameHeader: 'Tên công việc',
+  Day: 'Ngày',
+  Month: 'Tháng',
   createTaskDialogTitle: 'Tạo task mới',
   clearQuadrant: 'Xóa phân loại',
   noTasksFound: 'Không tìm thấy task nào',
@@ -341,6 +345,7 @@ export const vi = {
   ,clearFilters: 'Xóa bộ lọc'
   ,tableView: 'Xem bảng'
   ,calendarView: 'Xem lịch'
+  ,ganttView: 'Biểu đồ Gantt'
   // Date and time formats
   ,dateFormats: {
     today: 'Hôm nay',
@@ -382,6 +387,10 @@ export const vi = {
 
 // English translations (default)
 export const en = {
+  pathCopied: 'Path copied to clipboard',
+  taskNameHeader: 'Task Name',
+  Day: 'Day',
+  Month: 'Month',
   createTaskDialogTitle: 'Create New Task',
   clearQuadrant: 'Clear categorization',
   noTasksFound: 'No tasks found',
@@ -722,6 +731,7 @@ export const en = {
   ,clearFilters: 'Clear Filters'
   ,tableView: 'Table View'
   ,calendarView: 'Calendar View'
+  ,ganttView: 'Gantt Chart'
   // Date and time formats
   ,dateFormats: {
     today: 'Today',
@@ -771,6 +781,14 @@ export const T = vi;
 
 export const i18n = {
   en: {
+    pathCopied: 'Path copied to clipboard',
+    startDate: 'Start Date'
+  ,deadline: 'Deadline',
+    // Views
+    Day: 'Day',
+    Month: 'Month',
+    eisenhowerView: 'Eisenhower Matrix',
+    taskNameHeader: 'Task Name',
     // Search
     noTasksFound: 'No tasks found',
     forKeyword: 'for keyword',
@@ -872,8 +890,8 @@ export const i18n = {
     views: 'Views',
     tableView: 'Table View',
     calendarView: 'Calendar View',
-    eisenhowerView: 'Eisenhower Matrix',
-    kanbanView: 'Kanban Board',
+    ganttView: 'Gantt Chart',
+        kanbanView: 'Kanban Board',
     kanbanSettings: {
       title: 'Kanban Settings',
       description: 'Configure your Kanban board display options.',
@@ -920,6 +938,8 @@ export const i18n = {
     clearFilters: 'Clear Filters',
     sortBy: 'Sort by',
     selectSort: 'Select sort order',
+    sortDateAddedNewest: 'Date Added (Newest)',
+    sortDateAddedOldest: 'Date Added (Oldest)',
     sortNewest: 'Start Date (Newest)',
     sortOldest: 'Start Date (Oldest)',
     sortDeadlineSoonest: 'Deadline (Soonest)',
@@ -943,8 +963,6 @@ export const i18n = {
     unitPrice: 'Price',
     briefLink: 'Brief Link',
     driveLink: 'Drive Link',
-    startDate: 'Start Date',
-    deadline: 'Deadline',
     collaborator: 'Collaborator',
     selectClient: 'Select a client',
     selectCategory: 'Select a category',
@@ -1308,7 +1326,15 @@ export const i18n = {
       sunday: 'Sun'
     }
   },
+  
   vi: {
+    pathCopied: 'Đã copy đường dẫn',
+    startDate: 'Ngày Bắt Đầu',
+    deadline: 'Hạn Chót',
+    Day: 'Ngày',
+    Month: 'Tháng',
+    eisenhowerView: 'Eisenhower Matrix',
+    taskNameHeader: 'Tên công việc',
     // Search
     noTasksFound: 'Không tìm thấy task nào',
     forKeyword: 'cho từ khóa',
@@ -1409,7 +1435,7 @@ export const i18n = {
     views: 'Chế độ xem',
     tableView: 'Chế độ xem Bảng',
     calendarView: 'Lịch',
-    eisenhowerView: 'Ma trận Eisenhower',
+    ganttView: 'Biểu đồ Gantt',
     kanbanView: 'Bảng Kanban',
     kanbanSettings: {
       title: 'Cài đặt Kanban',
@@ -1457,6 +1483,8 @@ export const i18n = {
     clearFilters: 'Xóa bộ lọc',
     sortBy: 'Sắp xếp theo',
     selectSort: 'Chọn thứ tự sắp xếp',
+    sortDateAddedNewest: 'Ngày thêm (Mới nhất)',
+    sortDateAddedOldest: 'Ngày thêm (Cũ nhất)',
     sortNewest: 'Ngày bắt đầu (Mới nhất)',
     sortOldest: 'Ngày bắt đầu (Cũ nhất)',
     sortDeadlineSoonest: 'Hạn chót (Gần nhất)',
@@ -1480,8 +1508,7 @@ export const i18n = {
     unitPrice: 'Giá',
     briefLink: 'Link Brief',
     driveLink: 'Link Drive',
-    startDate: 'Ngày bắt đầu',
-    deadline: 'Hạn chót',
+   
     collaborator: 'Cộng tác viên',
     selectClient: 'Chọn một khách hàng',
     selectCategory: 'Chọn một danh mục',

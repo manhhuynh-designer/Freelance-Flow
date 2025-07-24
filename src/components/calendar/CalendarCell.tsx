@@ -1,5 +1,15 @@
 // Component con cho task draggable trong popover, dùng đúng rules of hooks
 import { useDraggable } from '@dnd-kit/core';
+import { Task } from '@/lib/types';
+import type { CalendarDisplayMode } from '../calendar-view';
+import React, { useMemo, useRef, useState } from 'react';
+import { useDroppable } from '@dnd-kit/core';
+import { cn } from '@/lib/utils';
+import { TaskCard } from './TaskCard';
+import { getStatusColor } from '@/lib/colors';
+
+import type { Client, Category } from '@/lib/types';
+import styles from './CalendarCell.module.css';
 
 interface PopoverTaskDraggableProps {
   task: Task;
@@ -62,20 +72,10 @@ const PopoverTaskDraggable: React.FC<PopoverTaskDraggableProps> = ({
     </div>
   );
 };
-import { Task } from '@/lib/types';
-import { CalendarViewMode } from '@/lib/types';
-import React, { useMemo, useRef, useState } from 'react';
-import { useDroppable } from '@dnd-kit/core';
-import { cn } from '@/lib/utils';
-import { TaskCard } from './TaskCard';
-import { getStatusColor } from '@/lib/colors';
-
-import type { Client, Category } from '@/lib/types';
-import styles from './CalendarCell.module.css';
 export type CalendarCellProps = {
   date: Date;
   tasks: Task[];
-  viewMode: CalendarViewMode;
+  viewMode: CalendarDisplayMode;
   isSelected?: boolean;
   onTaskClick?: (task: Task) => void;
   onDateSelect?: (date: Date) => void;
@@ -85,7 +85,7 @@ export type CalendarCellProps = {
   clients: Client[];
   categories: Category[];
   currentMonth?: number; // tháng đang xem (0-11)
-  updateTask?: (task: Task) => void;
+  updateTask?: (updates: Partial<Task> & { id: string }) => void;
 }
 
 function isSameDay(a: Date, b: Date) {

@@ -1,0 +1,120 @@
+/* GanttView.module.css */
+.ganttContainerWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  /* border: 1px solid hsl(var(--border)); */
+  border-radius: var(--radius);
+  background-color: hsl(var(--card));
+  
+}
+.ganttHeader {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+/* Layout body: flex-grow */
+.ganttBody {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.viewModeGroup button {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius);
+  background-color: transparent;
+  color: hsl(var(--muted-foreground));
+  border: 1px solid hsl(var(--border));
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+.viewModeGroup button:hover {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+.viewModeGroup button.active {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+.taskNameCell {
+    display: flex;
+    align-items: center;
+}
+
+/* --- Theme Classes --- */
+.ganttLight :global(.gantt_grid),
+.ganttLight :global(.gantt_task) {
+  border-color: hsl(var(--border));
+}
+.ganttLight :global(.gantt_grid_scale),
+.ganttLight :global(.gantt_scale_cell) {
+    background-color: hsl(var(--muted));
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--border));
+}
+.ganttLight :global(.gantt_row),
+.ganttLight :global(.gantt_task_row) {
+    border-color: hsl(var(--border));
+}
+
+.ganttDark :global(.gantt_grid),
+.ganttDark :global(.gantt_task) {
+  border-color: hsl(var(--border));
+}
+.ganttDark :global(.gantt_grid_scale),
+.ganttDark :global(.gantt_scale_cell),
+.ganttDark :global(.gantt_grid_data),
+.ganttDark :global(.gantt_task_bg) {
+    background-color: hsl(var(--card));
+  
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--border));
+}
+.ganttDark :global(.gantt_row),
+.ganttDark :global(.gantt_task_row) {
+    border-color: hsl(var(--border));
+}
+.ganttDark :global(.gantt_tree_content) {
+    color: hsl(var(--foreground));
+}
+
+/* --- Status Colors --- */
+/* We need to anchor the global selector to a local class */
+.ganttContainerWrapper :global(.gantt_task_status_todo .gantt_task_bar) {
+  background-color: hsl(var(--status-todo));
+}
+.ganttContainerWrapper :global(.gantt_task_status_inprogress .gantt_task_bar) {
+  background-color: hsl(var(--status-inprogress));
+}
+.ganttContainerWrapper :global(.gantt_task_status_done .gantt_task_bar) {
+  background-color: hsl(var(--status-done));
+}
+.ganttContainerWrapper :global(.gantt_task_status_onhold .gantt_task_bar) {
+  background-color: hsl(var(--status-onhold));
+}
+.ganttContainerWrapper :global(.gantt_task_status_archived .gantt_task_bar) {
+  background-color: hsl(var(--status-archived));
+}
+.dragPreviewTooltip {
+  position: fixed;
+  background-color: var(--card-background, #fff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  z-index: 9999;
+  pointer-events: none; /* Make sure it doesn't interfere with mouse events */
+  white-space: nowrap;
+}

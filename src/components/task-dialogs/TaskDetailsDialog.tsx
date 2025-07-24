@@ -583,7 +583,7 @@ export function TaskDetailsDialog({
               <Building2 className="h-4 w-4" /> {client?.name}
             </span>
             <span className="flex items-center gap-1">
-              <span className="font-medium">{(category?.name && T.categories[category.id as keyof typeof T.categories]) || category?.name || ''}</span>
+              <span className="font-medium">{(category?.name && T.categories && (T.categories as any)[category.id]) || category?.name || ''}</span>
             </span>
           </div>
         </div>

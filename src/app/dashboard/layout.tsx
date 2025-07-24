@@ -6,7 +6,6 @@ import Link from "next/link";
 import { usePathname } from 'next/navigation';
 import { Suspense } from 'react';
 
-// Place helper at top-level, after all imports, before main component
 function SidebarTrashMenuItem({ T }: { T: any }) {
   const { useSearchParams } = require('next/navigation');
   const searchParams = useSearchParams();
@@ -44,7 +43,6 @@ import { CreateTaskForm, type TaskFormValues } from "@/components/create-task-fo
 import { cn } from "@/lib/utils";
 import { QuickChat } from "@/components/quick-chat";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDebounce } from "@/hooks/use-debounce";
 import Image from "next/image";
 import { differenceInDays } from "date-fns";
 import { DashboardContext } from '@/contexts/dashboard-context';
@@ -61,8 +59,8 @@ import { EisenhowerQuadrantType } from "@/components/eisenhower/EisenhowerView";
 
 const defaultSettings: AppSettings = {
     theme: {
-        primary: "#2A5EE5", // Default theme primary
-        accent: "#FFFFFF",  // Default theme accent
+        primary: "#2A5EE5",
+        accent: "#FFFFFF",
     },
     statusColors: {
         todo: '#a855f7',
@@ -114,8 +112,8 @@ const defaultSettings: AppSettings = {
         { id: 'calculator', enabled: true, showInSidebar: true, colSpan: 1, rowSpan: 1 },
         { id: 'sticky-notes', enabled: true, showInSidebar: true, colSpan: 2, rowSpan: 2 },
     ],
-    eisenhowerMaxTasksPerQuadrant: 10, // Default max tasks per quadrant
-    eisenhowerColorScheme: 'colorScheme1', // Default color scheme
+    eisenhowerMaxTasksPerQuadrant: 10,
+    eisenhowerColorScheme: 'colorScheme1',
 };
 
 export default function DashboardLayout({
@@ -152,7 +150,6 @@ export default function DashboardLayout({
       let loadedData: AppData | undefined;
       let isFirstTimeUse = false;
 
-      // Kiểm tra và khôi phục dữ liệu nếu bị mất từ localStorage backup
       const restoredData = BackupService.checkAndRestore();
       if (restoredData) {
         console.log('Data restored from localStorage backup successfully');
@@ -162,13 +159,11 @@ export default function DashboardLayout({
         return;
       }
 
-      // Nếu localStorage backup cũng không có, thử IndexedDB
       if (!storedDataString || storedDataString === '{}') {
         try {
           const indexedDBRestored = await DataPersistenceService.restoreFromIndexedDB();
           if (indexedDBRestored) {
             console.log('Data restored from IndexedDB successfully');
-            // Reload để áp dụng dữ liệu từ IndexedDB
             setTimeout(() => window.location.reload(), 500);
             return;
           }
@@ -176,13 +171,11 @@ export default function DashboardLayout({
           console.warn('IndexedDB restore failed:', error);
         }
         
-        // If no stored data at all, this is first time use
         if (!storedDataString) {
           isFirstTimeUse = true;
           console.log('First time use detected, loading sample data');
           loadedData = initialAppData;
         } else {
-          // storedDataString === '{}' means data was explicitly cleared
           console.log('Data was explicitly cleared, starting with empty state');
           loadedData = {
             tasks: [],
@@ -262,7 +255,6 @@ export default function DashboardLayout({
               });
               loadedSettings.widgets = loadedWidgets;
 
-              // Check if this is a fresh start (no data) vs explicit clear (empty arrays)
               const isFreshStart = !data.clients && !data.collaborators && !data.categories && !data.quoteTemplates;
               const wasExplicitlyCleared = (data.clients?.length === 0 && data.collaborators?.length === 0 && data.categories?.length === 0);
 
@@ -277,12 +269,10 @@ export default function DashboardLayout({
                 appSettings: loadedSettings,
               };
 
-              // Ensure collaborator data integrity
               const wasDataCleared = wasExplicitlyCleared;
               loadedData = CollaboratorDataService.syncCollaboratorData(loadedData, wasDataCleared);
           } catch (e) {
               console.error("Failed to parse data from localStorage", e);
-              // If parsing fails, treat as first time use if we haven't set loadedData yet
               if (!loadedData) {
                 console.log('Data parsing failed, falling back to sample data');
                 loadedData = initialAppData;
@@ -291,7 +281,6 @@ export default function DashboardLayout({
           }
       }
       
-      // If we still don't have loadedData (shouldn't happen), use empty state
       if (!loadedData) {
         console.warn('No data loaded, creating empty state');
         loadedData = {
@@ -306,11 +295,9 @@ export default function DashboardLayout({
         };
       }
       
-      // Always ensure collaborator data integrity, even for default data
-      // Only restore initial data if this is truly a fresh start (not a cleared state)
       const hasAnyStoredData = !!storedDataString && storedDataString !== '{}';
       const shouldSkipInitialRestore = hasAnyStoredData && !isFirstTimeUse;
-      const finalData = loadedData!; // We know loadedData is defined by this point
+      const finalData = loadedData!; 
       const syncedData = CollaboratorDataService.syncCollaboratorData(finalData, shouldSkipInitialRestore);
       
       setAppData(syncedData);
@@ -320,15 +307,12 @@ export default function DashboardLayout({
           setLastBackupDate(new Date(storedBackupDate));
       }
       
-      // Initialize local folder backup service
       LocalBackupService.restoreSettings();
       
       setIsDataLoaded(true);
     };
-
-    // Call the async initialization
     initializeData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); 
 
   useEffect(() => {
     if (isDataLoaded) {
@@ -353,39 +337,32 @@ export default function DashboardLayout({
     }
   }, [isDataLoaded]);
 
-  const debouncedAppData = useDebounce(appData, 1000);
-
   useEffect(() => {
     if (isDataLoaded) {
-        localStorage.setItem(storageKey, JSON.stringify(debouncedAppData));
+        localStorage.setItem(storageKey, JSON.stringify(appData));
         
-        // Include filter presets for backup services
         const filterPresets = JSON.parse(localStorage.getItem('freelance-flow-filter-presets') || '[]');
         const appDataWithPresets = {
-          ...debouncedAppData,
+          ...appData,
           filterPresets
         };
         
-        // Tự động backup dữ liệu để ngăn chặn mất dữ liệu
         BackupService.autoBackup(appDataWithPresets);
-        // Sync với IndexedDB để có backup layer phụ
         DataPersistenceService.syncWithIndexedDB();
-        // Trigger local folder auto-save if enabled
         LocalBackupService.autoSaveIfNeeded(appDataWithPresets);
     }
-  }, [debouncedAppData, storageKey, isDataLoaded]);
+  }, [appData, storageKey, isDataLoaded]);
 
   useEffect(() => {
     if (!isDataLoaded) return;
     
     const root = window.document.documentElement;
 
-    // Convert HEX to HSL string for CSS variables and helper functions
     const primaryHex = appData.appSettings.theme.primary;
     const accentHex = appData.appSettings.theme.accent;
 
-    let primaryHsl = '221 83% 53%'; // Default fallback
-    let accentHsl = '221 83% 45%'; // Default fallback
+    let primaryHsl = '221 83% 53%';
+    let accentHsl = '221 83% 45%';
 
     try {
       const [pr, pg, pb] = hexToRgb(primaryHex);
@@ -413,7 +390,6 @@ export default function DashboardLayout({
     root.style.setProperty('--sidebar-background', sidebarBg);
 
     if (currentTheme === 'light') {
-        // If accent is white, force a white background for a cleaner look.
         if (accentHex.toUpperCase() === '#FFFFFF') {
             root.style.setProperty('--background', '0 0% 100%');
         } else {
@@ -494,12 +470,11 @@ export default function DashboardLayout({
     const calculateTotal = (sections: QuoteSection[] = []) => sections.reduce((total, section) => 
         total + section.items.reduce((sectionTotal, item) => sectionTotal + ((item.quantity || 1) * (item.unitPrice || 0)), 0), 0);
     
-    // Ensure all items have a string id
     const normalizedSections: QuoteSection[] = (sections || []).map(section => ({
       ...section,
       items: (section.items || []).map((item, idx) => ({
         ...item,
-        id: item.id || `item-${Date.now()}-${idx}`, // Ensure id is always a string
+        id: item.id || `item-${Date.now()}-${idx}`,
       })) as QuoteItem[],
     }));
 
@@ -509,7 +484,6 @@ export default function DashboardLayout({
     const newQuoteId = `quote-${Date.now()}`;
     const newQuote: Quote = { id: newQuoteId, sections: normalizedSections, total: quoteTotal, columns: quoteColumns };
     
-    // Handle multiple collaborator quotes
     const newCollaboratorQuotes: Quote[] = [];
     const collaboratorQuoteIds: string[] = [];
     
@@ -520,7 +494,7 @@ export default function DashboardLayout({
             ...section,
             items: (section.items || []).map((item, idx) => ({
               ...item,
-              id: item.id || `collab-item-${Date.now()}-${index}-${idx}`, // Ensure id is always a string
+              id: item.id || `collab-item-${Date.now()}-${index}-${idx}`,
             })) as QuoteItem[],
           }));
           
@@ -543,8 +517,8 @@ export default function DashboardLayout({
       id: `task-${Date.now()}`, 
       ...taskData, 
       quoteId: newQuoteId, 
-      collaboratorQuoteIds: collaboratorQuoteIds, // Array of collaborator quote IDs
-      collaboratorQuoteId: undefined // Keep for backward compatibility
+      collaboratorQuoteIds: collaboratorQuoteIds,
+      collaboratorQuoteId: undefined 
     } as Task;
     
     setAppData(prev => ({
@@ -573,7 +547,7 @@ export default function DashboardLayout({
       ...section,
       items: (section.items || []).map((item, idx) => ({
         ...item,
-        id: item.id || `item-${Date.now()}-${idx}`, // Ensure id is always a string
+        id: item.id || `item-${Date.now()}-${idx}`,
       })) as QuoteItem[],
     }));
 
@@ -594,18 +568,15 @@ export default function DashboardLayout({
         
         let newCollaboratorQuotes = [...prev.collaboratorQuotes];
         
-        // Remove old collaborator quotes
         if ((taskToUpdate as any).collaboratorQuoteIds && (taskToUpdate as any).collaboratorQuoteIds.length > 0) {
             newCollaboratorQuotes = newCollaboratorQuotes.filter(q => 
                 !(taskToUpdate as any).collaboratorQuoteIds!.includes(q.id)
             );
         }
-        // Keep backward compatibility
         if ((taskToUpdate as any).collaboratorQuoteId) {
             newCollaboratorQuotes = newCollaboratorQuotes.filter(q => q.id !== (taskToUpdate as any).collaboratorQuoteId);
         }
         
-        // Add new collaborator quotes
         const newCollaboratorQuoteIds: string[] = [];
         console.log('Processing collaborator quotes:', collaboratorQuotes);
         
@@ -613,7 +584,6 @@ export default function DashboardLayout({
             collaboratorQuotes.forEach((collabQuote, index) => {
                 console.log(`Processing collaborator quote ${index}:`, collabQuote);
                 
-                // Check if collaborator is selected and has sections (even if empty)
                 if (collabQuote.collaboratorId && collabQuote.collaboratorId.trim() !== '') {
                     const normalizedCollaboratorSections: QuoteSection[] = (collabQuote.sections || []).map(section => ({
                         ...section,
@@ -642,7 +612,6 @@ export default function DashboardLayout({
         
         console.log('Final collaborator quote IDs:', newCollaboratorQuoteIds);
         
-        // Update task with new collaborator quote IDs and collaborator IDs
         const collaboratorIds = collaboratorQuotes 
             ? collaboratorQuotes.map(cq => cq.collaboratorId).filter(id => id && id.trim() !== '')
             : [];
@@ -655,7 +624,7 @@ export default function DashboardLayout({
         updatedTask.collaboratorIds = collaboratorIds;
         updatedTask.collaboratorQuotes = taskCollaboratorQuotes;
         (updatedTask as any).collaboratorQuoteIds = newCollaboratorQuoteIds;
-        (updatedTask as any).collaboratorQuoteId = undefined; // Keep for backward compatibility
+        (updatedTask as any).collaboratorQuoteId = undefined;
 
         console.log('Updated task:', updatedTask);
 
@@ -936,24 +905,21 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
     };
     setAppData(emptyData);
     localStorage.setItem(storageKey, JSON.stringify(emptyData));
-    // Also clear other potential keys
     localStorage.removeItem('freelance-flow-filters');
     localStorage.removeItem('freelance-flow-last-backup');
     localStorage.removeItem('freelance-flow-notes');
-    localStorage.removeItem('freelance-flow-filter-presets'); // Clear filter presets too
+    localStorage.removeItem('freelance-flow-filter-presets');
     toast({ title: T.clearAllData, description: T.clearAllDataDesc });
     setTimeout(() => window.location.reload(), 1000);
   };
 
   const handleExport = () => {
-    // Include filter presets in export
     const filterPresets = localStorage.getItem('freelance-flow-filter-presets');
     const appDataWithPresets = {
       ...appData,
       filterPresets: filterPresets ? JSON.parse(filterPresets) : []
     };
     
-    // Sử dụng BackupService mới để tạo backup tích hợp
     const { jsonString, filename } = BackupService.createManualBackup(appDataWithPresets);
     
     const blob = new Blob([jsonString], { type: 'application/json' });
@@ -968,7 +934,6 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
-    // Cập nhật last backup date cho UI
     const now = new Date();
     setLastBackupDate(now);
     toast({ title: T.backupSuccessful, description: T.backupSuccessfulDesc });
@@ -997,11 +962,13 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
     return `${days} ${T.daysAgo}`;
   }, [lastBackupDate, T]);
 
-  const updateTask = useCallback((updatedTask: Task) => {
-    setAppData(prev => ({
-      ...prev,
-      tasks: prev.tasks.map(task => (task.id === updatedTask.id ? updatedTask : task)),
-    }));
+  const updateTask = useCallback((updates: Partial<Task> & { id: string }) => {
+    setAppData(prev => {
+      const newTasks = prev.tasks.map(task => 
+        task.id === updates.id ? { ...task, ...updates } : task
+      );
+      return { ...prev, tasks: newTasks };
+    });
   }, []);
 
   const updateTaskEisenhowerQuadrant = useCallback((taskId: string, quadrant: EisenhowerQuadrantType | undefined) => {
@@ -1017,7 +984,6 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
     setAppData(prev => {
       const newTasks = [...prev.tasks];
       
-      // Get tasks in the quadrant and other tasks
       const tasksInQuadrant = newTasks.filter(task => 
         quadrant === 'uncategorized' 
           ? task.eisenhowerQuadrant === undefined || task.eisenhowerQuadrant === null 
@@ -1029,12 +995,10 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
           : task.eisenhowerQuadrant !== quadrant
       );
       
-      // Reorder tasks in quadrant according to orderedTaskIds
       const reorderedTasksInQuadrant = orderedTaskIds.map(id => 
         tasksInQuadrant.find(task => task.id === id)
       ).filter(Boolean) as Task[];
       
-      // Combine reordered quadrant tasks with other tasks
       const finalTasks = [...otherTasks, ...reorderedTasksInQuadrant];
       
       return {
@@ -1068,7 +1032,6 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
   }, []);
 
   const dashboardContextValue = {
-    // Always reference latest appData for reactivity
     tasks: appData.tasks,
     clients: appData.clients,
     collaborators: appData.collaborators,
@@ -1077,7 +1040,6 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
     categories: appData.categories,
     appSettings: appData.appSettings,
     collaboratorQuotes: appData.collaboratorQuotes,
-    // Other context values
     setTasks,
     setQuotes,
     setCollaboratorQuotes,
@@ -1236,7 +1198,6 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
                          </Alert>
                      )}
                      
-                     {/* Data Restored Notification */}
                      <DataRestoredNotification />
                      
                      {isDataLoaded ? children : <div className="h-full w-full flex items-center justify-center"><Skeleton className="h-full w-full" /></div>}

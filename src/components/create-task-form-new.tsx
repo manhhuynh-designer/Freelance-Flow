@@ -181,15 +181,14 @@ export function CreateTaskForm({
   });
 
   const handleFormSubmit = (data: TaskFormValues) => {
-    // Extract collaborator IDs from collaboratorQuotes
     const collaboratorIds = data.collaboratorQuotes
       ?.filter(quote => quote.collaboratorId)
       .map(quote => quote.collaboratorId) || [];
     
-    // Update the data with extracted collaborator IDs
     const formDataWithCollaborators = {
       ...data,
-      collaboratorIds
+      collaboratorIds,
+      createdAt: new Date().toISOString()
     };
     
     onFormSubmit(formDataWithCollaborators, columns, collaboratorColumns);

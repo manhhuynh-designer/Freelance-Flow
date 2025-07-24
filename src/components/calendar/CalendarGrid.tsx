@@ -1,12 +1,12 @@
 // Interface for CalendarGrid props
 import type { Task, Client, Category } from '@/lib/types';
-import { CalendarViewMode } from '@/lib/types';
+import type { CalendarDisplayMode } from '../calendar-view';
 import { getTranslations, i18n } from '@/lib/i18n';
 import type { AppSettings } from '@/lib/types';
 
 export interface CalendarGridProps {
   currentDate: Date;
-  viewMode: CalendarViewMode;
+  viewMode: CalendarDisplayMode;
   tasks: Task[];
   statusColors: Record<string, string>;
   clients: Client[];
@@ -183,7 +183,7 @@ export const CalendarGrid = (props: CalendarGridProps) => {
               clients={clients}
               categories={categories}
               currentMonth={viewMode === 'month' ? currentDate.getMonth() : undefined}
-              updateTask={dashboardContext?.updateTask}
+              updateTask={(dashboardContext?.updateTask as any)}
             />
           ))}
         </div>

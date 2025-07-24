@@ -1,0 +1,288 @@
+.gantt-controls__btn {
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 4px 16px;
+  border-radius: 6px;
+  margin: 0.5rem 0rem 0rem 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+}
+.gantt-controls__btn:last-child {
+  margin-right: 0;
+}
+.gantt-controls__btn--active {
+  background: hsl(var(--primary));
+  color: #fff;
+  border-color: hsl(var(--primary));
+}
+.taskBar {
+  position: relative; /* Create stacking context for tooltip */
+  position: absolute;
+  top: 4px;
+  height: 24px;
+  left: var(--taskbar-left, 0px);
+  width: var(--taskbar-width, 0px);
+  opacity: var(--taskbar-opacity, 1);
+  z-index: var(--taskbar-zindex, 1);
+  pointer-events: auto;
+  background-color: var(--taskbar-bg, #ccc);
+  box-sizing: border-box;
+  border: 1px solid rgba(0,0,0,0.2);
+  border-radius: 6px;
+  transition: left 0.2s ease, width 0.2s ease;
+}
+
+.taskBar.is-dragging {
+  transition: none;
+}
+.taskBar--not-start {
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+}
+
+.taskBar--not-end {
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
+}
+.gantt-grid {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 220px 1fr;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.gantt-header-timeline__months {
+  display: grid;
+}
+.gantt-header-timeline__month {
+  text-align: center;
+  font-weight: 600;
+  border-bottom: 1px solid hsl(var(--border));
+  border-left: 1px solid hsl(var(--border));
+}
+.gantt-header-timeline__days {
+  display: grid;
+  height: 30px;
+}
+.gantt-header-timeline__day {
+  text-align: center;
+  font-weight: 600;
+  border-left: 1px solid hsl(var(--border));
+}
+.gantt-header-timeline__day--monthstart {
+  border-left: 2px solid hsl(var(--primary));
+}
+.gantt-body-tasklist__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.gantt-body-timeline__grid {
+  display: grid;
+}
+.gantt-body-timeline__cell {
+  border-bottom: 1px solid hsl(var(--border));
+  border-left: 1px solid hsl(var(--border));
+}
+.gantt-body-timeline__cell--monthstart {
+  border-left: 2px solid hsl(var(--primary));
+}
+.gantt-body-timeline__taskbar-row {
+  position: relative;
+}
+.gantt-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.gantt-controls__date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  background: hsl(var(--muted));
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.gantt-controls__nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+.gantt-controls__date-label {
+  font-weight: 500;
+  min-width: 120px;
+  text-align: center;
+}
+.gantt-header-tasklist {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: hsl(var(--muted));
+  border-right: 1px solid hsl(var(--border));
+}
+.gantt-header-tasklist__title-container {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-weight: 600;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.gantt-header-timeline {
+  position: relative;
+}
+.gantt-header-timeline__months {
+  display: grid;
+}
+.gantt-header-timeline__days {
+  display: grid;
+  height: 30px;
+}
+.gantt-header-timeline__month {
+  text-align: center;
+  font-weight: 600;
+  border-bottom: 1px solid hsl(var(--border));
+  border-left: 1px solid hsl(var(--border));
+}
+.gantt-header-timeline__day {
+  text-align: center;
+  font-weight: 600;
+}
+.gantt-body-tasklist {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: hsl(var(--muted));
+  border-top: 1px solid hsl(var(--border));
+  border-right: 1px solid hsl(var(--border));
+}
+.gantt-body-tasklist__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.gantt-body-tasklist__name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.8rem;
+  line-height: 22px;
+  margin-left: 0.5rem;
+}
+.gantt-body-tasklist__locate-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0;
+}
+.gantt-body-tasklist__locate-btn svg {
+  color: #b0b4ba;
+  transition: color 0.2s;
+}
+.gantt-body-tasklist__locate-btn:hover svg {
+  color: #63676d;
+}
+.gantt-body-timeline {
+  position: relative;
+  border-top: 1px solid hsl(var(--border));
+}
+.gantt-body-timeline__grid {
+  display: grid;
+}
+.gantt-body-timeline__cell {
+  border-bottom: 1px solid hsl(var(--border));
+}
+.gantt-body-timeline__taskbar-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2; /* Ensure taskbars are on top of the grid */
+}
+.gantt-body-timeline__taskbar-row {
+  position: relative;
+}
+.gantt-unified-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+}
+.today-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: hsl(var(--destructive));
+  z-index: 3; /* Above tasks */
+  pointer-events: none;
+}
+
+.resize-handle-left,
+.resize-handle-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px; /* Increased width for easier grabbing */
+  cursor: ew-resize;
+  z-index: 2; /* Ensure handles are on top of the task bar */
+  background-color: rgba(0, 0, 0, 0.1); /* Slightly visible for debugging/styling */
+  border-radius: 4px; /* Rounded corners */
+}
+
+.resize-handle-left {
+  left: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.resize-handle-right {
+  right: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.taskBar:hover .resize-handle-left,
+.taskBar:hover .resize-handle-right {
+    background-color: rgba(0, 0, 0, 0.3); /* More visible on hover */
+}
+
+@keyframes highlight-fade {
+  0% {
+    background-color: rgba(59, 131, 246, 0.297); /* bg-blue-500 with opacity */
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.task-row--highlight {
+  animation: highlight-fade 2500ms ease-out forwards;
+}
+
+@keyframes highlight-fade-transparent {
+  0% {
+    background-color: rgba(59, 130, 246, 0.2);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.task-row--highlight-transparent {
+  animation: highlight-fade-transparent 2.5s ease-out forwards;
+}
