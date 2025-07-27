@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect, useCallback, ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from 'next/navigation';
 import { Suspense } from 'react';
-
+import { TaskDetailsDialog } from '@/components/task-dialogs/TaskDetailsDialog';
 function SidebarTrashMenuItem({ T }: { T: any }) {
   const { useSearchParams } = require('next/navigation');
   const searchParams = useSearchParams();
@@ -19,6 +19,7 @@ function SidebarTrashMenuItem({ T }: { T: any }) {
 }
 import { useTheme } from 'next-themes';
 import { Button, buttonVariants } from "@/components/ui/button";
+import { AddEventButton } from "@/components/event-dialogs/AddEventButton";
 import {
   Dialog,
   DialogContent,
@@ -32,7 +33,7 @@ import { Expand, Shrink, PlusCircle, Users, FileText, Briefcase, Settings, Downl
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarSeparator, SidebarTrigger, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuSkeleton } from "@/components/ui/sidebar";
 import { initialAppData, categories as initialCategories, initialCollaborators, initialClients, STATUS_INFO } from '@/lib/data';
-import type { Task, Quote, Client, QuoteColumn, QuoteTemplate, Collaborator, AppData, Category, DashboardColumn, AppSettings, QuoteSection, QuoteItem } from '@/lib/types';
+import type { Task, AppEvent, Quote, Client, QuoteColumn, QuoteTemplate, Collaborator, AppData, Category, DashboardColumn, AppSettings, QuoteSection, QuoteItem } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { ClientManager } from "@/components/client-manager";
 import { CollaboratorManager } from "@/components/collaborator-manager";
@@ -128,7 +129,50 @@ export default function DashboardLayout({
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   const [taskFormSize, setTaskFormSize] = useState('default');
   
-  const [appData, setAppData] = useState<AppData>(initialAppData);
+  const [appData, setAppData] = useState<AppData>({
+    ...initialAppData,
+  });
+  
+  const [viewingTaskId, setViewingTaskId] = useState<string | null>(null);
+  
+  const handleViewTask = (taskId: string) => setViewingTaskId(taskId);
+  const handleCloseTaskDetails = () => setViewingTaskId(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  const handleEditTaskClick = (task: Task) => {
+    setEditingTask(task);
+    handleCloseTaskDetails(); 
+    setIsTaskFormOpen(true); 
+  };
+  const addEvent = (event: AppEvent) => {
+    setAppData(prev => ({ ...prev, events: [...(prev.events || []), event] }));
+  };
+  
+  const updateEvent = (event: AppEvent) => {
+    setAppData(prev => ({
+      ...prev,
+      events: (prev.events || []).map(e => e.id === event.id ? event : e),
+    }));
+  };
+  
+  const deleteEvent = (eventId: string) => {
+    setAppData(prev => ({
+      ...prev,
+      events: (prev.events || []).filter(e => e.id !== eventId),
+    }));
+  };
+const handleEventSubmit = (eventData: Partial<AppEvent>) => {
+    const newEvent: AppEvent = {
+      id: `event-${Date.now()}`,
+      ...eventData,
+      name: eventData.name || 'Untitled Event',
+      startTime: eventData.startTime || new Date(),
+      endTime: eventData.endTime || new Date(),
+    };
+    addEvent(newEvent);
+    toast({ title: "Event Created", description: `Successfully created event "${newEvent.name}".` });
+  };
+  
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [lastBackupDate, setLastBackupDate] = useState<Date | null>(null);
 
@@ -174,10 +218,11 @@ export default function DashboardLayout({
         if (!storedDataString) {
           isFirstTimeUse = true;
           console.log('First time use detected, loading sample data');
-          loadedData = initialAppData;
+          loadedData = { ...initialAppData, events: [] };
         } else {
           console.log('Data was explicitly cleared, starting with empty state');
           loadedData = {
+            events: [],
             tasks: [],
             quotes: [],
             collaboratorQuotes: [],
@@ -195,6 +240,12 @@ export default function DashboardLayout({
               const data: any = JSON.parse(storedDataString);
               const trashAutoDeleteDays = data.appSettings?.trashAutoDeleteDays || 30;
               const trashExpiryDate = new Date(Date.now() - trashAutoDeleteDays * 86400000);
+
+              const parsedEvents = (data.events || []).map((event: any) => ({
+                  ...event,
+                  startTime: new Date(event.startTime),
+                  endTime: new Date(event.endTime),
+              }));
 
               const parsedTasks = (data.tasks || []).map((task: any) => ({
                   ...task,
@@ -261,6 +312,7 @@ export default function DashboardLayout({
               loadedData = {
                 tasks: parsedTasks,
                 quotes: (data.quotes || []).map(migrateQuote),
+                events: parsedEvents,
                 collaboratorQuotes: (data.collaboratorQuotes || []).map(migrateQuote),
                 clients: (isFreshStart && !wasExplicitlyCleared) ? initialClients : (data.clients || []),
                 collaborators: (isFreshStart && !wasExplicitlyCleared) ? initialCollaborators : (data.collaborators || []),
@@ -275,8 +327,8 @@ export default function DashboardLayout({
               console.error("Failed to parse data from localStorage", e);
               if (!loadedData) {
                 console.log('Data parsing failed, falling back to sample data');
-                loadedData = initialAppData;
-                isFirstTimeUse = true;
+                 loadedData = { ...initialAppData, events: [] };
+                 isFirstTimeUse = true;
               }
           }
       }
@@ -284,6 +336,7 @@ export default function DashboardLayout({
       if (!loadedData) {
         console.warn('No data loaded, creating empty state');
         loadedData = {
+          events: [],
           tasks: [],
           quotes: [],
           collaboratorQuotes: [],
@@ -894,6 +947,7 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
   
   const handleClearAllData = () => {
     const emptyData: AppData = {
+      events: [],
       tasks: [],
       quotes: [],
       collaboratorQuotes: [],
@@ -1030,8 +1084,31 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
       }
     }));
   }, []);
-
+  const viewingTaskDetails = useMemo(() => {
+    if (!viewingTaskId) return null;
+    const task = appData.tasks.find(t => t.id === viewingTaskId);
+    if (!task) return null;
+    
+    const client = appData.clients.find(c => c.id === task.clientId);
+    const quote = appData.quotes.find(q => q.id === task.quoteId);
+    
+    return {
+      task,
+      client,
+      quote,
+    };
+  }, [viewingTaskId, appData.tasks, appData.clients, appData.quotes]);
   const dashboardContextValue = {
+    events: appData.events || [],
+    setEvents: (updater: React.SetStateAction<AppEvent[]>) => {
+      setAppData(prev => ({
+        ...prev,
+        events: typeof updater === 'function' ? updater(prev.events || []) : updater,
+      }));
+    },
+    addEvent,
+    updateEvent,
+    deleteEvent,
     tasks: appData.tasks,
     clients: appData.clients,
     collaborators: appData.collaborators,
@@ -1074,6 +1151,8 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
     updateKanbanSettings,
     settings: appData.appSettings,
     language: appData.appSettings.language,
+    handleViewTask,
+    handleCloseTaskDetails,
   };
 
   return (
@@ -1150,35 +1229,35 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
                        </h1>
                      </div>
                      <div className="flex items-center gap-2">
-                         <div className="text-xs text-muted-foreground hidden sm:block text-right">
+                        <div className="text-xs text-muted-foreground hidden sm:block text-right">
                             <div>{T.lastBackup}: {backupStatusText}</div>
-                         </div>
-                         <TooltipProvider delayDuration={100}>
-                             <Tooltip>
-                                 <TooltipTrigger asChild>
-                                 <Button variant="outline" size="icon" onClick={handleExport}>
-                                     <Download className="h-4 w-4" />
-                                     <span className="sr-only">{T.backupData}</span>
-                                 </Button>
-                                 </TooltipTrigger>
-                                 <TooltipContent>
-                                 <p>{T.backupData}</p>
-                                 </TooltipContent>
-                             </Tooltip>
-                         </TooltipProvider>
-
-                         <Dialog open={isTaskFormOpen} onOpenChange={setIsTaskFormOpen}>
-                             <DialogTrigger asChild><Button size="icon" className="sm:hidden"><PlusCircle className="h-4 w-4" /><span className="sr-only">{T.addTask}</span></Button></DialogTrigger>
-                             <DialogTrigger asChild><Button className="hidden sm:inline-flex"><PlusCircle className="mr-2 h-4 w-4" />{T.addTask}</Button></DialogTrigger>
-                             <DialogContent className={cn("max-h-[90vh] overflow-y-auto", {"sm:max-w-2xl md:max-w-5xl":"default"===taskFormSize,"sm:max-w-4xl md:max-w-7xl":"large"===taskFormSize,"w-screen h-screen max-w-none max-h-none rounded-none border-0":"fullscreen"===taskFormSize})}>
-                                 <Button variant="ghost" size="icon" className="absolute left-4 top-4 h-6 w-6" onClick={cycleTaskFormSize}>
-                                     {"fullscreen"===taskFormSize?<Shrink className="h-4 w-4" />:<Expand className="h-4 w-4" />}
-                                     <span className="sr-only">Toggle dialog size</span>
-                                 </Button>
-                                 <DialogHeader className="text-center pt-6 sm:px-10"><DialogTitle>{T.createTask}</DialogTitle><DialogDescription>{T.createTaskDesc}</DialogDescription></DialogHeader>
-                                 <div className="p-1"><CreateTaskForm setOpen={setIsTaskFormOpen} onSubmit={handleAddTask} clients={appData.clients} onAddClient={handleAddClientAndSelect} quoteTemplates={appData.quoteTemplates} collaborators={appData.collaborators} settings={appData.appSettings} categories={appData.categories} /></div>
-                             </DialogContent>
-                         </Dialog>
+                        </div>
+                        <TooltipProvider delayDuration={100}>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="outline" size="icon" onClick={handleExport}>
+                                        <Download className="h-4 w-4" />
+                                        <span className="sr-only">{T.backupData}</span>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{T.backupData}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                        <AddEventButton tasks={appData.tasks} onSubmit={handleEventSubmit} />
+                        <Dialog open={isTaskFormOpen} onOpenChange={setIsTaskFormOpen}>
+                            <DialogTrigger asChild><Button size="icon" className="sm:hidden"><PlusCircle className="h-4 w-4" /><span className="sr-only">{T.addTask}</span></Button></DialogTrigger>
+                            <DialogTrigger asChild><Button className="hidden sm:inline-flex"><PlusCircle className="mr-2 h-4 w-4" />{T.addTask}</Button></DialogTrigger>
+                            <DialogContent className={cn("max-h-[90vh] overflow-y-auto", {"sm:max-w-2xl md:max-w-5xl":"default"===taskFormSize,"sm:max-w-4xl md:max-w-7xl":"large"===taskFormSize,"w-screen h-screen max-w-none max-h-none rounded-none border-0":"fullscreen"===taskFormSize})}>
+                                <Button variant="ghost" size="icon" className="absolute left-4 top-4 h-6 w-6" onClick={cycleTaskFormSize}>
+                                    {"fullscreen"===taskFormSize?<Shrink className="h-4 w-4" />:<Expand className="h-4 w-4" />}
+                                    <span className="sr-only">Toggle dialog size</span>
+                                </Button>
+                                <DialogHeader className="text-center pt-6 sm:px-10"><DialogTitle>{T.createTask}</DialogTitle><DialogDescription>{T.createTaskDesc}</DialogDescription></DialogHeader>
+                                <div className="p-1"><CreateTaskForm setOpen={setIsTaskFormOpen} onSubmit={handleAddTask} clients={appData.clients} onAddClient={handleAddClientAndSelect} quoteTemplates={appData.quoteTemplates} collaborators={appData.collaborators} settings={appData.appSettings} categories={appData.categories} /></div>
+                            </DialogContent>
+                        </Dialog>
                      </div>
                    </header>
                    <main className={cn("flex-1 min-h-0 overflow-x-auto", pathname === '/dashboard/chat' || pathname === '/dashboard/settings' || pathname === '/dashboard/widgets' ? 'flex flex-col p-0' : 'flex flex-col p-4')}>
@@ -1200,11 +1279,27 @@ const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>
                      
                      <DataRestoredNotification />
                      
-                     {isDataLoaded ? children : <div className="h-full w-full flex items-center justify-center"><Skeleton className="h-full w-full" /></div>}
+                      {isDataLoaded ? children : null}
+
+                      {viewingTaskDetails && (
+                        <TaskDetailsDialog
+                          isOpen={!!viewingTaskId}
+                          onClose={handleCloseTaskDetails}
+                          task={viewingTaskDetails.task}
+                          client={viewingTaskDetails.client}
+                          clients={appData.clients}
+                          collaborators={appData.collaborators}
+                          categories={appData.categories}
+                          quote={viewingTaskDetails.quote}
+                          collaboratorQuotes={appData.collaboratorQuotes}
+                          settings={appData.appSettings}
+                          onEdit={() => handleEditTaskClick(viewingTaskDetails.task)}
+                          onDelete={handleDeleteTask}
+                        />
+                      )}
                    </main>
                  </SidebarInset>
-                 {pathname !== '/dashboard/chat' && <QuickChat />}
-               </SidebarProvider>
-         </DashboardContext.Provider>
-  );
+            </SidebarProvider>
+        </DashboardContext.Provider>
+    )
 }

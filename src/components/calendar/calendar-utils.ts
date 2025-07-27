@@ -1,5 +1,5 @@
 // Calendar utility functions and constants
-import { Task } from '@/lib/types';
+import { Task, AppEvent } from '@/lib/types';
 import { CalendarViewMode } from '@/lib/types';
 
 // Helper function to format relative dates with i18n
@@ -63,12 +63,24 @@ export function generateCalendarDays(currentDate: Date, viewMode: CalendarViewMo
   return days;
 }
 
+function isSameDate(a: Date, b: Date): boolean {
+    return a.getFullYear() === b.getFullYear() &&
+           a.getMonth() === b.getMonth() &&
+           a.getDate() === b.getDate();
+}
+
+
 // Get tasks for a specific date (by deadline)
 export function getTasksForDate(tasks: Task[], date: Date): Task[] {
   return tasks.filter(task => {
     const d = new Date(task.deadline);
-    return d.getFullYear() === date.getFullYear() &&
-      d.getMonth() === date.getMonth() &&
-      d.getDate() === date.getDate();
+    return isSameDate(d, date);
   });
+}
+// Get events for a specific date
+export function getEventsForDate(events: AppEvent[], date: Date): AppEvent[] {
+    return events.filter(event => {
+        const d = new Date(event.startTime);
+        return isSameDate(d, date);
+    });
 }

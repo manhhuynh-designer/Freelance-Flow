@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { ChevronDown, ChevronUp, X, Calendar, Filter, Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ChevronDown, ChevronUp, X, Calendar, Filter, Plus, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { STATUS_INFO } from '@/lib/data';
 import { DateRange } from 'react-day-picker';
@@ -21,7 +22,7 @@ interface FilterChipBarProps {
   selectedCollaborator: string;
   selectedClient: string;
   dateRange: DateRange | undefined;
-
+  
   // Handlers
   onStatusFilterChange: (statusId: string, checked: boolean) => void;
   onStatusDoubleClick: (statusId: string) => void;
@@ -31,6 +32,7 @@ interface FilterChipBarProps {
   onClientChange: (client: string) => void;
   onDateRangeChange: (range: DateRange | undefined) => void;
   onClearFilters: () => void;
+  onSearchClick: () => void;
 
   // Sort
   sortFilter: string;
@@ -62,6 +64,7 @@ export function FilterChipBar({
   onClientChange,
   onDateRangeChange,
   onClearFilters,
+  onSearchClick,
   sortFilter,
   handleSortChange,
   viewMode,
@@ -73,9 +76,6 @@ export function FilterChipBar({
   statusColors
 }: FilterChipBarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  // const [triggerSave, setTriggerSave] = useState(false);
-
-  const hasActiveFilters = selectedStatuses.length < STATUS_INFO.length || selectedCategory !== 'all' || selectedCollaborator !== 'all' || selectedClient !== 'all' || dateRange;
 
   const getStatusInfo = (statusId: string) => {
     return STATUS_INFO.find(s => s.id === statusId);
@@ -110,18 +110,14 @@ export function FilterChipBar({
     }
   };
 
-
-
   return (
     <div className="space-y-6">
       {/* Bordered filter area */}
       <div className="border border-border rounded-lg p-2 bg-background">
-        {/* Filter Presets removed */}
-
-        {/* Filter Chips Row - Hide when expanded */}
+        
         {!isExpanded && (
           <div className="flex items-center gap-3 flex-wrap min-h-[32px] mb-1 mt-2">
-            {/* Status Filter Buttons - Color coded circles */}
+            {/* Status Filter Buttons */}
             <div className="flex items-center gap-2">
               <TooltipProvider>
                 {STATUS_INFO.map(status => {
@@ -149,9 +145,6 @@ export function FilterChipBar({
               </TooltipProvider>
             </div>
 
-            {/* Other Filter Chips */}
-
-          {/* Category Filter Chip */}
           {selectedCategory && (
             <Badge variant="secondary" className="gap-1">
               Category: {getCategoryName(selectedCategory)}
@@ -165,8 +158,6 @@ export function FilterChipBar({
               </Button>
             </Badge>
           )}
-
-          {/* Collaborator Filter Chip */}
           {selectedCollaborator && (
             <Badge variant="secondary" className="gap-1">
               Collaborator: {getCollaboratorName(selectedCollaborator)}
@@ -180,8 +171,6 @@ export function FilterChipBar({
               </Button>
             </Badge>
           )}
-
-          {/* Client Filter Chip */}
           {selectedClient && (
             <Badge variant="secondary" className="gap-1">
               Client: {getClientName(selectedClient)}
@@ -195,8 +184,6 @@ export function FilterChipBar({
               </Button>
             </Badge>
           )}
-
-            {/* Date Range Filter Chip */}
             {dateRange && (dateRange.from || dateRange.to) && (
               <Badge variant="secondary" className="gap-1">
                 <Calendar className="h-3 w-3" />
@@ -212,12 +199,19 @@ export function FilterChipBar({
               </Badge>
             )}
 
+            <div className="flex-grow" />
+
+            <Button variant="outline" className="h-8 w-[150px] lg:w-[250px] justify-start text-muted-foreground" onClick={onSearchClick}>
+                <Search className="mr-2 h-4 w-4" />
+                Search tasks...
+            </Button>
+            
             {/* Expand/Collapse Button */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="ml-auto flex-shrink-0"
+              className="flex-shrink-0"
             >
               {isExpanded ? (
                 <>
@@ -234,7 +228,7 @@ export function FilterChipBar({
     
    
 
-      {/* Expanded Filters Panel - Separate from main row */}
+      {/* Expanded Filters Panel */}
       {isExpanded && (
         
        <div className="w-full p-4 dark:bg-muted/30 rounded-lg border-border/50 transition-all duration-200 animate-in slide-in-from-top-2">
@@ -243,7 +237,7 @@ export function FilterChipBar({
            <Filter className="h-4 w-4" />
            {T.advancedFilters || 'Advanced Filters'}
          </div>
-<div className="grid grid-cols-1 md:grid-cols-3 gap-y-6 md:gap-y-0 md:gap-x-4 mx-auto">
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-y-6 md:gap-y-0 md:gap-x-4 mx-auto">
            {/* 1. Status column */}
              <div className="space-y-2">
              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">

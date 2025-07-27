@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import type { Task, Quote, Client, QuoteColumn, QuoteTemplate, Collaborator, AppSettings, Category } from '@/lib/types';
+import type { Task, Quote, Client, QuoteColumn, QuoteTemplate, Collaborator, AppSettings, Category, AppEvent } from '@/lib/types';
 import type { TaskFormValues } from './edit-task-form';
 import { i18n } from '@/lib/i18n';
 import { CalendarGrid } from './calendar/CalendarGrid';
@@ -10,6 +10,7 @@ import { TaskDetailsDialog } from './task-dialogs/TaskDetailsDialog';
 import { EditTaskForm } from './edit-task-form';
 import { CreateTaskForm } from './create-task-form';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { useDashboard } from '@/contexts/dashboard-context';
 
 export type CalendarDisplayMode = 'week' | 'month';
 
@@ -46,6 +47,7 @@ function formatMonthYear(date: Date, t: any) {
 
 export interface CalendarViewProps {
   tasks: Task[];
+  events?: AppEvent[]; // Add events prop
   quotes: Quote[];
   collaboratorQuotes: Quote[];
   clients: Client[];
@@ -75,6 +77,7 @@ export interface CalendarViewProps {
 
 export function CalendarView({
   tasks,
+  events = [], // Destructure events prop
   quotes,
   collaboratorQuotes,
   clients,
@@ -92,6 +95,7 @@ export function CalendarView({
   onDateChange,
   onViewModeChange
 }: CalendarViewProps) {
+  const dashboardContext = useDashboard();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isTaskDetailsOpen, setIsTaskDetailsOpen] = useState(false);
   const [isTaskEditOpen, setIsTaskEditOpen] = useState(false);
@@ -314,6 +318,7 @@ export function CalendarView({
               currentDate={currentDate}
               viewMode={viewMode}
               tasks={tasks}
+              events={events}
               statusColors={settings.statusColors}
               clients={clients}
               categories={categories}

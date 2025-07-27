@@ -1,6 +1,6 @@
 // Component con cho task draggable trong popover, dùng đúng rules of hooks
 import { useDraggable } from '@dnd-kit/core';
-import { Task } from '@/lib/types';
+import { Task, AppEvent } from '@/lib/types';
 import type { CalendarDisplayMode } from '../calendar-view';
 import React, { useMemo, useRef, useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
@@ -72,12 +72,65 @@ const PopoverTaskDraggable: React.FC<PopoverTaskDraggableProps> = ({
     </div>
   );
 };
+
+// Component for draggable event
+interface DraggableEventProps {
+  event: AppEvent;
+  onClick: (event: AppEvent) => void;
+}
+const DraggableEvent: React.FC<DraggableEventProps> = ({ event, onClick }) => {
+    const draggableId = `event-start-${event.id}`;
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: draggableId,
+        data: { eventId: event.id, type: 'event-start-date' } 
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={cn(
+                "p-1.5 rounded-md text-sm cursor-pointer border-l-4 flex items-center gap-2",
+                isDragging && 'opacity-50'
+            )}
+            style={{
+                backgroundColor: event.color ? `${event.color}25` : 'hsl(var(--muted))',
+                borderLeftColor: event.color || 'hsl(var(--primary))',
+            }}
+            title={event.name}
+            onClick={(e) => {
+                e.stopPropagation();
+                onClick(event);
+            }}
+        >
+            {/* Drag handle */}
+            <span
+                {...listeners}
+                {...attributes}
+                className="cursor-grab active:cursor-grabbing"
+                onClick={(e) => e.stopPropagation()}
+                tabIndex={-1}
+                aria-label="Drag event start date"
+            >
+                <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="6" cy="3" r="1.5" fill="#888" />
+                    <circle cx="6" cy="8" r="1.5" fill="#888" />
+                    <circle cx="6" cy="13" r="1.5" fill="#888" />
+                </svg>
+            </span>
+            {event.icon && <span className="text-base">{event.icon}</span>}
+            <span className="font-medium truncate flex-1">{event.name}</span>
+        </div>
+    );
+};
+
 export type CalendarCellProps = {
   date: Date;
   tasks: Task[];
+  events?: AppEvent[]; // Thêm prop events
   viewMode: CalendarDisplayMode;
   isSelected?: boolean;
   onTaskClick?: (task: Task) => void;
+  onEventClick?: (event: AppEvent) => void; // Added
   onDateSelect?: (date: Date) => void;
   onViewAllTasks?: (date: Date, tasks: Task[]) => void;
   statusColors: Record<string, string>;
@@ -99,9 +152,11 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
   const {
     date,
     tasks,
+    events = [], // Nhận events
     viewMode = 'week',
     isSelected,
     onTaskClick,
+    onEventClick,
     onDateSelect,
     onViewAllTasks,
     statusColors,
@@ -113,6 +168,7 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
   } = props;
   const isOutsideMonth = viewMode === 'month' && date.getMonth() !== monthToCompare;
   const isToday = isSameDay(date, new Date());
+
   const sortedTasks = useMemo(() => {
     return tasks.slice().sort((a, b) => {
       const priorityOrder = { high: 3, medium: 2, low: 1 };
@@ -125,6 +181,12 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
       return timeA - timeB;
     });
   }, [tasks]);
+
+  const dayEvents = useMemo(() => events.filter(ev => {
+    const start = new Date(ev.startTime);
+    // Chỉ hiển thị event vào ngày bắt đầu
+    return isSameDay(date, start);
+  }), [events, date]);
 
   const cellRef = useRef<HTMLDivElement>(null);
   // Tạo id cho droppable cell theo dạng date-YYYY-MM-DD
@@ -145,7 +207,7 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
 
   // Show popover only if overflow and has tasks
   const handleMouseEnter = () => {
-    if (tasks.length > 0 && isOverflowing()) {
+    if ((tasks.length + dayEvents.length) > 0 && isOverflowing()) {
       const el = cellRef.current;
       const container = containerRef?.current;
       if (el && container) {
@@ -186,18 +248,16 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
       setShowPopover(true);
     }
   };
-  const handleMouseLeave = () => setShowPopover(false);
 
-  // State để quản lý task nào đang mở input date và giá trị ngày mới
-  const [dateInputTaskId, setDateInputTaskId] = React.useState<string | null>(null);
-  const [newDate, setNewDate] = React.useState("");
+  const handleMouseLeave = () => {
+    setShowPopover(false);
+  };
 
   return (
     <div
       ref={node => {
         setDroppableRef(node);
         if (cellRef && typeof cellRef !== 'function') {
-          // Only assign if not read-only
           try {
             (cellRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
           } catch {}
@@ -210,12 +270,11 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
         isSelected && 'ring-2 ring-primary',
         isToday && styles['calendar-today'],
         isOutsideMonth && !showPopover && styles['calendar-outside-month'],
-        tasks.length > 0 && 'has-tasks',
-        'group', // for hover
-        isOver && 'ring-2 ring-blue-400 z-10' // highlight khi drag over
+        (tasks.length + dayEvents.length) > 0 && 'has-tasks',
+        'group',
+        isOver && 'ring-2 ring-blue-400 z-10'
       ].filter(Boolean).join(' ')}
       onClick={(e) => {
-        // Nếu click vào task thì đã stopPropagation, chỉ click vào vùng trống mới tạo task
         if (e.target === e.currentTarget) {
           onDateSelect?.(date);
         }
@@ -223,6 +282,7 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
+
       {/* Nút + tạo task, chỉ hiện khi hover và KHÔNG có popover */}
       {!showPopover && (
         <button
@@ -233,7 +293,7 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
           onClick={e => {
             e.preventDefault();
             e.stopPropagation();
-            setShowPopover(false); // Always close popover if open
+            setShowPopover(false);
             if (onDateSelect) onDateSelect(date);
           }}
         >
@@ -247,8 +307,17 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
       <div className="text-sm font-medium flex justify-between items-center flex-shrink-0 mb-1">
         <span className={isToday ? styles['calendar-today-number'] : 'font-bold'}>{date.getDate()}</span>
       </div>
-      {/* Task Cards - always render all, allow overflow hidden */}
-      <div className="flex-1 space-y-0.5 overflow-hidden calendar-task-list">
+      {/* Task & Event Cards - scrollable container */}
+      <div className="flex-1 space-y-0.5 overflow-hidden calendar-task-list relative z-10">
+        {/* Render Event Cards */}
+        {dayEvents.map((event) => (
+            <DraggableEvent
+                key={`event-${event.id}`}
+                event={event}
+                onClick={onEventClick!}
+            />
+        ))}
+        {/* Render Task Cards */}
         {sortedTasks.map((task) => {
           const clientName = clients.find((c: Client) => c.id === task.clientId)?.name;
           const categoryName = categories.find((cat: Category) => cat.id === task.categoryId)?.name;
@@ -293,7 +362,7 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
               onClick={e => {
                 e.stopPropagation();
                 setShowPopover(false);
-                if (onDateSelect) onDateSelect(date); // Only trigger parent dialog open
+                if (onDateSelect) onDateSelect(date);
               }}
             >
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -302,6 +371,14 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
               </svg>
             </button>
           </div>
+          {/* Sửa: Hiển thị cả Events và Tasks trong Popover nếu cần */}
+          {dayEvents.map((event) => (
+             <DraggableEvent
+                key={`popover-event-${event.id}`}
+                event={event}
+                onClick={onEventClick!}
+              />
+          ))}
           {sortedTasks.map((task: Task) => {
             const statusColor = getStatusColor(task.status, statusColors);
             const clientName = clients.find((c: Client) => c.id === task.clientId)?.name;
@@ -322,4 +399,4 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
       )}
     </div>
   );
-};
+}

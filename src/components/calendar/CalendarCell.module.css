@@ -1,3 +1,35 @@
+/* Event icon row: hiển thị các event icon gọn gàng trong cell */
+.calendar-event-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-bottom: 2px;
+  justify-content: flex-start;
+  align-items: center;
+  min-height: 20px;
+  max-height: 40px;
+  overflow: hidden;
+}
+.calendar-event-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--event-bg, #3b82f6);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: background 0.15s;
+  border: 1px solid #e5e7eb;
+}
+.calendar-event-icon:hover {
+  filter: brightness(0.95);
+  background: var(--event-bg-hover, #2563eb);
+}
 /* Popover in CalendarCell: luôn 100% opacity, không bị ảnh hưởng bởi outside-month */
 .calendar-popover {
   opacity: 1 !important;

@@ -1,8 +1,8 @@
-import React, { useRef, useLayoutEffect, Dispatch, SetStateAction } from 'react';
+import React, { useRef, useLayoutEffect, Dispatch, SetStateAction, useMemo } from 'react';
 import { Target, Flag } from 'lucide-react';
 import styles from './GanttView.module.css';
 import ganttStyles from './GanttUnified.module.css';
-import { Task, StatusColors, Client, Category, Quote, CollaboratorQuote, AppSettings } from '@/lib/types';
+import { Task, StatusColors, Client, Category, Quote, CollaboratorQuote, AppSettings, AppEvent } from '@/lib/types';
 import { TaskBar } from './TaskBar';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { i18n } from '@/lib/i18n';
+import { EventBar } from './EventBar';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 
@@ -161,6 +162,7 @@ const GanttTaskRow: React.FC<GanttTaskRowProps> = ({ task, rowHeight, statusColo
 
 export const GanttUnified: React.FC<{
   tasks: Task[];
+  events?: AppEvent[];
   rowHeight?: number;
   statusColors: StatusColors;
   settings?: AppSettings;
@@ -171,8 +173,10 @@ export const GanttUnified: React.FC<{
   displayDate: Date;
   onViewModeChange: (mode: 'day' | 'month') => void;
   onDisplayDateChange: (date: Date) => void;
+  onEventClick?: (event: AppEvent) => void; // Add prop
 }> = ({
   tasks,
+  events = [],
   rowHeight = 32,
   statusColors,
   settings,
@@ -182,7 +186,8 @@ export const GanttUnified: React.FC<{
   viewMode,
   displayDate,
   onViewModeChange,
-  onDisplayDateChange
+  onDisplayDateChange,
+  onEventClick, // Destructure prop
 }) => {
   const dayColumnRef = useRef<HTMLDivElement>(null);
   
@@ -273,6 +278,23 @@ export const GanttUnified: React.FC<{
     ? `Từ ${timelineStart.toLocaleDateString('vi-VN', { day:'2-digit', month: '2-digit', year:'numeric', timeZone:'UTC'})}`
     : timelineStart.getUTCFullYear().toString();
 
+  const timelineEnd = new Date(timelineStart);
+    if (viewMode === 'day') {
+        timelineEnd.setUTCDate(timelineStart.getUTCDate() + dayCount);
+    } else {
+        timelineEnd.setUTCFullYear(timelineStart.getUTCFullYear() + 1);
+    }
+
+  const visibleEvents = useMemo(() => {
+    if (!events) return [];
+    return events.filter(event => {
+        if (!event.startTime || !event.endTime) return false;
+        const start = parseDateSafely(event.startTime);
+        const end = parseDateSafely(event.endTime);
+        return start < timelineEnd && end > timelineStart;
+    });
+  }, [events, timelineStart, timelineEnd]);
+  
   return (
     <div className={ganttStyles['gantt-unified-wrapper']}>
       <div className={ganttStyles['gantt-controls']}>
@@ -303,12 +325,12 @@ export const GanttUnified: React.FC<{
       
       <div className={ganttStyles['gantt-grid']}>
         
+        {/* Row 1: Headers */}
         <div className={ganttStyles['gantt-header-tasklist']}>
              <div className={ganttStyles['gantt-header-tasklist__title-container']}>
                 {T.taskNameHeader}
              </div>
         </div>
-
         <div className={ganttStyles['gantt-header-timeline']}>
             {viewMode === 'day' && todayMarkerPosition >= 0 && todayMarkerPosition < (dayCount * scale) && (
               <div className={ganttStyles['today-marker']} style={{ left: `${todayMarkerPosition}px` }} />
@@ -345,6 +367,7 @@ export const GanttUnified: React.FC<{
             </div>
         </div>
 
+        {/* Row 2: Task Body */}
         <div className={ganttStyles['gantt-body-tasklist']}>
           {tasks.map(task => (
             <GanttTaskRow
@@ -403,6 +426,71 @@ export const GanttUnified: React.FC<{
                 ))}
             </div>
         </div>
+
+        {/* Row 3: Event Timeline */}
+        {visibleEvents.length > 0 && (
+          <>
+            {/* Col 1: Event section title */}
+            <div className={ganttStyles['gantt-header-tasklist']} style={{ 
+              position: 'sticky', 
+              bottom: 0, 
+              borderTop: '1px solid hsl(var(--border))', 
+              alignContent: 'center',
+              backgroundColor: 'hsl(var(--card))',
+              zIndex: 10
+            }}>
+              <div className={ganttStyles['gantt-header-tasklist__title-container']}>
+                {'Events'}
+              </div>
+            </div>
+
+            {/* Col 2: Event timeline body */}
+            <div 
+              className={ganttStyles['gantt-header-timeline']} 
+              style={{ 
+                position: 'sticky', 
+                bottom: 0,
+                height: `${visibleEvents.length * 24 + 8}px`, 
+                borderTop: '1px solid hsl(var(--border))',
+                backgroundColor: 'hsl(var(--card))',
+                zIndex: 10
+              }}
+            >
+               {/* Event grid background */}
+               <div
+                 className={ganttStyles['gantt-body-timeline__grid']}
+                 style={{ ...gridTemplateColumnsStyle, height: '100%' }}
+               >
+                 {Array.from({ length: dayCount }).map((_, idx) => (
+                   <div
+                     key={`event-grid-${idx}`}
+                     className={cn(
+                       ganttStyles['gantt-body-timeline__cell'],
+                       dayLabels[idx].isMonthStart && ganttStyles['gantt-body-timeline__cell--monthstart']
+                     )}
+                     style={{ height: '100%' }}
+                   />
+                 ))}
+               </div>
+               {/* Event bars layer */}
+               <div style={{ position: 'absolute', top: '4px', left: 0, right: 0, bottom: '4px' }}>
+                 {visibleEvents.map((event, idx) => (
+                    <EventBar
+                        key={event.id}
+                        event={event}
+                        top={idx * 24}
+                        dayStart={timelineStart}
+                        dayCount={dayCount}
+                        scale={scale}
+                        viewMode={viewMode}
+                        settings={settings}
+                        onEventClick={onEventClick} // Pass down click handler
+                    />
+                 ))}
+               </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,19 +1,19 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { STATUS_INFO } from '@/lib/data';
 import type { Task } from '@/lib/types';
 import { DateRange } from 'react-day-picker';
 
-export function useFilterLogic(searchParams: any, tasks: Task[]) {
+export function useFilterLogic(tasks: Task[]) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   
-  const FILTERS_STORAGE_KEY = 'freelance-flow-filters';
-
   // Extract filter values from URL
   const statusFilter = searchParams.get('status');
   const categoryFilter = searchParams.get('category');
   const clientFilter = searchParams.get('client');
+  const collaboratorFilter = searchParams.get('collaborator');
   const startDateFilter = searchParams.get('startDate');
   const endDateFilter = searchParams.get('endDate');
   const sortFilter = searchParams.get('sortBy');
@@ -39,35 +39,9 @@ export function useFilterLogic(searchParams: any, tasks: Task[]) {
       to: endDateFilter ? new Date(endDateFilter) : undefined,
     });
   }, [startDateFilter, endDateFilter]);
-
-  // On mount or navigation, restore filters from localStorage if the URL has no filters.
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedFilters = localStorage.getItem(FILTERS_STORAGE_KEY);
-      if (storedFilters && !statusFilter && !categoryFilter && !clientFilter && !startDateFilter && !endDateFilter && !sortFilter) {
-        try {
-          const parsed = JSON.parse(storedFilters);
-          const params = new URLSearchParams();
-          
-          if (parsed.status) params.set('status', parsed.status);
-          if (parsed.category) params.set('category', parsed.category);
-          if (parsed.client) params.set('client', parsed.client);
-          if (parsed.startDate) params.set('startDate', parsed.startDate);
-          if (parsed.endDate) params.set('endDate', parsed.endDate);
-          if (parsed.sortBy) params.set('sortBy', parsed.sortBy);
-          
-          if (params.toString()) {
-            router.replace(`${pathname}?${params.toString()}`);
-          }
-        } catch (e) {
-          console.error('Failed to parse stored filters:', e);
-        }
-      }
-    }
-  }, [pathname, router, statusFilter, categoryFilter, clientFilter, startDateFilter, endDateFilter, sortFilter]);
-
+  
   const updateFilters = (newFilters: Record<string, string | null>) => {
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
     
     Object.entries(newFilters).forEach(([key, value]) => {
       if (value === null || value === '') {
@@ -77,41 +51,36 @@ export function useFilterLogic(searchParams: any, tasks: Task[]) {
       }
     });
     
-    // Always reset to page 1 when filters change
     params.delete('page');
-    
     router.push(`${pathname}?${params.toString()}`);
-    
-    // Save current filters to localStorage
-    if (typeof window !== 'undefined') {
-      const filtersToSave = {
-        status: params.get('status'),
-        category: params.get('category'),
-        client: params.get('client'),
-        startDate: params.get('startDate'),
-        endDate: params.get('endDate'),
-        sortBy: params.get('sortBy'),
-      };
-      localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filtersToSave));
-    }
   };
 
-  const handleStatusChange = (statusId: string) => {
-    const newStatuses = selectedStatuses.includes(statusId)
-      ? selectedStatuses.filter(s => s !== statusId)
-      : [...selectedStatuses, statusId];
+  const handleStatusFilterChange = (statusId: string, checked: boolean) => {
+    const newStatuses = checked
+      ? [...selectedStatuses, statusId]
+      : selectedStatuses.filter((s) => s !== statusId);
     
-    updateFilters({ 
-      status: newStatuses.length === 0 ? 'none' : newStatuses.join(',')
-    });
+    updateFilters({ status: newStatuses.length > 0 ? newStatuses.join(',') : 'none' });
   };
-
+  
+  const handleStatusDoubleClick = (statusId: string) => {
+      updateFilters({ status: statusId });
+  };
+  
+  const handleStatusBatchChange = (statusesToEnable: string[]) => {
+      updateFilters({ status: statusesToEnable.join(',') });
+  };
+  
   const handleCategoryChange = (value: string) => {
     updateFilters({ category: value === 'all' ? null : value });
   };
 
   const handleClientChange = (value: string) => {
     updateFilters({ client: value === 'all' ? null : value });
+  };
+  
+  const handleCollaboratorChange = (value: string) => {
+    updateFilters({ collaborator: value === 'all' ? null : value });
   };
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
@@ -125,58 +94,58 @@ export function useFilterLogic(searchParams: any, tasks: Task[]) {
   const handleSortChange = (value: string) => {
     updateFilters({ sortBy: value });
   };
-
+  
   const handleClearFilters = () => {
     setDate(undefined);
-    updateFilters({
-      status: null,
-      category: null,
-      client: null,
-      startDate: null,
-      endDate: null,
-      sortBy: null,
-    });
+    const params = new URLSearchParams();
+    if (searchParams.get('view')) {
+      params.set('view', searchParams.get('view')!);
+    }
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   // Filter tasks based on current filters
-  const filteredTasks = useMemo(() => {
+  const unsortedFilteredTasks = useMemo(() => {
     return tasks.filter((task: Task) => {
-      // Filter by view (active/trash)
       if (view === 'trash') {
         if (!task.deletedAt) return false;
       } else {
         if (task.deletedAt) return false;
       }
 
-      // Filter by status
       if (selectedStatuses.length > 0 && view !== 'trash') {
         if (!selectedStatuses.includes(task.status)) return false;
       }
 
-      // Filter by category
       if (categoryFilter && categoryFilter !== 'all') {
         if (task.categoryId !== categoryFilter) return false;
       }
 
-      // Filter by client
       if (clientFilter && clientFilter !== 'all') {
         if (task.clientId !== clientFilter) return false;
       }
+      
+      if (collaboratorFilter && collaboratorFilter !== 'all') {
+          if (!task.collaboratorIds?.some((c: string) => c === collaboratorFilter)) return false;
+      }
 
-      // Filter by date range
       if (date?.from || date?.to) {
+        if (!task.deadline) return false;
         const taskDeadline = new Date(task.deadline);
         if (date.from && taskDeadline < date.from) return false;
-        if (date.to && taskDeadline > date.to) return false;
+        if (date.to) {
+            const toDate = new Date(date.to);
+            toDate.setHours(23, 59, 59, 999);
+            if (taskDeadline > toDate) return false;
+        }
       }
 
       return true;
     });
-  }, [tasks, view, selectedStatuses, categoryFilter, clientFilter, date]);
+  }, [tasks, view, selectedStatuses, categoryFilter, clientFilter, collaboratorFilter, date]);
 
-  // Sort filtered tasks
   const sortedTasks = useMemo(() => {
-    const sorted = [...filteredTasks];
+    const sorted = [...unsortedFilteredTasks];
     const sort = sortFilter || 'deadline-asc';
     
     sorted.sort((a: Task, b: Task) => {
@@ -185,39 +154,39 @@ export function useFilterLogic(searchParams: any, tasks: Task[]) {
           return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
         case 'deadline-desc':
           return new Date(b.deadline).getTime() - new Date(a.deadline).getTime();
-        case 'startDate-asc':
-          return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
         case 'startDate-desc':
-          return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+            return new Date(b.startDate || 0).getTime() - new Date(a.startDate || 0).getTime();
+        case 'startDate-asc':
+            return new Date(a.startDate || 0).getTime() - new Date(b.startDate || 0).getTime();
+        case 'createdAt-desc':
+             return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        case 'createdAt-asc':
+            return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
         default:
           return 0;
       }
     });
     
     return sorted;
-  }, [filteredTasks, sortFilter]);
+  }, [unsortedFilteredTasks, sortFilter]);
 
   return {
-    // Filter state
+    filteredTasks: sortedTasks,
+    unsortedFilteredTasks,
     selectedStatuses,
     categoryFilter,
     clientFilter,
-    startDateFilter,
-    endDateFilter,
-    sortFilter,
+    collaboratorFilter,
     date,
-    view,
-    
-    // Filtered data
-    filteredTasks: sortedTasks,
-    
-    // Handlers
-    handleStatusChange,
+    sortFilter,
+    handleStatusFilterChange,
+    handleStatusDoubleClick,
+    handleStatusBatchChange,
     handleCategoryChange,
     handleClientChange,
+    handleCollaboratorChange,
     handleDateRangeChange,
     handleSortChange,
     handleClearFilters,
-    setDate,
   };
 }

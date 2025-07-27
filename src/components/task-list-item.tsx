@@ -127,6 +127,8 @@ function LinkPreview({ url, fallback, maxLength = 40 }: { url: string; fallback?
 import { FileText } from "lucide-react";
 import { Pencil, Link as LinkIcon, Folder, Expand, Shrink, Copy, Trash2, ArchiveRestore, Briefcase, ChevronDown, Calendar, Building2 } from "lucide-react";
 
+import { DialogClose } from "@/components/ui/dialog";
+import { X } from "lucide-react";
 
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { format, differenceInDays } from "date-fns";
@@ -148,6 +150,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { TaskEditDialog } from "@/components/task-dialogs/TaskEditDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -655,11 +658,21 @@ export function TaskListItem({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className={cn("max-h-[90vh] overflow-y-auto", { 'sm:max-w-2xl md:max-w-5xl': editDialogSize === 'default', 'sm:max-w-xl': editDialogSize === 'small', 'sm:max-w-7xl': editDialogSize === 'large' })}>
-          {/* Nội dung Dialog chỉnh sửa task ở đây */}
-        </DialogContent>
-      </Dialog>
+      <TaskEditDialog
+        task={task}
+        quote={quote}
+        collaboratorQuotes={taskCollaboratorQuotes}
+        clients={clients}
+        collaborators={collaborators}
+        categories={categories}
+        quoteTemplates={quoteTemplates}
+        settings={settings}
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSubmit={handleTaskFormSubmit}
+        onAddClient={onAddClient}
+        defaultDate={null}
+      />
 
     </>
   );

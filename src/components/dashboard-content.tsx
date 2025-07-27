@@ -15,9 +15,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { XCircle, Trash2, Filter, Table, CalendarDays, LayoutGrid, Columns3 } from "lucide-react";
 import { TaskList } from '@/components/task-list';
-import type { Task } from "@/lib/types";
+import type { Task, Quote, Collaborator, Category, Client } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { i18n } from "@/lib/i18n";
 import { useDashboard } from '@/contexts/dashboard-context';
@@ -30,8 +31,11 @@ import { CalendarView, type CalendarDisplayMode } from './calendar-view';
 import { EisenhowerView } from './eisenhower/EisenhowerView';
 import { KanbanView } from './kanban/KanbanView';
 import { GanttView } from './calendar/GanttView';
-import { useFilterLogic } from '@/hooks/use-filter-logic';
+import { useFilterLogic } from '@/components/hooks/useFilterLogic';
 import { ReadonlyURLSearchParams } from 'next/navigation';
+import { SearchCommand } from '@/components/search-command';
+import { EditTaskForm } from './edit-task-form';
+import { TaskDetailsDialog } from './task-dialogs/TaskDetailsDialog';
 
 export default function DashboardContent() {
     return (
@@ -41,7 +45,6 @@ export default function DashboardContent() {
     );
 }
 
-// This wrapper ensures useSearchParams is only used inside a Suspense boundary
 function DashboardContentSearchParamsWrapper() {
   const { useSearchParams } = require('next/navigation');
   const searchParams = useSearchParams();
@@ -58,7 +61,9 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     collaboratorQuotes = [], 
     clients = [], 
     collaborators = [], 
+    events = [],
     appSettings,
+    handleViewTask = () => {},
     setAppSettings = () => {},
     updateKanbanSettings = () => {},
     handleEditTask = () => {}, 
@@ -71,9 +76,14 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     quoteTemplates = [], 
     categories = [], 
     handleEmptyTrash = () => {}, 
-    updateTask = () => {}
+    updateTask = () => {},
+    updateEvent = () => {}
   } = context || {};
   
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [taskForDetails, setTaskForDetails] = useState<Task | null>(null);
+
   const router = useRouter();
   const pathname = usePathname();
 
@@ -88,31 +98,46 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     );
   }
 
+  const clientForDetails = useMemo(() => taskForDetails ? clients.find(c => c.id === taskForDetails.clientId) : undefined, [taskForDetails, clients]);
+  const quoteForDetails = useMemo(() => taskForDetails ? quotes.find(q => q.id === taskForDetails.quoteId) : undefined, [taskForDetails, quotes]);
+  const collaboratorQuotesForDetails = useMemo(() => {
+    if (!taskForDetails || !taskForDetails.collaboratorQuotes) return [];
+    return taskForDetails.collaboratorQuotes.map(cq => 
+      collaboratorQuotes.find(q => q.id === cq.quoteId)
+    ).filter(Boolean) as Quote[];
+  }, [taskForDetails, collaboratorQuotes]);
+
+  const quoteForEditingTask = useMemo(() => editingTask ? quotes.find(q => q.id === editingTask.quoteId) : undefined, [editingTask, quotes]);
+  const collaboratorQuotesForEditingTask = useMemo(() => {
+    if (!editingTask || !editingTask.collaboratorQuotes) return [];
+    return editingTask.collaboratorQuotes.map(cq => 
+      collaboratorQuotes.find(q => q.id === cq.quoteId)
+    ).filter(Boolean) as Quote[];
+  }, [editingTask, collaboratorQuotes]);
+  
   const T = i18n[appSettings.language];
   const view = searchParams.get('view') === 'trash' ? 'trash' : 'active';
   const page = Number(searchParams.get('page') || '1');
   const limit = Number(searchParams.get('limit') || '10');
 
-  // Use the centralized filter logic
   const {
-    filteredTasks,
-    unsortedFilteredTasks,
-    selectedStatuses,
-    categoryFilter,
-    clientFilter,
-    collaboratorFilter,
-    date,
-    sortFilter,
-    handleStatusFilterChange,
-    handleStatusDoubleClick,
-    handleStatusBatchChange,
-    handleCategoryChange,
-    handleClientChange,
-    handleCollaboratorChange,
-    handleDateRangeChange,
-    handleSortChange,
-    handleClearFilters,
-  } = useFilterLogic(tasks, appSettings, view);
+    filteredTasks, unsortedFilteredTasks, selectedStatuses, categoryFilter, clientFilter, 
+    collaboratorFilter, date, sortFilter, handleStatusFilterChange, handleStatusDoubleClick, 
+    handleStatusBatchChange, handleCategoryChange, handleClientChange, handleCollaboratorChange, 
+    handleDateRangeChange, handleSortChange, handleClearFilters,
+  } = useFilterLogic(tasks);
+  
+  const handleSelectTaskForDetails = (task: Task) => {
+    console.log('[DashboardContent] Received task to display details:', task); // DEBUG
+    setTaskForDetails(task);
+  };
+  
+  const openEditDialogForTask = (taskId: string) => {
+    const taskToEdit = tasks.find(t => t.id === taskId);
+    if (taskToEdit) {
+      setEditingTask(taskToEdit);
+    }
+  };
 
   const [currentViewMode, setCurrentViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
@@ -127,7 +152,6 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     }
   }, [currentViewMode]);
 
-  // Pagination logic remains here as it's a presentation concern
   const totalPages = Math.ceil(filteredTasks.length / limit);
   const paginatedTasks = useMemo(() => {
     const startIndex = (page - 1) * limit;
@@ -151,7 +175,6 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     router.push(`${pathname}${query}`);
   };
 
-  // Calendar-specific state
   const calendarDateParam = searchParams.get('calendarDate');
   const calendarViewMode = searchParams.get('calendarMode') as 'week' | 'month' | null;
 
@@ -182,7 +205,6 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   };
 
   if (view === 'trash') {
-    // Trash view has simpler logic
     return (
       <div className="flex flex-col h-full gap-4">
         <div className="flex-shrink-0">
@@ -214,7 +236,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
         <Card className="flex-1 flex flex-col min-h-0">
             <CardContent className="p-0 flex-1 overflow-y-auto">
                 <TaskList 
-                  tasks={paginatedTasks} // Trash is also paginated now
+                  tasks={paginatedTasks}
                   quotes={quotes}
                   collaboratorQuotes={collaboratorQuotes}
                   clients={clients}
@@ -234,12 +256,8 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
         </Card>
         <div className="flex-shrink-0 border-t pt-4">
             <PaginationControls
-              page={page}
-              totalPages={totalPages}
-              limit={limit}
-              onPageChange={handlePageChange}
-              onLimitChange={handleLimitChange}
-              T={T}
+              page={page} totalPages={totalPages} limit={limit}
+              onPageChange={handlePageChange} onLimitChange={handleLimitChange} T={T}
             />
         </div>
       </div>
@@ -251,102 +269,109 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
       case 'table':
         return (
           <TableView
-            tasks={paginatedTasks}
-            quotes={quotes}
-            collaboratorQuotes={collaboratorQuotes}
-            clients={clients}
-            collaborators={collaborators}
-            categories={categories}
-            onEditTask={handleEditTask}
-            onTaskStatusChange={handleTaskStatusChange}
-            onDeleteTask={handleDeleteTask}
-            onAddClient={handleAddClientAndSelect}
-            quoteTemplates={quoteTemplates}
-            view={view}
-            onRestoreTask={handleRestoreTask}
-            onPermanentDeleteTask={handlePermanentDeleteTask}
+            tasks={paginatedTasks} quotes={quotes} collaboratorQuotes={collaboratorQuotes} clients={clients}
+            collaborators={collaborators} categories={categories} onEditTask={handleEditTask}
+            onTaskStatusChange={handleTaskStatusChange} onDeleteTask={handleDeleteTask} onAddClient={handleAddClientAndSelect}
+            quoteTemplates={quoteTemplates} view={view} onRestoreTask={handleRestoreTask} onPermanentDeleteTask={handlePermanentDeleteTask}
             settings={appSettings}
           />
         );
       case 'calendar':
         return (
           <CalendarView
-            tasks={filteredTasks}
-            quotes={quotes}
-            collaboratorQuotes={collaboratorQuotes}
-            clients={clients}
-            collaborators={collaborators}
-            categories={categories}
-            onEditTask={handleEditTask}
-            onAddTask={handleAddTask}
-            onDeleteTask={handleDeleteTask}
-            onAddClient={handleAddClientAndSelect}
-            quoteTemplates={quoteTemplates}
-            settings={appSettings}
-            currentDate={calendarDate}
-            viewMode={calendarMode}
-            onDateChange={handleCalendarDateChange}
-            onViewModeChange={handleCalendarModeChange}
-            updateTask={updateTask}
+            tasks={filteredTasks} events={events} quotes={quotes} collaboratorQuotes={collaboratorQuotes} clients={clients}
+            collaborators={collaborators} categories={categories} onEditTask={handleEditTask} onAddTask={handleAddTask}
+            onDeleteTask={handleDeleteTask} onAddClient={handleAddClientAndSelect} quoteTemplates={quoteTemplates}
+            settings={appSettings} currentDate={calendarDate} viewMode={calendarMode}
+            onDateChange={handleCalendarDateChange} onViewModeChange={handleCalendarModeChange} updateTask={updateTask}
           />
         );
       case 'eisenhower':
-        return (
-          <EisenhowerView 
-            filteredTasks={unsortedFilteredTasks} // Use unsorted for matrix
-            sortedTasksForUncategorized={filteredTasks} // Use sorted for the list
-          />
-        );
+        return ( <EisenhowerView filteredTasks={unsortedFilteredTasks} sortedTasksForUncategorized={filteredTasks} /> );
       case 'kanban':
-        return (
-          <KanbanView 
-            filteredTasks={filteredTasks}
-          />
-        );
+        return ( <KanbanView filteredTasks={filteredTasks} /> );
       case 'gantt':
         return (
           <GanttView
-            tasks={filteredTasks}
-            clients={clients}
-            categories={categories}
-            settings={appSettings}
-            statusColors={appSettings.statusColors}
-            updateTask={updateTask}
+            tasks={filteredTasks} events={events} clients={clients} categories={categories} settings={appSettings}
+            statusColors={appSettings.statusColors} updateTask={updateTask} updateEvent={updateEvent}
           />
         );
-      default:
-        return <div>Select a view</div>;
+      default: return <div>Select a view</div>;
     }
   };
 
   return (
     <div className="flex flex-col h-full gap-4">
+      <SearchCommand
+        tasks={tasks} isOpen={isSearchOpen} onOpenChange={setIsSearchOpen}
+        onTaskSelect={handleSelectTaskForDetails}
+      />
+
+      {taskForDetails && (
+        <TaskDetailsDialog
+          isOpen={!!taskForDetails}
+          onClose={() => setTaskForDetails(null)}
+          task={taskForDetails}
+          client={clientForDetails}
+          clients={clients}
+          collaborators={collaborators}
+          categories={categories}
+          quote={quoteForDetails}
+          collaboratorQuotes={collaboratorQuotesForDetails}
+          settings={appSettings}
+          onEdit={() => {
+            if(taskForDetails){
+              openEditDialogForTask(taskForDetails.id);
+            }
+            setTaskForDetails(null);
+          }}
+          onDelete={(taskId) => {
+            handleDeleteTask(taskId);
+            setTaskForDetails(null);
+          }}
+        />
+      )}
+
+      <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
+          <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+              <DialogHeader>
+                  <DialogTitle>{T.editTask}</DialogTitle>
+                  <DialogDescription>{editingTask?.name}</DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto px-1">
+                  {editingTask && (
+                      <EditTaskForm
+                          setOpen={(open) => !open && setEditingTask(null)}
+                          onSubmit={handleEditTask}
+                          taskToEdit={editingTask}
+                          quote={quoteForEditingTask}
+                          collaboratorQuotes={collaboratorQuotesForEditingTask}
+                          clients={clients}
+                          collaborators={collaborators}
+                          categories={categories}
+                          onAddClient={handleAddClientAndSelect}
+                          quoteTemplates={quoteTemplates}
+                          settings={appSettings}
+                      />
+                  )}
+              </div>
+          </DialogContent>
+      </Dialog>
+
       <div className="flex-shrink-0">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div className="flex-1 min-w-0">
             <FilterChipBar
-              selectedStatuses={selectedStatuses}
-              selectedCategory={categoryFilter || 'all'}
-              selectedCollaborator={collaboratorFilter || 'all'}
-              selectedClient={clientFilter || 'all'}
-              dateRange={date}
-              onStatusFilterChange={handleStatusFilterChange}
-              onStatusDoubleClick={handleStatusDoubleClick}
-              onStatusBatchChange={handleStatusBatchChange}
-              onCategoryChange={handleCategoryChange}
-              onCollaboratorChange={handleCollaboratorChange}
-              onClientChange={handleClientChange}
-              onDateRangeChange={handleDateRangeChange}
-              onClearFilters={handleClearFilters}
-              sortFilter={sortFilter}
-              handleSortChange={handleSortChange}
-              viewMode={currentViewMode}
-              T={T}
-              allCategories={categories}
-              collaborators={collaborators}
-              clients={clients}
-              statuses={context?.appSettings?.statusSettings || []}
-              statusColors={appSettings.statusColors}
+              selectedStatuses={selectedStatuses} selectedCategory={categoryFilter || 'all'}
+              selectedCollaborator={collaboratorFilter || 'all'} selectedClient={clientFilter || 'all'}
+              dateRange={date} onSearchClick={() => setIsSearchOpen(true)} onStatusFilterChange={handleStatusFilterChange}
+              onStatusDoubleClick={handleStatusDoubleClick} onStatusBatchChange={handleStatusBatchChange}
+              onCategoryChange={handleCategoryChange} onCollaboratorChange={handleCollaboratorChange} onClientChange={handleClientChange}
+              onDateRangeChange={handleDateRangeChange} onClearFilters={handleClearFilters} sortFilter={sortFilter || 'deadline-asc'}
+              handleSortChange={handleSortChange} viewMode={currentViewMode} T={T}
+              allCategories={categories} collaborators={collaborators} clients={clients}
+              statuses={context?.appSettings?.statusSettings || []} statusColors={appSettings.statusColors}
             />
             </div>
             
@@ -365,16 +390,11 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
         </CardContent>
       </Card>
       
-      {/* Hide pagination in calendar, eisenhower and kanban views */}
       {currentViewMode !== 'calendar' && currentViewMode !== 'eisenhower' && currentViewMode !== 'kanban' && currentViewMode !== 'gantt' && (
         <div className="flex-shrink-0 border-t pt-4">
           <PaginationControls
-              page={page}
-              totalPages={totalPages}
-              limit={limit}
-              onPageChange={handlePageChange}
-              onLimitChange={handleLimitChange}
-              T={T}
+              page={page} totalPages={totalPages} limit={limit}
+              onPageChange={handlePageChange} onLimitChange={handleLimitChange} T={T}
           />
         </div>
       )}

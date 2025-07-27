@@ -1,11 +1,16 @@
 "use client";
 
 import { createContext, useContext } from 'react';
-import type { AppData, Client, QuoteColumn, Collaborator, Category, Task, QuoteTemplate } from '@/lib/types';
+import type { AppData, AppEvent, Client, QuoteColumn, Collaborator, Category, Task, QuoteTemplate } from '@/lib/types';
 import type { TaskFormValues } from '@/components/create-task-form';
 import { EisenhowerQuadrantType } from '@/components/eisenhower/EisenhowerView';
 
 type DashboardContextType = AppData & {
+  events: AppEvent[];
+  setEvents: React.Dispatch<React.SetStateAction<AppEvent[]>>;
+  addEvent: (event: AppEvent) => void;
+  updateEvent: (event: AppEvent) => void;
+  deleteEvent: (eventId: string) => void;
   setTasks: React.Dispatch<React.SetStateAction<AppData['tasks']>>;
   setQuotes: React.Dispatch<React.SetStateAction<AppData['quotes']>>;
   setCollaboratorQuotes: React.Dispatch<React.SetStateAction<AppData['collaboratorQuotes']>>;
@@ -41,6 +46,8 @@ type DashboardContextType = AppData & {
   settings: AppData['appSettings'];
   language: AppData['appSettings']['language'];
   quoteTemplates: AppData['quoteTemplates'];
+  handleViewTask: (taskId: string) => void;
+  handleCloseTaskDetails: () => void;
 };
 
 export const DashboardContext = createContext<DashboardContextType | null>(null);

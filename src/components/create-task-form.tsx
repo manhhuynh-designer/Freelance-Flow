@@ -136,6 +136,8 @@ export function CreateTaskForm({
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
   const [newClientName, setNewClientName] = useState("");
   const [isCollaboratorSectionOpen, setIsCollaboratorSectionOpen] = useState(false);
+  const [showExitWarning, setShowExitWarning] = useState(false);
+  const [pendingClose, setPendingClose] = useState(false);
   
   const defaultColumns: QuoteColumn[] = React.useMemo(() => [
     { id: 'description', name: T.description, type: 'text' },
@@ -329,6 +331,39 @@ export function CreateTaskForm({
     return mainStatusConfig?.subStatuses || [];
   }, [watchedStatus, settings.statusSettings]);
   
+  // Custom close handler for dialog
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      setShowExitWarning(true);
+      setPendingClose(true);
+    } else {
+      setPendingClose(false);
+    }
+  };
+
+  // Save draft logic
+  const handleSaveDraft = () => {
+    const draftData = form.getValues();
+    // Set status to 'archived' for draft, ensure correct type
+    const draftTask = { ...draftData, status: 'archived' as TaskFormValues['status'] };
+    onFormSubmit(draftTask, columns, collaboratorColumns);
+    setShowExitWarning(false);
+    setOpen(false);
+  };
+
+  // Confirm close
+  const handleConfirmClose = () => {
+    setShowExitWarning(false);
+    setOpen(false);
+  };
+
+  // Cancel close
+  const handleCancelClose = () => {
+    setShowExitWarning(false);
+    setPendingClose(false);
+    setOpen(true);
+  };
+
   return (
     <>
       <Form {...form}>
@@ -846,6 +881,22 @@ export function CreateTaskForm({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Exit Warning Dialog */}
+      <AlertDialog open={showExitWarning} onOpenChange={setShowExitWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to exit?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. What would you like to do?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="ghost" onClick={handleConfirmClose}>OK</Button>
+            <Button variant="outline" onClick={handleSaveDraft}>Save Draft</Button>
+            <Button onClick={handleCancelClose}>Cancel</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

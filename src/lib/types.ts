@@ -78,6 +78,17 @@ endDate?: string; // ISO string, ngày kết thúc của nhiệm vụ
 createdAt?: string; // Ngày thêm task
 };
 
+export type AppEvent = {
+  id: string;
+  name: string;
+  startTime: Date | string;
+  endTime: Date | string;
+  taskIds?: string[];
+  links?: string[];
+  notes?: string;
+  color?: string;
+  icon?: string;
+};
 export type Client = {
   id: string;
   name: string;
@@ -180,6 +191,7 @@ export type FilterPreset = {
 
 export type AppData = {
   tasks: Task[];
+  events: AppEvent[];
   quotes: Quote[];
   collaboratorQuotes: Quote[];
   clients: Client[];

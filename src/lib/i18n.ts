@@ -1,779 +1,25 @@
 "use client";
-// Vietnamese translations
+
+// Import các module dịch đã tách
+import { vi_base } from './i18n/vi/base';
+import { vi_new } from './i18n/vi/new';
+import { en_base } from './i18n/en/base';
+import { en_new } from './i18n/en/new';
+
+// Hợp nhất các bản dịch Tiếng Việt
 export const vi = {
-  pathCopied: 'Đã copy đường dẫn',
-  taskNameHeader: 'Tên công việc',
-  Day: 'Ngày',
-  Month: 'Tháng',
-  createTaskDialogTitle: 'Tạo task mới',
-  clearQuadrant: 'Xóa phân loại',
-  noTasksFound: 'Không tìm thấy task nào',
-  forKeyword: 'cho từ khóa',
-  clearSearch: 'Xóa tìm kiếm',
-  overview: 'Tổng quan',
-  analytics: 'Phân tích',
-  collaboratorCosts: 'Chi phí cộng tác viên',
-  calculations: 'Tổng Kết',
-  addColumn: 'Thêm cột',
-  addItem: 'Thêm mục',
-  columnName: 'Tên cột',
-  columnType: 'Loại cột',
-  noCalculation: 'Không tính toán',
-  sum: 'Tổng',
-  average: 'Trung bình',
-  minimum: 'Nhỏ nhất',
-  maximum: 'Lớn nhất',
-  customFormula: 'Công thức tùy chỉnh',
-  cancel: 'Hủy',
-  saveChanges: 'Lưu thay đổi',
-  newItemPlaceholder: 'Mô tả mục mới...',
-  pasteTable: 'Dán bảng',
-  pasteFailed: 'Dán không thành công',
-  pasteInstructions: 'Sao chép dữ liệu bảng của bạn (từ Excel, Google Sheets, v.v.) và dán vào đây bằng Ctrl+V:',
-  pasteHere: 'Dán dữ liệu bảng của bạn vào đây...',
-  pasteExample: 'Ví dụ: Mỗi dòng trên một dòng mới, các cột được phân tách bằng tab',
-  delete: 'Xóa',
-  deleteSection: 'Xóa phần',
-  sectionName: 'Tên phần',
-  confirmDeleteSection: 'Xóa phần?',
-  confirmDeleteSectionDesc: 'Bạn có chắc chắn muốn xóa phần này không? Hành động này không thể hoàn tác và sẽ xóa tất cả các mục trong phần này.',
-  pasteOptions: 'Tùy chọn dán',
-  pasteOptionsDesc: 'Phần này đã chứa dữ liệu. Bạn muốn dán dữ liệu mới như thế nào?',
-  replaceData: 'Thay thế dữ liệu',
-  replaceDataDesc: 'Xóa tất cả các mục hiện có và thay thế bằng dữ liệu được dán',
-  addData: 'Thêm dữ liệu',
-  addDataDesc: 'Giữ các mục hiện có và thêm dữ liệu được dán vào bên dưới',
-  addRows: 'Thêm hàng',
-  addRowsDesc: 'Thêm các hàng mới vào cuối bảng',
-  addColumns: 'Thêm cột',
-  addColumnsDesc: 'Thêm các cột mới vào bên phải bảng',
-  replaceAll: 'Thay thế tất cả',
-  replaceAllDesc: 'Xóa tất cả và thay bằng dữ liệu mới',
-  pasteHow: 'Bạn muốn dán như thế nào?',
-  dataRequirement: 'Yêu cầu: dữ liệu phải có',
-  columnsRequired: 'cột',
-  undoAction: 'Hoàn tác',
-  undoSuccess: 'Hoàn tác thành công',
-  undoSuccessDesc: 'Đã khôi phục trạng thái trước khi dán',
-  undoFailed: 'Hoàn tác thất bại',
-  undoFailedDesc: 'Không thể khôi phục trạng thái trước đó',
-  columnMismatch: 'Số cột không khớp',
-  columnMismatchDesc: 'Để thêm hàng, dữ liệu phải có cùng số cột với bảng hiện tại',
-  replaced: 'đã thay thế',
-  added: 'đã thêm',
-  duplicateDataDetected: 'Phát hiện dữ liệu trùng lặp',
-  duplicateDataDesc: 'Một số mục bạn đang cố gắng dán đã tồn tại trong phần này. Vui lòng sử dụng tùy chọn dán để thay thế hoặc thêm dữ liệu.',
-  columnsReplacedWith: 'cột đã được thay thế bằng',
-  newColumns: 'cột mới',
-  // --- QUOTE SECTION IMPROVED: Add missing translation keys ---
-  quoteSection: 'Báo giá',
-  editColumn: 'Chỉnh sửa cột',
-  formula: 'Công thức',
-  clearFormula: 'Xóa',
-  variables: 'Các biến',
-  addRow: 'Thêm dòng',
-  remove: 'Xóa',
-  confirmDeleteColumn: 'Bạn có chắc muốn xóa cột này không?',
-  confirmDeleteRow: 'Bạn có chắc muốn xóa dòng này không?',
-  required: 'Bắt buộc',
-  duplicateColumnName: 'Tên cột bị trùng',
-  invalidFormula: 'Công thức không hợp lệ',
-  row: 'Dòng',
-  column: 'Cột',
-  value: 'Giá trị',
-  actions: 'Hành động',
-  formulaPlaceholder: 'Nhập công thức...',
-  selectVariable: 'Chọn biến',
-  invalidInput: 'Dữ liệu không hợp lệ',
-  editFormula: 'Chỉnh sửa công thức',
-  noColumns: 'Không có cột',
-  noRows: 'Không có dòng',
-  requiredField: 'Trường này là bắt buộc',
-  duplicate: 'Trùng lặp',
-  duplicateRow: 'Dòng bị trùng',
-  duplicateColumn: 'Cột bị trùng',
-  confirm: 'Xác nhận',
-  success: 'Thành công',
-  error: 'Lỗi',
-  info: 'Thông tin',
-  warning: 'Cảnh báo',
-  reset: 'Đặt lại',
-  undo: 'Hoàn tác',
-  redo: 'Làm lại',
-  copy: 'Sao chép',
-  paste: 'Dán',
-  cut: 'Cắt',
-  move: 'Di chuyển',
-  up: 'Lên',
-  down: 'Xuống',
-  left: 'Trái',
-  right: 'Phải',
-  insert: 'Chèn',
-  removeRow: 'Xóa dòng',
-  removeColumn: 'Xóa cột',
-  addVariable: 'Thêm biến',
-  variableName: 'Tên biến',
-  variableValue: 'Giá trị biến',
-  formulaHelp: 'Bạn có thể sử dụng các biến cột trong công thức.',
-  invalidVariable: 'Biến không hợp lệ',
-  duplicateVariable: 'Biến bị trùng',
-  noVariables: 'Không có biến',
-  selectColumn: 'Chọn cột',
-  selectRow: 'Chọn dòng',
-  selectAction: 'Chọn hành động',
-  confirmDelete: 'Bạn có chắc muốn xóa không?',
-  confirmReset: 'Bạn có chắc muốn đặt lại không?',
-  confirmUndo: 'Bạn có chắc muốn hoàn tác không?',
-  confirmRedo: 'Bạn có chắc muốn làm lại không?',
-  confirmCopy: 'Bạn có chắc muốn sao chép không?',
-  confirmPaste: 'Bạn có chắc muốn dán không?',
-  confirmCut: 'Bạn có chắc muốn cắt không?',
-  confirmMove: 'Bạn có chắc muốn di chuyển không?',
-  confirmInsert: 'Bạn có chắc muốn chèn không?',
-  confirmRemove: 'Bạn có chắc muốn xóa không?',
-  confirmAdd: 'Bạn có chắc muốn thêm không?',
-  confirmEdit: 'Bạn có chắc muốn chỉnh sửa không?',
-  confirmSave: 'Bạn có chắc muốn lưu không?',
-  confirmCancel: 'Bạn có chắc muốn hủy không?',
-  confirmClose: 'Bạn có chắc muốn đóng không?',
-  confirmOpen: 'Bạn có chắc muốn mở không?',
-  confirmSelect: 'Bạn có chắc muốn chọn không?',
-  confirmDeselect: 'Bạn có chắc muốn bỏ chọn không?',
-  confirmApply: 'Bạn có chắc muốn áp dụng không?',
-  confirmRemoveRow: 'Bạn có chắc muốn xóa dòng này không?',
-  confirmRemoveColumn: 'Bạn có chắc muốn xóa cột này không?',
-  confirmAddVariable: 'Bạn có chắc muốn thêm biến này không?',
-  confirmRemoveVariable: 'Bạn có chắc muốn xóa biến này không?',
-  confirmEditVariable: 'Bạn có chắc muốn chỉnh sửa biến này không?',
-  confirmSaveVariable: 'Bạn có chắc muốn lưu biến này không?',
-  confirmCancelVariable: 'Bạn có chắc muốn hủy biến này không?',
-  confirmCloseVariable: 'Bạn có chắc muốn đóng biến này không?',
-  confirmOpenVariable: 'Bạn có chắc muốn mở biến này không?',
-  confirmSelectVariable: 'Bạn có chắc muốn chọn biến này không?',
-  confirmDeselectVariable: 'Bạn có chắc muốn bỏ chọn biến này không?',
-  confirmApplyVariable: 'Bạn có chắc muốn áp dụng biến này không?'
-  ,text: 'Văn bản'
-  ,number: 'Số'
-  ,date: 'Ngày tháng'
-  ,calculationType: 'Loại tính toán'
-  ,unitPriceRowFormulaDesc: 'Sử dụng công thức cho cột Price (dùng giá trị các cột khác trên dòng)'
-  ,rowFormulaDesc: 'Công thức cho từng ô (dùng giá trị các cột khác trên dòng)'
-  ,unitPriceFormulaNote: 'Công thức sẽ tính giá Price tự động dựa trên giá trị các cột khác trong cùng dòng'
-  ,rowFormulaNote: 'Công thức sẽ tính giá trị ô tự động dựa trên giá trị các cột khác trong cùng dòng'
-  ,savePriceConfig: 'Lưu cấu hình Price'
-  ,configurePriceFormula: 'Cấu hình công thức Price'
-  ,errorInFormula: 'Lỗi trong công thức'
-  ,priceFormulaLabel: 'Công thức tính Price'
-  ,cellFormulaLabel: 'Công thức ô'
-  ,enterFormulaInstruction: 'Nhập công thức (sử dụng @ + tên cột):'
-  ,formulaExample: 'Ví dụ'
-  ,createNumberColumnsFirst: 'Tạo thêm cột số để sử dụng công thức'
-  ,howToUse: 'Cách sử dụng:'
-  ,useColumnReference: 'Sử dụng @tencot để tham chiếu đến cột khác'
-  ,useOperators: 'Có thể dùng phép tính: + - * / ( )'
-  ,dateFormat: 'Định dạng ngày'
-  ,selectFormat: 'Chọn định dạng'
-  ,singleDate: 'Một ngày'
-  ,dateRange: 'Khoảng ngày (từ - đến)'
-  ,moveLeft: 'Di chuyển trái'
-  ,moveRight: 'Di chuyển phải'
-  ,deleteColumn: 'Xóa cột'
-  ,columnOptions: 'Tùy chọn cột'
-  
-  // Quote Manager specific translations
-  ,selectVariableOrFormula: 'Chọn biến hoặc nhập công thức...'
-  ,default: 'Mặc định'
-  ,variablesAvailable: 'Kết quả tính toán có thể sử dụng'
-  ,noCalculationColumns: 'Chưa có cột nào thiết lập tính toán'
-  ,setupCalculationColumns: 'Hãy thiết lập phép tính cho cột để tạo biến sử dụng trong công thức'
-  ,variablesAutoSumHint: 'Biến cạnh nhau sẽ tự động cộng. Ví dụ: {QuantitySum}{PriceAvg} = QuantitySum + PriceAvg'
-  ,netTotal: 'Net Total'
-  ,netTotalDesc: 'Grand Total - Tổng collaborator'
-  ,sumByColumn: 'Tổng Theo Cột'
-  ,columns: 'cột'
-  ,otherCalculations: 'Phép Tính Khác'
-  ,calculationsCount: 'phép tính'
-  ,noCalculationColumnsMsg: 'Chưa có cột nào được thiết lập phép tính. Hãy thêm cột số và thiết lập phép tính để xem kết quả.'
-  ,grandTotaltit: 'Tổng kết & tính toán'
-  ,calculationsDesc: 'Tổng kết'
-  ,sections: 'Phân mục'
-  ,suggestions: 'Gợi ý AI'
-  ,addSection: 'Thêm phân mục'
-  ,templateApplied: 'Đã áp dụng mẫu'
-  ,templateAppliedDesc: 'Mẫu đã được áp dụng thành công'
-  ,columnAdded: 'Đã thêm cột'
-  ,hasBeenAdded: 'đã được thêm'
-  ,columnDeleted: 'Đã xóa cột'
-  ,hasBeenRemoved: 'đã được xóa'
-  ,pastedFromClipboard: 'Đã dán từ clipboard'
-  ,items: 'mục'
-  ,and: 'và'
-  ,haveBeenImported: 'đã được nhập.'
-  ,clipboardInvalidFormat: 'Clipboard trống hoặc định dạng không hợp lệ'
-  ,untitledSection: 'Phân mục không tên'
-  ,applyTemplate: 'Áp dụng mẫu'
-  ,applyTemplateWarning: 'Thao tác này sẽ thay thế tất cả các phân mục và mục hiện tại. Hành động này không thể hoàn tác.'
-  ,copyFromPriceQuote: 'Sao chép từ báo giá'
-  ,copyFromQuoteDesc: 'Sao chép cấu trúc và dữ liệu từ báo giá'
-  ,invalidFormulaResult: 'Công thức không hợp lệ hoặc không trả về số.'
-  ,briefLink: 'Brief'
-  ,driveLink: 'Lưu trữ'
-  ,noDescription: 'Không có mô tả'
-  ,noQuoteData: 'Không có dữ liệu báo giá'
-  ,noCollaboratorQuoteData: 'Không có dữ liệu báo giá cộng tác viên'
-  ,analyticsDesc: 'Các chỉ số và biểu đồ chính cho task này. (Biểu đồ sẽ có sớm)'
-  ,totalRevenue: 'Tổng Doanh Thu'
-  ,estimatedProfit: 'Lợi Nhuận Ước Tính'
-  ,daysTotal: 'Tổng Số Ngày'
-  ,quoteItems: 'Mục Báo Giá'
-  ,chartsPlaceholder: '[Biểu đồ sẽ được hiển thị ở đây]'
-  ,startDate: 'Ngày Bắt Đầu'
-  ,deadline: 'Hạn Chót'
-  ,progress: 'Tiến Độ'
-  ,days: 'ngày'
-  ,invalidDate: 'Ngày không hợp lệ'
-  // Local Backup translations
-  ,localFolderBackup: 'Sao Lưu Thư Mục'
-  ,browserSupport: 'Hỗ Trợ Trình Duyệt'
-  ,supported: 'Hỗ Trợ'
-  ,limited: 'Hạn Chế'
-  ,browserNotSupported: 'Trình duyệt không hỗ trợ'
-  ,browserNotSupportedDesc: 'Trình duyệt của bạn không hỗ trợ chọn thư mục. Sử dụng Chrome 86+ hoặc Edge 86+ cho tính năng này. Bạn vẫn có thể tải xuống thủ công vào thư mục Downloads.'
-  ,autoSaveStatus: 'Trạng Thái Tự Động Lưu'
-  ,savingTo: 'Đang lưu vào'
-  ,selectedFolder: 'Thư mục đã chọn'
-  ,noFolderSelected: 'Chưa chọn thư mục'
-  ,active: 'Hoạt động'
-  ,inactive: 'Không hoạt động'
-  ,selectBackupFolder: 'Chọn Thư Mục Sao Lưu'
-  ,selecting: 'Đang chọn...'
-  ,saveNow: 'Lưu Ngay'
-  ,saving: 'Đang lưu...'
-  ,disableAutoSave: 'Tắt Tự Động Lưu'
-  ,folderSelected: 'Đã Chọn Thư Mục'
-  ,folderSelectedDesc: 'Thư mục sao lưu đã được thiết lập thành công. Tự động lưu hiện đã được bật.'
-  ,selectionFailed: 'Chọn Thất Bại'
-  ,selectionFailedDesc: 'Không thể chọn thư mục sao lưu. Vui lòng thử lại.'
-  ,autoSaveDisabled: 'Đã Tắt Tự Động Lưu'
-  ,autoSaveDisabledDesc: 'Tự động lưu thư mục local đã được tắt.'
-  ,backupSaved: 'Đã Lưu Sao Lưu'
-  ,backupSavedDesc: 'Sao lưu thủ công đã được lưu vào thư mục đã chọn.'
-  ,saveFailed: 'Lưu Thất Bại'
-  ,saveFailedDesc: 'Không thể lưu sao lưu. Vui lòng chọn thư mục trước.'
-  ,saveError: 'Lỗi Lưu'
-  ,saveErrorDesc: 'Đã xảy ra lỗi khi lưu sao lưu.'
-  ,manualDownload: 'Tải Xuống Thủ Công'
-  ,manualDownloadDesc: 'Tải sao lưu trực tiếp vào thư mục Downloads'
-  ,suggested: 'Gợi Ý'
-  ,downloadToDownloads: 'Tải Về Dữ Liệu'
-  ,backupDownloaded: 'Đã Tải Sao Lưu'
-  ,backupDownloadedDesc: 'Tệp sao lưu đã được tải xuống vào thư mục Downloads của bạn.'
-  ,lastAutoSave: 'Lần tự động lưu cuối'
-  ,howItWorks: 'Cách hoạt động'
-  ,autoSaveEvery24h: 'Tự động tạo tệp sao lưu mỗi 24 giờ'
-  ,savedDirectlyToFolder: 'Tệp được lưu trực tiếp vào thư mục bạn chọn'
-  ,noInternetRequired: 'Không cần internet - mọi thứ lưu trên máy tính của bạn'
-  ,folderPermissionOnce: 'Quyền thư mục chỉ được yêu cầu một lần mỗi phiên'
-  ,manualDownloadAllBrowsers: 'Tải thủ công hoạt động trên mọi trình duyệt'
-  ,dataBackupAndRestore: 'Sao Lưu & Khôi Phục Dữ Liệu'
-  ,dataBackupDesc: 'Quản lý sao lưu dữ liệu với nhiều tùy chọn bảo vệ'
-  ,backupTooltip: 'Tự động tạo nhiều phiên bản sao lưu để bảo vệ dữ liệu khỏi bị mất'
-  ,localFolderTooltip: 'Lưu sao lưu trực tiếp vào thư mục trên máy tính của bạn'
-  ,manualExportTooltip: 'Tải xuống tệp sao lưu ngay lập tức để lưu trữ thủ công'
-  // Data Management
-  ,dataManagement: 'Quản lý dữ liệu'
-  ,dataManagementDesc: 'Sao lưu, khôi phục và quản lý dữ liệu của bạn'
-  ,dataRestore: 'Khôi phục dữ liệu'
-  ,selectBackupFile: 'Chọn tệp sao lưu'
-  ,supportedFormat: 'Hỗ trợ định dạng: .json'
-  ,selectFile: 'Chọn tệp'
-  ,warningNotReversible: 'Cảnh báo: Hành động này không thể hoàn tác!'
-  // Calendar navigation keys
-  ,navigationGroup: 'Điều hướng'
-  ,goToPrevious: 'Đi tới trước'
-  ,goToNext: 'Đi tới sau'
-  ,jumpToToday: 'Nhảy về hôm nay'
-  ,todayButton: 'Hôm nay'
-  ,prevWeek: 'Tuần trước'
-  ,nextWeek: 'Tuần sau'
-  ,prevMonth: 'Tháng trước'
-  ,nextMonth: 'Tháng sau'
-  ,currentWeek: 'Tuần hiện tại'
-  ,currentMonth: 'Tháng hiện tại'
-  ,weekNumber: 'Tuần'
-  ,viewMode: 'Chế độ xem'
-  ,switchToWeekView: 'Chuyển sang xem tuần'
-  ,switchToMonthView: 'Chuyển sang xem tháng'
-  ,weekView: 'Xem theo tuần'
-  ,monthView: 'Xem theo tháng'
-  // Month names
-  ,months: {
-    january: 'Tháng Một',
-    february: 'Tháng Hai', 
-    march: 'Tháng Ba',
-    april: 'Tháng Tư',
-    may: 'Tháng Năm',
-    june: 'Tháng Sáu',
-    july: 'Tháng Bảy',
-    august: 'Tháng Tám',
-    september: 'Tháng Chín',
-    october: 'Tháng Mười',
-    november: 'Tháng Mười Một',
-    december: 'Tháng Mười Hai'
-  }
-  // Days of week
-  ,weekdays: {
-    monday: 'Thứ Hai',
-    tuesday: 'Thứ Ba', 
-    wednesday: 'Thứ Tư',
-    thursday: 'Thứ Năm',
-    friday: 'Thứ Sáu',
-    saturday: 'Thứ Bảy',
-    sunday: 'Chủ Nhật'
-  }
-  ,weekdaysShort: {
-    monday: 'T2',
-    tuesday: 'T3',
-    wednesday: 'T4', 
-    thursday: 'T5',
-    friday: 'T6',
-    saturday: 'T7',
-    sunday: 'CN'
-  }
-  ,collapseFilters: 'Thu gọn bộ lọc'
-  ,expandFilters: 'Mở rộng bộ lọc'
-  ,clearFilters: 'Xóa bộ lọc'
-  ,tableView: 'Xem bảng'
-  ,calendarView: 'Xem lịch'
-  ,ganttView: 'Biểu đồ Gantt'
-  // Date and time formats
-  ,dateFormats: {
-    today: 'Hôm nay',
-    yesterday: 'Hôm qua',
-    tomorrow: 'Ngày mai',
-    daysAgo: 'ngày trước',
-    daysFrom: 'ngày sau',
-    thisWeek: 'Tuần này',
-    lastWeek: 'Tuần trước',
-    nextWeek: 'Tuần sau',
-    thisMonth: 'Tháng này',
-    lastMonth: 'Tháng trước',
-    nextMonth: 'Tháng sau'
-  },
-  
-  // Advanced Filter translations
-  advancedFilters: 'Bộ lọc nâng cao',
-  selectCategory: 'Chọn danh mục',
-  allCategories: 'Tất cả danh mục',
-  selectCollaborator: 'Chọn cộng tác viên',
-  allCollaborators: 'Tất cả cộng tác viên',
-  selectClient: 'Chọn khách hàng',
-  allClients: 'Tất cả khách hàng',
-  clearAll: 'Xóa tất cả',
-  savePreset: 'Lưu bộ lọc',
-  done: 'Xong',
-  
-  // Filter Presets translations
-  thisWeek: 'Tuần này',
-  inProgress: 'Đang thực hiện',
-  overdueItems: 'Quá hạn',
-  savedPresets: 'Đã lưu',
-  saveFilterPreset: 'Lưu bộ lọc',
-  saveFilterPresetDesc: 'Đặt tên cho bộ lọc hiện tại để sử dụng lại sau.',
-  presetNamePlaceholder: 'Bộ lọc của tôi...',
-  setDefault: 'Đặt làm mặc định',
-  removeDefault: 'Bỏ mặc định'
+  ...vi_base,
+  ...vi_new
 };
 
-// English translations (default)
+// Hợp nhất các bản dịch Tiếng Anh
 export const en = {
-  pathCopied: 'Path copied to clipboard',
-  taskNameHeader: 'Task Name',
-  Day: 'Day',
-  Month: 'Month',
-  createTaskDialogTitle: 'Create New Task',
-  clearQuadrant: 'Clear categorization',
-  noTasksFound: 'No tasks found',
-  forKeyword: 'for keyword',
-  clearSearch: 'Clear search',
-  overview: 'Overview',
-  analytics: 'Analytics',
-  collaboratorCosts: 'Collaborator Quote',
-  addColumn: 'Add column',
-  addItem: 'Add item',
-  columnName: 'Column Name',
-  columnType: 'Column Type',
-  noCalculation: 'No calculation',
-  sum: 'Sum',
-  average: 'Average',
-  minimum: 'Minimum',
-  maximum: 'Maximum',
-  customFormula: 'Custom formula',
-  cancel: 'Cancel',
-  saveChanges: 'Save Changes',
-  newItemPlaceholder: 'New item description...',
-  pasteTable: 'Paste table',
-  pasteFailed: 'Failed to paste',
-  pasteInstructions: 'Copy your table data (from Excel, Google Sheets, etc.) and paste it here using Ctrl+V:',
-  pasteHere: 'Paste your table data here...',
-  pasteExample: 'Example: Each row on a new line, columns separated by tabs',
-  delete: 'Delete',
-  deleteSection: 'Delete section',
-  sectionName: 'Section name',
-  confirmDeleteSection: 'Delete Section?',
-  confirmDeleteSectionDesc: 'Are you sure you want to delete this section? This action cannot be undone and will remove all items in this section.',
-  pasteOptions: 'Paste Options',
-  pasteOptionsDesc: 'This section already contains data. How would you like to paste the new data?',
-  replaceData: 'Replace Data',
-  replaceDataDesc: 'Remove all existing items and replace with pasted data',
-  addData: 'Add Data',
-  addDataDesc: 'Keep existing items and add pasted data below',
-  addRows: 'Add Rows',
-  addRowsDesc: 'Add new rows to the end of table',
-  addColumns: 'Add Columns',
-  addColumnsDesc: 'Add new columns to the right of table',
-  replaceAll: 'Replace All',
-  replaceAllDesc: 'Remove everything and replace with new data',
-  pasteHow: 'How would you like to paste?',
-  dataRequirement: 'Requirement: data must have',
-  columnsRequired: 'columns',
-  undoAction: 'Undo',
-  undoSuccess: 'Undo successful',
-  undoSuccessDesc: 'Restored state before paste',
-  undoFailed: 'Undo failed',
-  undoFailedDesc: 'Unable to restore previous state',
-  columnMismatch: 'Column count mismatch',
-  columnMismatchDesc: 'To add rows, data must have the same number of columns as current table',
-  replaced: 'replaced',
-  added: 'added',
-  duplicateDataDetected: 'Duplicate Data Detected',
-  duplicateDataDesc: 'Some items you are trying to paste already exist in this section. Please use paste options to replace or add data.',
-  columnsReplacedWith: 'columns replaced with',
-  newColumns: 'new columns',
-  // --- QUOTE SECTION IMPROVED: Add missing translation keys ---
-  quoteSection: 'Quote Section',
-  editColumn: 'Edit Column',
-  formula: 'Formula',
-  clearFormula: 'Clear',
-  variables: 'Variables',
-  addRow: 'Add Row',
-  remove: 'Remove',
-  confirmDeleteColumn: 'Are you sure you want to delete this column?',
-  confirmDeleteRow: 'Are you sure you want to delete this row?',
-  required: 'Required',
-  duplicateColumnName: 'Duplicate column name',
-  invalidFormula: 'Invalid formula',
-  row: 'Row',
-  column: 'Column',
-  value: 'Value',
-  actions: 'Actions',
-  formulaPlaceholder: 'Enter formula...',
-  selectVariable: 'Select variable',
-  invalidInput: 'Invalid input',
-  editFormula: 'Edit Formula',
-  noColumns: 'No columns',
-  noRows: 'No rows',
-  requiredField: 'This field is required',
-  duplicate: 'Duplicate',
-  duplicateRow: 'Duplicate row',
-  duplicateColumn: 'Duplicate column',
-  confirm: 'Confirm',
-  success: 'Success',
-  error: 'Error',
-  info: 'Info',
-  warning: 'Warning',
-  reset: 'Reset',
-  undo: 'Undo',
-  redo: 'Redo',
-  copy: 'Copy',
-  paste: 'Paste',
-  cut: 'Cut',
-  move: 'Move',
-  up: 'Up',
-  down: 'Down',
-  left: 'Left',
-  right: 'Right',
-  insert: 'Insert',
-  removeRow: 'Remove Row',
-  removeColumn: 'Remove Column',
-  addVariable: 'Add Variable',
-  variableName: 'Variable Name',
-  variableValue: 'Variable Value',
-  formulaHelp: 'You can use column variables in your formula.',
-  invalidVariable: 'Invalid variable',
-  duplicateVariable: 'Duplicate variable',
-  noVariables: 'No variables',
-  selectColumn: 'Select column',
-  selectRow: 'Select row',
-  selectAction: 'Select action',
-  confirmDelete: 'Are you sure you want to delete?',
-  confirmReset: 'Are you sure you want to reset?',
-  confirmUndo: 'Are you sure you want to undo?',
-  confirmRedo: 'Are you sure you want to redo?',
-  confirmCopy: 'Are you sure you want to copy?',
-  confirmPaste: 'Are you sure you want to paste?',
-  confirmCut: 'Are you sure you want to cut?',
-  confirmMove: 'Are you sure you want to move?',
-  confirmInsert: 'Are you sure you want to insert?',
-  confirmRemove: 'Are you sure you want to remove?',
-  confirmAdd: 'Are you sure you want to add?',
-  confirmEdit: 'Are you sure you want to edit?',
-  confirmSave: 'Are you sure you want to save?',
-  confirmCancel: 'Are you sure you want to cancel?',
-  confirmClose: 'Are you sure you want to close?',
-  confirmOpen: 'Are you sure you want to open?',
-  confirmSelect: 'Are you sure you want to select?',
-  confirmDeselect: 'Are you sure you want to deselect?',
-  confirmApply: 'Are you sure you want to apply?',
-  confirmRemoveRow: 'Are you sure you want to remove this row?',
-  confirmRemoveColumn: 'Are you sure you want to remove this column?',
-  confirmAddVariable: 'Are you sure you want to add this variable?',
-  confirmRemoveVariable: 'Are you sure you want to remove this variable?',
-  confirmEditVariable: 'Are you sure you want to edit this variable?',
-  confirmSaveVariable: 'Are you sure you want to save this variable?',
-  confirmCancelVariable: 'Are you sure you want to cancel this variable?',
-  confirmCloseVariable: 'Are you sure you want to close this variable?',
-  confirmOpenVariable: 'Are you sure you want to open this variable?',
-  confirmSelectVariable: 'Are you sure you want to select this variable?',
-  confirmDeselectVariable: 'Are you sure you want to deselect this variable?',
-  confirmApplyVariable: 'Are you sure you want to apply this variable?'
-  ,text: 'Text'
-  ,number: 'Number'
-  ,date: 'Date'
-  ,calculationType: 'Calculation Type'
-  ,unitPriceRowFormulaDesc: 'Use formula for Price column (use values from other columns in the row)'
-  ,rowFormulaDesc: 'Formula for each cell (use values from other columns in the row)'
-  ,unitPriceFormulaNote: 'The formula will automatically calculate Price based on other columns in the same row'
-  ,rowFormulaNote: 'The formula will automatically calculate the cell value based on other columns in the same row'
-  ,savePriceConfig: 'Save Price Config'
-  ,configurePriceFormula: 'Configure Price Formula'
-  ,errorInFormula: 'Error in formula'
-  ,priceFormulaLabel: 'Price Formula'
-  ,cellFormulaLabel: 'Cell Formula'
-  ,enterFormulaInstruction: 'Enter formula (use @ + column name):'
-  ,formulaExample: 'Example'
-  ,createNumberColumnsFirst: 'Create number columns first to use formulas'
-  ,howToUse: 'How to use:'
-  ,useColumnReference: 'Use @columnname to reference other columns'
-  ,useOperators: 'Available operators: + - * / ( )'
-  ,dateFormat: 'Date Format'
-  ,selectFormat: 'Select format'
-  ,singleDate: 'Single date'
-  ,dateRange: 'Date range (from - to)'
-  ,moveLeft: 'Move Left'
-  ,moveRight: 'Move Right'
-  ,deleteColumn: 'Delete Column'
-  ,columnOptions: 'Column options'
-  
-  // Quote Manager specific translations
-  ,selectVariableOrFormula: 'Select variable or enter formula...'
-  ,default: 'Default'
-  ,variablesAvailable: 'Available calculation results'
-  ,noCalculationColumns: 'No columns have calculation set up'
-  ,setupCalculationColumns: 'Set up calculations for columns to create variables for use in formulas'
-  ,variablesAutoSumHint: 'Adjacent variables will be automatically added. Example: {QuantitySum}{PriceAvg} = QuantitySum + PriceAvg'
-  ,netTotal: 'Net Total'
-  ,netTotalDesc: 'Grand Total - Collaborator total'
-  ,sumByColumn: 'Sum by Column'
-  ,columns: 'columns'
-  ,otherCalculations: 'Other Calculations'
-  ,calculationsCount: 'calculations'
-  ,noCalculationColumnsMsg: 'No columns have calculations set up. Add number columns and set up calculations to see results.'
-  ,grandTotal: 'Grand Total'
-  ,grandTotaltit: 'Grand Total & Calculations'
-  ,calculationsDesc: 'Summary'
-  ,sections: 'Tables'
-  ,suggestions: 'AI Suggestions'
-  ,addSection: 'Add Section'
-  ,templateApplied: 'Template Applied'
-  ,templateAppliedDesc: 'Template has been applied successfully'
-  ,columnAdded: 'Column Added'
-  ,hasBeenAdded: 'has been added'
-  ,columnDeleted: 'Column Deleted'
-  ,hasBeenRemoved: 'has been removed'
-  ,pastedFromClipboard: 'Pasted from Clipboard'
-  ,items: 'items'
-  ,and: 'and'
-  ,haveBeenImported: 'have been imported.'
-  ,clipboardInvalidFormat: 'Clipboard is empty or has invalid format'
-  ,untitledSection: 'Untitled Section'
-  ,applyTemplate: 'Apply Template'
-  ,applyTemplateWarning: 'This will replace all current sections and items. This action cannot be undone.'
-  ,copyFromPriceQuote: 'Copy from Quote'
-  ,copyFromQuoteDesc: 'Copy structure and data from price quote'
-  ,invalidFormulaResult: 'Invalid formula or does not return a number.'
-  ,briefLink: 'Brief'
-  ,driveLink: 'Storage'
-  ,noDescription: 'No description available'
-  ,noQuoteData: 'No quote data available'
-  ,noCollaboratorQuoteData: 'No collaborator quote data available'
-  ,analyticsDesc: 'Key metrics and charts for this task. (Charts coming soon)'
-  ,totalRevenue: 'Total Revenue'
-  ,estimatedProfit: 'Estimated Profit'
-  ,daysTotal: 'Days Total'
-  ,quoteItems: 'Quote Items'
-  ,chartsPlaceholder: '[Charts will be displayed here]'
-  ,startDate: 'Start Date'
-  ,deadline: 'Deadline'
-  ,progress: 'Progress'
-  ,days: 'days'
-  ,invalidDate: 'Invalid Date'
-  // Local Backup translations
-  ,localFolderBackup: 'Local Folder Backup'
-  ,browserSupport: 'Browser Support'
-  ,supported: 'Supported'
-  ,limited: 'Limited'
-  ,browserNotSupported: 'Browser Not Supported'
-  ,browserNotSupportedDesc: 'Your browser doesn\'t support folder selection. Please use Chrome 86+ or Edge 86+ for this feature. You can still use manual download to Downloads folder.'
-  ,autoSaveStatus: 'Auto-save Status'
-  ,savingTo: 'Saving to'
-  ,selectedFolder: 'Selected folder'
-  ,noFolderSelected: 'No folder selected'
-  ,active: 'Active'
-  ,inactive: 'Inactive'
-  ,selectBackupFolder: 'Select Backup Folder'
-  ,selecting: 'Selecting...'
-  ,saveNow: 'Save Now'
-  ,saving: 'Saving...'
-  ,disableAutoSave: 'Disable Auto-save'
-  ,folderSelected: 'Folder Selected'
-  ,folderSelectedDesc: 'Backup folder has been set successfully. Auto-save is now enabled.'
-  ,selectionFailed: 'Selection Failed'
-  ,selectionFailedDesc: 'Failed to select backup folder. Please try again.'
-  ,autoSaveDisabled: 'Auto-save Disabled'
-  ,autoSaveDisabledDesc: 'Local folder auto-save has been disabled.'
-  ,backupSaved: 'Backup Saved'
-  ,backupSavedDesc: 'Manual backup has been saved to your selected folder.'
-  ,saveFailed: 'Save Failed'
-  ,saveFailedDesc: 'Failed to save backup. Please select a folder first.'
-  ,saveError: 'Save Error'
-  ,saveErrorDesc: 'An error occurred while saving backup.'
-  ,manualDownload: 'Manual Download'
-  ,manualDownloadDesc: 'Download backup directly to your Downloads folder'
-  ,suggested: 'Suggested'
-  ,downloadToDownloads: 'Download Data'
-  ,backupDownloaded: 'Backup Downloaded'
-  ,backupDownloadedDesc: 'Backup file has been downloaded to your Downloads folder.'
-  ,lastAutoSave: 'Last auto-save'
-  ,howItWorks: 'How it works'
-  ,autoSaveEvery24h: 'Auto-save creates backup files every 24 hours'
-  ,savedDirectlyToFolder: 'Files are saved directly to your chosen folder'
-  ,noInternetRequired: 'No internet required - everything stays on your computer'
-  ,folderPermissionOnce: 'Folder permission is requested only once per session'
-  ,manualDownloadAllBrowsers: 'Manual download works in all browsers'
-  ,dataBackupAndRestore: 'Data Backup & Restore'
-  ,dataBackupDesc: 'Manage data backups with multiple protection options'
-  ,backupTooltip: 'Automatically creates multiple backup versions to protect data from loss'
-  ,localFolderTooltip: 'Save backups directly to a folder on your computer'
-  ,manualExportTooltip: 'Download backup file instantly for manual storage'
-  // Data Management
-  ,dataManagement: 'Data Management'
-  ,dataManagementDesc: 'Backup, restore and manage your data'
-  ,dataRestore: 'Data Restore'
-  ,selectBackupFile: 'Select backup file'
-  ,supportedFormat: 'Supported format: .json'
-  ,selectFile: 'Select File'
-  ,warningNotReversible: 'Warning: This action cannot be undone!'
-  // Calendar navigation keys
-  ,navigationGroup: 'Navigation'
-  ,goToPrevious: 'Go to Previous'
-  ,goToNext: 'Go to Next'
-  ,jumpToToday: 'Jump to Today'
-  ,todayButton: 'Today'
-  ,prevWeek: 'Previous Week'
-  ,nextWeek: 'Next Week'
-  ,prevMonth: 'Previous Month'
-  ,nextMonth: 'Next Month'
-  ,currentWeek: 'Current Week'
-  ,currentMonth: 'Current Month'
-  ,weekNumber: 'Week'
-  ,viewMode: 'View Mode'
-  ,switchToWeekView: 'Switch to Week View'
-  ,switchToMonthView: 'Switch to Month View'
-  ,weekView: 'Week'
-  ,monthView: 'Month'
-  // Month names
-  ,months: {
-    january: 'January',
-    february: 'February',
-    march: 'March', 
-    april: 'April',
-    may: 'May',
-    june: 'June',
-    july: 'July',
-    august: 'August',
-    september: 'September',
-    october: 'October',
-    november: 'November',
-    december: 'December'
-  }
-  // Days of week
-  ,weekdays: {
-    monday: 'Monday',
-    tuesday: 'Tuesday',
-    wednesday: 'Wednesday', 
-    thursday: 'Thursday',
-    friday: 'Friday',
-    saturday: 'Saturday',
-    sunday: 'Sunday'
-  }
-  ,weekdaysShort: {
-    monday: 'Mon',
-    tuesday: 'Tue',
-    wednesday: 'Wed',
-    thursday: 'Thu', 
-    friday: 'Fri',
-    saturday: 'Sat',
-    sunday: 'Sun'
-  }
-  ,collapseFilters: 'Collapse Filters'
-  ,expandFilters: 'Expand Filters'
-  ,clearFilters: 'Clear Filters'
-  ,tableView: 'Table View'
-  ,calendarView: 'Calendar View'
-  ,ganttView: 'Gantt Chart'
-  // Date and time formats
-  ,dateFormats: {
-    today: 'Today',
-    yesterday: 'Yesterday',
-    tomorrow: 'Tomorrow',
-    daysAgo: 'days ago',
-    daysFrom: 'days from now',
-    thisWeek: 'This week',
-    lastWeek: 'Last week',
-    nextWeek: 'Next week',
-    thisMonth: 'This month',
-    lastMonth: 'Last month',
-    nextMonth: 'Next month'
-  },
-  
-  // Advanced Filter translations
-  advancedFilters: 'Advanced Filters',
-  selectCategory: 'Select category',
-  allCategories: 'All categories',
-  selectCollaborator: 'Select collaborator',
-  allCollaborators: 'All collaborators',
-  selectClient: 'Select client',
-  allClients: 'All clients',
-  clearAll: 'Clear all',
-  savePreset: 'Save preset',
-  done: 'Done',
-  
-  // Filter Presets translations
-  thisWeek: 'This Week',
-  inProgress: 'In Progress',
-  overdueItems: 'Overdue',
-  savedPresets: 'Saved',
-  saveFilterPreset: 'Save Filter Preset',
-  saveFilterPresetDesc: 'Give your current filter combination a name to save it for later use.',
-  presetNamePlaceholder: 'My filter preset...',
-  setDefault: 'Set as default',
-  removeDefault: 'Remove default'
+  ...en_base,
+  ...en_new
 };
-
 // Simple language switcher based on user settings
 export const getTranslations = (language: string = 'vi') => {
-  return language === 'en' ? en : vi;
+  return language === 'en' ? i18n.en : i18n.vi;
 };
 
 // Default export for backwards compatibility
@@ -809,6 +55,28 @@ export const i18n = {
     all: 'All',
     logOut: 'Log Out',
     dismiss: 'Dismiss',
+
+    // EventDialog specific keys
+    editEventTitle: 'Edit Event',
+    addEventTitle: 'Add New Event',
+    editEventDesc: 'Update details for your event.',
+    addEventDesc: 'Add a new event to your calendar.',
+    eventName: 'Event Name',
+    pickDateTime: 'Pick date & time',
+    timeLabel: 'Time:',
+    timeError: 'End time must be after start time.',
+    notes: 'Notes',
+    addNotesPlaceholder: 'Add notes for the event...',
+    relatedTasks: 'Related Tasks',
+    noTasksSelected: 'No tasks selected.',
+    addOrSearchTask: 'Add or search task',
+    searchTaskPlaceholder: 'Search tasks...',
+    typeToSearchTask: 'Type to search tasks...',
+    linkPlaceholder: 'https://...',
+    addLink: 'Add link',
+    createEvent: 'Create Event',
+viewEventDetailsDesc: 'View event details below.',
+    notSet: 'Not Set',
 
     // Header
     headerFeatures: 'Features',
@@ -989,6 +257,7 @@ export const i18n = {
     netTotal: 'Net Total',
     createTask: 'Create Task',
     createTaskDesc: 'Fill in the details below to add a new task. You can also generate a price quote.',
+requiredField: 'This field is required',
     saveChanges: 'Save Changes',
     editTask: 'Edit Task',
     taskDetails: 'Task Details',
@@ -1140,8 +409,7 @@ export const i18n = {
     collaboratorNameRequired: 'Collaborator name (required)',
     facebookLink: 'Facebook Link',
     specialty: 'Specialty (e.g. 3D Artist)',
-    notes: 'Notes...',
-    addCollaborator: 'Add Collaborator',
+        addCollaborator: 'Add Collaborator',
     
     // Quote Template Manager
     quoteTemplateManagement: 'Quote Template Management',
@@ -1355,6 +623,28 @@ export const i18n = {
     all: 'Tất cả',
     logOut: 'Đăng xuất',
     dismiss: 'Bỏ qua',
+
+    // EventDialog specific keys
+    editEventTitle: 'Chỉnh sửa sự kiện',
+    addEventTitle: 'Thêm sự kiện mới',
+    editEventDesc: 'Cập nhật chi tiết cho sự kiện của bạn.',
+    addEventDesc: 'Thêm một sự kiện mới vào lịch của bạn.',
+    eventName: 'Tên sự kiện',
+    pickDateTime: 'Chọn ngày & giờ',
+    timeLabel: 'Giờ:',
+    timeError: 'Thời gian kết thúc phải sau thời gian bắt đầu.',
+    notes: 'Ghi chú',
+    addNotesPlaceholder: 'Thêm ghi chú cho sự kiện...',
+    relatedTasks: 'Công việc liên quan',
+    noTasksSelected: 'Chưa có công việc nào được chọn.',
+    addOrSearchTask: 'Thêm hoặc tìm công việc',
+    searchTaskPlaceholder: 'Tìm công việc...',
+    typeToSearchTask: 'Gõ để tìm kiếm công việc...',
+    linkPlaceholder: 'https://...',
+viewEventDetailsDesc: 'Xem chi tiết sự kiện bên dưới.',
+    notSet: 'Chưa đặt',
+    addLink: 'Thêm liên kết',
+    createEvent: 'Tạo sự kiện',
     
     // Header
     headerFeatures: 'Tính năng',
@@ -1540,6 +830,7 @@ export const i18n = {
     taskDetails: 'Chi tiết công việc',
     noDescription: 'Không có mô tả.',
     links: 'Liên kết',
+requiredField: 'Trường này là bắt buộc',
     deleteTask: 'Xóa công việc',
     moveToTrash: 'Chuyển vào thùng rác',
     moveToTrashDescription: 'Thao tác này sẽ chuyển công việc vào thùng rác. Bạn có thể khôi phục trong vòng 30 ngày.',
@@ -1686,7 +977,6 @@ export const i18n = {
     collaboratorNameRequired: 'Tên cộng tác viên (bắt buộc)',
     facebookLink: 'Link Facebook',
     specialty: 'Chuyên môn (ví dụ: Họa sĩ 3D)',
-    notes: 'Ghi chú...',
     addCollaborator: 'Thêm cộng tác viên',
     
     // Quote Template Manager
