@@ -2,16 +2,15 @@
 
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext } from '@dnd-kit/sortable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { HelpCircle } from 'lucide-react';
-import { Task } from '@/lib/types';
+import type { Task, AppSettings, Client, Collaborator, Category, Quote, QuoteTemplate } from '@/lib/types';
 import { CompactTaskCard } from './CompactTaskCard';
 import { EisenhowerQuadrantType } from './EisenhowerView';
 import { i18n } from '@/lib/i18n';
 import styles from './EisenhowerQuadrant.module.css';
-import { useDashboard } from '@/contexts/dashboard-context';
 
 interface EisenhowerQuadrantProps {
   id: EisenhowerQuadrantType | 'uncategorized';
@@ -20,9 +19,35 @@ interface EisenhowerQuadrantProps {
   tasks: Task[];
   onClearQuadrant: (taskId: string) => void;
   className?: string;
+  // Props to drill down
+  settings: AppSettings;
+  clients: Client[];
+  collaborators: Collaborator[];
+  categories: Category[];
+  quoteTemplates: QuoteTemplate[];
+  quotes: Quote[];
+  collaboratorQuotes: Quote[];
+  handleEditTask: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
+  handleDeleteTask: (taskId: string) => void;
 }
 
-export function EisenhowerQuadrant({ id, title, description, tasks, onClearQuadrant, className }: EisenhowerQuadrantProps) {
+export function EisenhowerQuadrant({ 
+    id, 
+    title, 
+    description, 
+    tasks, 
+    onClearQuadrant, 
+    className,
+    settings,
+    clients,
+    collaborators,
+    categories,
+    quoteTemplates,
+    quotes,
+    collaboratorQuotes,
+    handleEditTask,
+    handleDeleteTask,
+}: EisenhowerQuadrantProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: id,
     data: {
@@ -32,8 +57,7 @@ export function EisenhowerQuadrant({ id, title, description, tasks, onClearQuadr
     }
   });
 
-  const dashboardContext = useDashboard();
-  const T = dashboardContext ? i18n[dashboardContext.language] : i18n.en;
+  const T = i18n[settings.language];
   
   return (
     <TooltipProvider>
@@ -59,16 +83,14 @@ export function EisenhowerQuadrant({ id, title, description, tasks, onClearQuadr
           </div>
         </CardHeader>
         <CardContent className="flex-grow overflow-hidden p-1" ref={setNodeRef}>
-        {/* Invisible large drop zone overlay for better drop detection */}
         <div className={`absolute inset-0 z-0 ${isOver ? 'bg-primary/5' : ''}`} />
         
-        <SortableContext items={tasks.map(task => task.id)} strategy={rectSortingStrategy}>
+        <SortableContext items={tasks.map(task => task.id)}>
           <div className={`${styles.dropZone} relative h-full transition-all duration-200 rounded-lg z-10`}>
             {tasks.length === 0 ? (
               <div className={`${styles.emptyDropZone} text-muted-foreground text-center py-8 px-4 rounded-lg border-2 border-dashed transition-all duration-200 h-full flex items-center justify-center ${isOver ? 'border-primary bg-primary/10 text-primary' : 'border-muted-foreground/20'}`}>
                 <div className="flex flex-col items-center gap-2">
-                                  <p className="text-sm font-medium">{T.eisenhower.dragTaskHere}</p>
-               
+                    <p className="text-sm font-medium">{T.eisenhower.dragTaskHere}</p>
                 </div>
               </div>
             ) : (
@@ -81,13 +103,21 @@ export function EisenhowerQuadrant({ id, title, description, tasks, onClearQuadr
                         <CompactTaskCard 
                           task={task} 
                           onClearQuadrant={onClearQuadrant} 
-                          variant="matrix" 
+                          variant="matrix"
+                          settings={settings}
+                          clients={clients}
+                          collaborators={collaborators}
+                          categories={categories}
+                          quoteTemplates={quoteTemplates}
+                          quotes={quotes}
+                          collaboratorQuotes={collaboratorQuotes}
+                          handleEditTask={handleEditTask}
+                          handleDeleteTask={handleDeleteTask}
                         />
                       </div>
                     ))}
                   </div>
                 </div>
-                {/* Ghost drop zones for better detection */}
                 <div className={`w-full h-2 ${isOver ? 'border-2 border-dashed border-primary/50 rounded-lg bg-primary/5' : ''}`} />
               </div>
             )}

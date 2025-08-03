@@ -1,3 +1,6 @@
+import React from 'react';
+import { WIDGETS } from './widgets';
+
 export type DashboardColumn = {
   id: 'name' | 'client' | 'category' | 'collaborator' | 'deadline' | 'status' | 'priceQuote';
   label: string;
@@ -70,12 +73,12 @@ export type Task = {
   driveLink?: string[];
   deletedAt?: string;
   eisenhowerQuadrant?: 'do' | 'decide' | 'delegate' | 'delete';
-kanbanOrder?: number;
-endDate?: string; // ISO string, ngày kết thúc của nhiệm vụ
+  kanbanOrder?: number;
+  endDate?: string; // ISO string, ngày kết thúc của nhiệm vụ
   duration?: number; // số ngày, thời lượng của nhiệm vụ
   progress?: number; // 0-100, tiến độ hoàn thành nhiệm vụ
   dependencies?: string[]; // mảng các task ID mà nhiệm vụ này phụ thuộc vào
-createdAt?: string; // Ngày thêm task
+  createdAt?: string; // Ngày thêm task
 };
 
 export type AppEvent = {
@@ -131,12 +134,35 @@ export type StatusSetting = {
   subStatuses: SubStatus[];
 };
 
+export type Note = {
+    id: number;
+    text: string;
+};
+
+export type WidgetDefinition = {
+    id: string;
+    name: string;
+    nameKey: string;
+    description: string;
+    descriptionKey: string;
+    icon: React.FC<any>;
+    component: React.FC<any>;
+    defaultSize?: {
+        colSpan: number;
+        rowSpan: number;
+    };
+};
+
+export type WidgetId = typeof WIDGETS[number]['id'];
+
 export type WidgetSetting = {
-    id: 'calculator' | 'sticky-notes';
+    id: WidgetId;
     enabled: boolean;
     showInSidebar: boolean;
     colSpan: number;
     rowSpan: number;
+    x?: number;
+    y?: number;
 };
 
 
@@ -169,7 +195,7 @@ export type AppSettings = {
   dashboardColumns?: DashboardColumn[];
   widgets: WidgetSetting[];
   eisenhowerMaxTasksPerQuadrant?: number; // New setting for Eisenhower matrix
-kanbanColumnOrder?: string[];
+  kanbanColumnOrder?: string[];
   kanbanColumnVisibility?: Record<string, boolean>;
   kanbanSubStatusMode?: 'grouped' | 'separate';
   eisenhowerColorScheme?: 'colorScheme1' | 'colorScheme2' | 'colorScheme3'; // Color scheme for Eisenhower matrix
@@ -198,6 +224,7 @@ export type AppData = {
   collaborators: Collaborator[];
   quoteTemplates: QuoteTemplate[];
   categories: Category[];
+  notes: Note[];
   appSettings: AppSettings;
   filterPresets?: FilterPreset[]; // Add filter presets to export data
 };

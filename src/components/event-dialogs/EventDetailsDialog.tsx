@@ -21,8 +21,7 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({ event, t
   const dashboard = useDashboard();
   if (!dashboard || !event) return null;
 
-  const { language, handleViewTask } = dashboard;
-  const T = getTranslations(language);
+  const { T, handleViewTask } = dashboard;
 
   const relatedTasks = event.taskIds?.map(taskId => tasks.find(t => t.id === taskId)).filter(Boolean) as Task[] | undefined;
   
@@ -112,7 +111,7 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({ event, t
                     ))}
                  </div>
                </div>
-            </div>
+             </div>
           )}
 
         </div>

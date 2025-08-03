@@ -23,6 +23,7 @@ type TaskListProps = {
     collaborators: Collaborator[];
     categories: Category[];
     view: 'active' | 'trash';
+    onViewTask: (taskId: string) => void;
     onEditTask: (
       values: TaskFormValues, 
       quoteColumns: QuoteColumn[],
@@ -46,6 +47,7 @@ export function TaskList({
     collaborators,
     categories,
     view, 
+    onViewTask,
     onEditTask, 
     onTaskStatusChange, 
     onDeleteTask, 
@@ -96,33 +98,22 @@ export function TaskList({
                     key={task.id}
                     task={task}
                     client={clients.find(c => c.id === task.clientId)}
-                    clients={clients}
                     collaborators={collaborators}
-                    categories={categories}
+                    category={categories.find(c => c.id === task.categoryId)}
                     quote={quotes.find(q => q.id === task.quoteId)}
-                    collaboratorQuotes={
-                      task.collaboratorQuotes 
-                        ? task.collaboratorQuotes.map(cq => collaboratorQuotes.find(q => q.id === cq.quoteId)).filter(Boolean) as Quote[]
-                        : (task as any).collaboratorQuoteId 
-                          ? [collaboratorQuotes.find(q => q.id === (task as any).collaboratorQuoteId)].filter(Boolean) as Quote[]
-                          : []
-                    }
                     status={STATUS_INFO.find(s => s.id === task.status)}
-                    onEditTask={onEditTask}
+                    onViewTask={onViewTask}
                     onTaskStatusChange={onTaskStatusChange}
-                    onDeleteTask={onDeleteTask}
-                    onAddClient={onAddClient}
-                    quoteTemplates={quoteTemplates}
-                    view={view}
                     onRestoreTask={onRestoreTask}
                     onPermanentDeleteTask={onPermanentDeleteTask}
                     settings={settings}
+                    view={view}
                   />
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="p-4 align-middle h-24 text-center">
-                    {view === 'active' ? T.noClientsFound : T.trash + ' is empty.'}
+                  <td colSpan={visibleColumns.length || 6} className="p-4 align-middle h-24 text-center">
+                    {view === 'active' ? T.noTasksFound : T.trash + ' is empty.'}
                   </td>
                 </tr>
               )}

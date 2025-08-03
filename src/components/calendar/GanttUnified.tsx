@@ -1,10 +1,9 @@
-import React, { useRef, useLayoutEffect, Dispatch, SetStateAction, useMemo } from 'react';
+import React, { useRef, useLayoutEffect, useMemo } from 'react';
 import { Target, Flag } from 'lucide-react';
 import styles from './GanttView.module.css';
 import ganttStyles from './GanttUnified.module.css';
-import { Task, StatusColors, Client, Category, Quote, CollaboratorQuote, AppSettings, AppEvent } from '@/lib/types';
+import type { Task, StatusColors, Client, Category, Quote, AppSettings, AppEvent, Collaborator, QuoteTemplate } from '@/lib/types';
 import { TaskBar } from './TaskBar';
-import { useDashboard } from '@/contexts/dashboard-context';
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { TaskDetailsDialog } from '@/components/task-dialogs/TaskDetailsDialog';
 import { TaskEditDialog } from '@/components/task-dialogs/TaskEditDialog';
@@ -35,40 +34,36 @@ interface MonthHeaderGroup {
     dayCount: number;
 }
 
-// =================================================================================
-// Component con cho từng dòng Task trong danh sách bên trái
-// =================================================================================
 interface GanttTaskRowProps {
   task: Task;
   rowHeight: number;
   statusColors: StatusColors;
-  settings?: AppSettings;
+  settings: AppSettings;
+  language: keyof typeof i18n;
+  clients: Client[];
+  categories: Category[];
+  quotes: Quote[];
+  collaboratorQuotes: Quote[];
+  collaborators: Collaborator[];
+  quoteTemplates: QuoteTemplate[];
+  handleDeleteTask: (taskId: string) => void;
+  handleEditTask: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
+  handleAddClientAndSelect: (data: Omit<Client, 'id'>) => Client;
   onLocateTask: (task: Task) => void;
   isHighlighted: boolean;
 }
 
-const GanttTaskRow: React.FC<GanttTaskRowProps> = ({ task, rowHeight, statusColors, settings, onLocateTask, isHighlighted }) => {
-  const dashboardContext = useDashboard();
-  if (!dashboardContext) return null;
-
-  const {
-    clients,
-    categories,
-    quotes,
-    collaboratorQuotes,
-    appSettings,
-    collaborators,
-    handleDeleteTask,
-    handleEditTask,
-    handleAddClientAndSelect,
-    quoteTemplates,
-  } = dashboardContext;
+const GanttTaskRow: React.FC<GanttTaskRowProps> = ({
+    task, rowHeight, statusColors, settings, language, clients, categories, quotes,
+    collaboratorQuotes, collaborators, quoteTemplates, handleDeleteTask,
+    handleEditTask, handleAddClientAndSelect, onLocateTask, isHighlighted
+}) => {
 
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 
-  const T = i18n[appSettings.language];
+  const T = i18n[language];
   const client = clients.find(c => c.id === task.clientId);
   const category = categories.find(c => c.id === task.categoryId);
   const quote = quotes.find(q => q.id === task.quoteId);
@@ -122,7 +117,7 @@ const GanttTaskRow: React.FC<GanttTaskRowProps> = ({ task, rowHeight, statusColo
           </DialogTrigger>
           <TaskDetailsDialog
             task={task} client={client} clients={clients} collaborators={collaborators} categories={categories}
-            quote={quote} collaboratorQuotes={taskCollaboratorQuotes} settings={appSettings}
+            quote={quote} collaboratorQuotes={taskCollaboratorQuotes} settings={settings}
             isOpen={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} onEdit={handleEditClick} onDelete={handleDeleteClick}
           />
         </Dialog>
@@ -135,7 +130,7 @@ const GanttTaskRow: React.FC<GanttTaskRowProps> = ({ task, rowHeight, statusColo
       <TaskEditDialog
         task={task} quote={quote} collaboratorQuotes={taskCollaboratorQuotes} clients={clients}
         collaborators={collaborators} categories={categories} quoteTemplates={quoteTemplates}
-        settings={appSettings} isOpen={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}
+        settings={settings} isOpen={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}
         onSubmit={handleEditTask} onAddClient={handleAddClientAndSelect}
       />
 
@@ -165,7 +160,7 @@ export const GanttUnified: React.FC<{
   events?: AppEvent[];
   rowHeight?: number;
   statusColors: StatusColors;
-  settings?: AppSettings;
+  settings: AppSettings;
   scale: number;
   onScaleChange: (newScale: number) => void;
   recentlyUpdatedTaskId: string | null;
@@ -173,7 +168,17 @@ export const GanttUnified: React.FC<{
   displayDate: Date;
   onViewModeChange: (mode: 'day' | 'month') => void;
   onDisplayDateChange: (date: Date) => void;
-  onEventClick?: (event: AppEvent) => void; // Add prop
+  onEventClick?: (event: AppEvent) => void;
+  language: keyof typeof i18n;
+  clients: Client[];
+  categories: Category[];
+  quotes: Quote[];
+  collaboratorQuotes: Quote[];
+  collaborators: Collaborator[];
+  quoteTemplates: QuoteTemplate[];
+  handleDeleteTask: (taskId: string) => void;
+  handleEditTask: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
+  handleAddClientAndSelect: (data: Omit<Client, 'id'>) => Client;
 }> = ({
   tasks,
   events = [],
@@ -187,13 +192,19 @@ export const GanttUnified: React.FC<{
   displayDate,
   onViewModeChange,
   onDisplayDateChange,
-  onEventClick, // Destructure prop
+  onEventClick,
+  language,
+  clients,
+  categories,
+  quotes,
+  collaboratorQuotes,
+  collaborators,
+  quoteTemplates,
+  handleDeleteTask,
+  handleEditTask,
+  handleAddClientAndSelect,
 }) => {
   const dayColumnRef = useRef<HTMLDivElement>(null);
-  
-  const dashboardContext = useDashboard();
-  if (!dashboardContext) return null;
-  const language = dashboardContext.appSettings.language as keyof typeof i18n;
   const T = i18n[language];
   
   const timelineStart = parseDateSafely(displayDate);
@@ -374,10 +385,20 @@ export const GanttUnified: React.FC<{
               key={task.id}
               task={task}
               rowHeight={rowHeight}
-              settings={dashboardContext.appSettings}
+              settings={settings}
+              language={language}
               onLocateTask={handleLocateTask}
               statusColors={statusColors}
               isHighlighted={task.id === recentlyUpdatedTaskId}
+              clients={clients}
+              categories={categories}
+              quotes={quotes}
+              collaboratorQuotes={collaboratorQuotes}
+              collaborators={collaborators}
+              quoteTemplates={quoteTemplates}
+              handleDeleteTask={handleDeleteTask}
+              handleEditTask={handleEditTask}
+              handleAddClientAndSelect={handleAddClientAndSelect}
             />
           ))}
         </div>
@@ -420,7 +441,7 @@ export const GanttUnified: React.FC<{
                             scale={scale}
                             viewMode={viewMode}
                             statusColors={statusColors}
-                            settings={dashboardContext.appSettings}
+                            settings={settings}
                         />
                     </div>
                 ))}
@@ -484,7 +505,7 @@ export const GanttUnified: React.FC<{
                         scale={scale}
                         viewMode={viewMode}
                         settings={settings}
-                        onEventClick={onEventClick} // Pass down click handler
+                        onEventClick={onEventClick}
                     />
                  ))}
                </div>

@@ -216,6 +216,7 @@ export const initialQuoteTemplates: QuoteTemplate[] = [
 export const initialAppData: AppData = {
     tasks,
 events: [],
+    notes: [],
     quotes,
     collaboratorQuotes: [],
     clients: initialClients,

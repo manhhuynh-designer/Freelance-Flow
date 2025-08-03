@@ -1,43 +1,18 @@
-
 "use client";
 
 import Link from "next/link";
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { LayoutGrid, MessageCircle, Puzzle } from "lucide-react";
-import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuSkeleton } from "@/components/ui/sidebar";
+import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { i18n } from "@/lib/i18n";
 import { useDashboard } from "@/contexts/dashboard-context";
 
-import { Suspense } from 'react';
-
 export function SidebarNavigation() {
-    return (
-        <Suspense fallback={<SidebarMenu><SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem><SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem><SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem></SidebarMenu>}>
-            <SidebarMenuNavigationSuspense />
-        </Suspense>
-    );
-}
-
-function SidebarMenuNavigationSuspense() {
-    // Only import useSearchParams here, inside Suspense
-    const { useSearchParams } = require('next/navigation');
-    const dashboardContext = useDashboard();
+    const { appData } = useDashboard();
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    if (!dashboardContext) {
-        // Render a skeleton while context is loading.
-        return (
-          <SidebarMenu>
-            <SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem>
-            <SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem>
-            <SidebarMenuItem><SidebarMenuSkeleton showIcon /></SidebarMenuItem>
-          </SidebarMenu>
-        );
-    }
-    
-    const { appSettings } = dashboardContext;
-    const T = i18n[appSettings.language];
+    const T = i18n[appData.appSettings.language];
 
     return (
         <SidebarMenu>

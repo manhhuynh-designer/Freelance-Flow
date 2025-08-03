@@ -1,5 +1,5 @@
 "use client";
-// Mapping text mức độ ưu tiên Eisenhower cho tooltip
+
 const eisenhowerTooltip: Record<string, string> = {
   do: 'Ưu tiên cao (Do)',
   decide: 'Quan trọng (Decide)',
@@ -8,48 +8,19 @@ const eisenhowerTooltip: Record<string, string> = {
   none: 'Không ưu tiên',
 };
 
-
 import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card } from '@/components/ui/card';
-import { Task, Category, Client } from '@/lib/types';
-import { format, isPast, isToday, isTomorrow } from 'date-fns'; // Import date-fns functions
+import { Task, Category, Client, Quote, AppSettings, Collaborator, QuoteTemplate } from '@/lib/types';
+import { format, isPast, isToday, isTomorrow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { useDashboard } from '@/contexts/dashboard-context';
 import {
   Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { TaskDetailsDialog } from '@/components/task-dialogs/TaskDetailsDialog';
-import { Pencil, Trash2, Flag, FlagOff } from 'lucide-react';
-  // Eisenhower flag color logic giống Table view
-  const eisenhowerSchemes = {
-    colorScheme1: {
-      do: '#ef4444',
-      decide: '#3b82f6',
-      delegate: '#f59e42',
-      delete: '#6b7280',
-    },
-    colorScheme2: {
-      do: '#d8b4fe',
-      decide: '#bbf7d0',
-      delegate: '#fed7aa',
-      delete: '#bfdbfe',
-    },
-    colorScheme3: {
-      do: '#99f6e4',
-      decide: '#fbcfe8',
-      delegate: '#fde68a',
-      delete: '#c7d2fe',
-    },
-  };
-
-  // Đặt scheme và getFlagColor vào trong component để dùng appSettings từ dashboardContext
-
+import { Flag, FlagOff } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -60,42 +31,53 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 import { i18n } from '@/lib/i18n';
-import { EditTaskForm, TaskFormValues } from '../edit-task-form';
 import { TaskEditDialog } from '@/components/task-dialogs/TaskEditDialog';
 
+const eisenhowerSchemes = {
+    colorScheme1: { do: '#ef4444', decide: '#3b82f6', delegate: '#f59e42', delete: '#6b7280' },
+    colorScheme2: { do: '#d8b4fe', decide: '#bbf7d0', delegate: '#fed7aa', delete: '#bfdbfe' },
+    colorScheme3: { do: '#99f6e4', decide: '#fbcfe8', delegate: '#fde68a', delete: '#c7d2fe' },
+};
 
 interface KanbanTaskCardProps {
   task: Task;
+  // Drilled Props
+  clients: Client[];
+  categories: Category[];
+  quotes: Quote[];
+  collaboratorQuotes: Quote[];
+  collaborators: Collaborator[];
+  appSettings: AppSettings;
+  handleDeleteTask: (taskId: string) => void;
+  handleEditTask: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
+  handleAddClientAndSelect: (data: Omit<Client, 'id'>) => Client;
+  quoteTemplates: QuoteTemplate[];
 }
 
-
-export function KanbanTaskCard({ task }: KanbanTaskCardProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
-  const dashboardContext = useDashboard();
-  if (!dashboardContext) return null;
-
-  const { 
+export function KanbanTaskCard({ 
+    task, 
     clients, 
     categories, 
     quotes, 
-    collaboratorQuotes, 
+    collaboratorQuotes,
+    collaborators, 
     appSettings, 
     handleDeleteTask,
     handleEditTask,
-    handleAddClientAndSelect, // Corrected from onAddClient
-    quoteTemplates,
-  } = dashboardContext;
-
+    handleAddClientAndSelect,
+    quoteTemplates
+}: KanbanTaskCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+  
   const scheme = appSettings?.eisenhowerColorScheme || 'colorScheme1';
   type EisenhowerQuadrant = 'do' | 'decide' | 'delegate' | 'delete';
 
   function getFlagColor(quadrant?: EisenhowerQuadrant) {
     if (!quadrant) return '#e5e7eb';
-    const flagColors = eisenhowerSchemes[scheme] || eisenhowerSchemes['colorScheme1'];
+    const flagColors = eisenhowerSchemes[scheme as keyof typeof eisenhowerSchemes] || eisenhowerSchemes['colorScheme1'];
     return flagColors[quadrant] || '#e5e7eb';
   }
 
@@ -121,10 +103,10 @@ export function KanbanTaskCard({ task }: KanbanTaskCardProps) {
 
   const getDeadlineColor = () => {
     if (!deadlineDate) return '';
-    if (isPast(deadlineDate) && !isToday(deadlineDate)) return 'text-red-500 font-bold'; // Quá hạn
-    if (isToday(deadlineDate)) return 'text-orange-500 font-bold'; // Hôm nay
-    if (isTomorrow(deadlineDate)) return 'text-yellow-500'; // Ngày mai
-    return ''; // Mặc định
+    if (isPast(deadlineDate) && !isToday(deadlineDate)) return 'text-red-500 font-bold';
+    if (isToday(deadlineDate)) return 'text-orange-500 font-bold';
+    if (isTomorrow(deadlineDate)) return 'text-yellow-500';
+    return '';
   };
 
   const handleEditClick = () => {
@@ -142,18 +124,12 @@ export function KanbanTaskCard({ task }: KanbanTaskCardProps) {
     setIsDeleteDialogOpen(false);
   };
 
-  const handleEditFormSubmit = (values: TaskFormValues, quoteCols: any[], collabQuoteCols: any[], taskId: string) => {
-    handleEditTask(values, quoteCols, collabQuoteCols, taskId);
-    setIsEditDialogOpen(false);
-  };
-
   return (
     <>
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <DialogTrigger asChild>
           <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="mb-2">
             <div className="relative">
-              {/* Flag icon ưu tiên + tooltip tách khỏi Card để không bị overflow-hidden */}
               <div className="absolute left-2 top-2 z-20 group">
                 {task.eisenhowerQuadrant ? (
                   <>
@@ -194,7 +170,7 @@ export function KanbanTaskCard({ task }: KanbanTaskCardProps) {
           task={task}
           client={client}
           clients={clients}
-          collaborators={dashboardContext.collaborators}
+          collaborators={collaborators}
           categories={categories}
           quote={quote}
           collaboratorQuotes={taskCollaboratorQuotes}
@@ -206,13 +182,12 @@ export function KanbanTaskCard({ task }: KanbanTaskCardProps) {
         />
       </Dialog>
 
-      {/* Edit Dialog - dùng TaskEditDialog chuẩn */}
       <TaskEditDialog
         task={task}
         quote={quote}
         collaboratorQuotes={taskCollaboratorQuotes}
         clients={clients}
-        collaborators={dashboardContext.collaborators}
+        collaborators={collaborators}
         categories={categories}
         quoteTemplates={quoteTemplates}
         settings={appSettings}
@@ -222,7 +197,6 @@ export function KanbanTaskCard({ task }: KanbanTaskCardProps) {
         onAddClient={handleAddClientAndSelect}
       />
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

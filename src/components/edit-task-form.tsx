@@ -14,7 +14,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -36,6 +35,7 @@ import { cn } from "@/lib/utils";
 import type { Task, Client, Collaborator, Category, Quote, QuoteSection, QuoteColumn, QuoteTemplate, AppSettings } from "@/lib/types";
 import type { SuggestQuoteOutput } from "@/lib/ai-types";
 import { QuoteManager } from "./quote-manager";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
 
 const formSchema = z.object({
   name: z.string().min(2, "Task name must be at least 2 characters."),
@@ -345,7 +345,12 @@ export function EditTaskForm({
                 <FormItem>
                   <FormLabel>{T.description}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Provide a brief description of the task." {...field} />
+                    <RichTextEditor
+                      content={field.value || ""}
+                      onChange={field.onChange}
+                      T={T}
+                      placeholder="Provide a brief description of the task."
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

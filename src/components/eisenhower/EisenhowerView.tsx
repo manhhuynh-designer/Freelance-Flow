@@ -1,37 +1,57 @@
 "use client";
 
 import React from 'react';
-import { DndContext, DragEndEvent, closestCenter, DragOverlay, PointerSensor, useSensor, useSensors, DragStartEvent, pointerWithin } from '@dnd-kit/core';
-import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
-import { useDashboard } from '@/contexts/dashboard-context';
-import { Task } from '@/lib/types';
+import { DndContext, DragEndEvent, closestCenter, DragOverlay, PointerSensor, useSensor, useSensors, DragStartEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove } from '@dnd-kit/sortable';
+import { Task, AppSettings, Client, Collaborator, Category, Quote, QuoteTemplate } from '@/lib/types';
 import { EisenhowerQuadrant } from './EisenhowerQuadrant';
 import { CompactTaskCard } from './CompactTaskCard';
 import { UncategorizedTasksList } from './UncategorizedTasksList';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { i18n } from '@/lib/i18n';
 import styles from './EisenhowerQuadrant.module.css';
 
 export type EisenhowerQuadrantType = 'do' | 'decide' | 'delegate' | 'delete';
 
 interface EisenhowerViewProps {
-  filteredTasks?: Task[];
-  sortedTasksForUncategorized?: Task[];
+  filteredTasks: Task[];
+  sortedTasksForUncategorized: Task[];
+  allTasks: Task[];
+  T: any;
+  settings: AppSettings;
+  updateTaskEisenhowerQuadrant: (taskId: string, quadrant?: EisenhowerQuadrantType) => void;
+  reorderTasksInQuadrant: (quadrant: EisenhowerQuadrantType | "uncategorized", orderedTaskIds: string[]) => void;
+  // Props for drilling
+  clients: Client[];
+  collaborators: Collaborator[];
+  categories: Category[];
+  quoteTemplates: QuoteTemplate[];
+  quotes: Quote[];
+  collaboratorQuotes: Quote[];
+  handleEditTask: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
+  handleDeleteTask: (taskId: string) => void;
 }
 
-export function EisenhowerView({ filteredTasks, sortedTasksForUncategorized }: EisenhowerViewProps = {}) {
-  const dashboardContext = useDashboard();
-  if (!dashboardContext) {
-    return null;
-  }
-  const { tasks: allTasks, updateTaskEisenhowerQuadrant, reorderTasksInQuadrant, settings, language } = dashboardContext;
-  const T = i18n[language];
+export function EisenhowerView({ 
+    filteredTasks, 
+    sortedTasksForUncategorized,
+    allTasks,
+    T,
+    settings,
+    updateTaskEisenhowerQuadrant,
+    reorderTasksInQuadrant,
+    clients,
+    collaborators,
+    categories,
+    quoteTemplates,
+    quotes,
+    collaboratorQuotes,
+    handleEditTask,
+    handleDeleteTask,
+}: EisenhowerViewProps) {
   const { toast } = useToast();
 
-  const tasks = filteredTasks || allTasks;
-  const uncategorizedTasksSource = sortedTasksForUncategorized || filteredTasks || allTasks;
+  const tasks = filteredTasks;
+  const uncategorizedTasksSource = sortedTasksForUncategorized;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -61,7 +81,7 @@ export function EisenhowerView({ filteredTasks, sortedTasksForUncategorized }: E
     return { categorized: map, uncategorized };
   }, [tasks, uncategorizedTasksSource, quadrants]);
 
-  const handleDragStart = (event: any) => {
+  const handleDragStart = (event: DragStartEvent) => {
     const draggedTask = allTasks.find(task => task.id === event.active.id);
     setActiveTask(draggedTask || null);
   };
@@ -180,6 +200,15 @@ export function EisenhowerView({ filteredTasks, sortedTasksForUncategorized }: E
                         tasks={categorizedTasks.categorized.get(quadrantType) || []}
                         onClearQuadrant={handleClearQuadrant}
                         className={getQuadrantColors(quadrantType)}
+                        settings={settings}
+                        clients={clients}
+                        collaborators={collaborators}
+                        categories={categories}
+                        quoteTemplates={quoteTemplates}
+                        quotes={quotes}
+                        collaboratorQuotes={collaboratorQuotes}
+                        handleEditTask={handleEditTask}
+                        handleDeleteTask={handleDeleteTask}
                       />
                     </div>
                   </div>
@@ -194,6 +223,16 @@ export function EisenhowerView({ filteredTasks, sortedTasksForUncategorized }: E
               title={T.uncategorizedTasks.title}
               emptyMessage={T.uncategorizedTasks.empty}
               onClearQuadrant={handleClearQuadrant}
+              T={T}
+              settings={settings}
+              clients={clients}
+              collaborators={collaborators}
+              categories={categories}
+              quoteTemplates={quoteTemplates}
+              quotes={quotes}
+              collaboratorQuotes={collaboratorQuotes}
+              handleEditTask={handleEditTask}
+              handleDeleteTask={handleDeleteTask}
             />
           </div>
         </div>
@@ -205,6 +244,15 @@ export function EisenhowerView({ filteredTasks, sortedTasksForUncategorized }: E
             task={activeTask} 
             onClearQuadrant={handleClearQuadrant}
             variant="matrix"
+            settings={settings}
+            clients={clients}
+            collaborators={collaborators}
+            categories={categories}
+            quoteTemplates={quoteTemplates}
+            quotes={quotes}
+            collaboratorQuotes={collaboratorQuotes}
+            handleEditTask={handleEditTask}
+            handleDeleteTask={handleDeleteTask}
           />
         ) : null}
       </DragOverlay>

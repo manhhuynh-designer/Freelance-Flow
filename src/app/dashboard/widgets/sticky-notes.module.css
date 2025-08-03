@@ -1,0 +1,121 @@
+/*
+ * Custom Scrollbar for Radix UI's ScrollArea component
+ */
+
+/* Vertical Scrollbar */
+.customScrollbar [data-orientation='vertical'] {
+    width: 3px !important;
+    padding: 0;
+}
+
+.customScrollbar [data-orientation='vertical'] > div {
+    background-color: hsl(var(--border)) !important;
+    border-radius: 0;
+}
+.customScrollbar [data-orientation='vertical'] > div:hover {
+  background-color: hsl(var(--primary)) !important;
+}
+
+/* Horizontal Scrollbar */
+.customScrollbar [data-orientation='horizontal'] {
+    height: 3px !important;
+    padding: 0;
+}
+
+.customScrollbar [data-orientation='horizontal'] > div {
+    background-color: hsl(var(--border)) !important;
+    border-radius: 0;
+}
+
+.customScrollbar [data-orientation='horizontal'] > div:hover {
+  background-color: hsl(var(--primary)) !important;
+}
+
+
+/* Text Truncation with formatting support */
+.noteText {
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Show 2 lines */
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* 
+ * Apply styles directly to HTML tags rendered within the .noteText container.
+ * No need for an extra class name, we just style the elements Tiptap creates.
+ */
+.noteText :global(p) {
+  margin: 0;
+  padding: 0;
+  line-height: 1.4; /* Adjust line height for better readability */
+}
+
+.noteText :global(ul) {
+    list-style-type: disc !important; /* Force disc style */
+    margin: 0.5em 0 0.5em 1.25rem !important; /* Adjust margins */
+    padding: 0 !important;
+}
+
+.noteText :global(li) {
+    margin-bottom: 0.25em;
+    padding-left: 0.25rem;
+}
+
+/* Basic formatting tags */
+.noteText :global(strong) {
+    font-weight: bold;
+}
+
+.noteText :global(em) {
+    font-style: italic;
+}
+
+.noteText :global(u) {
+    text-decoration: underline;
+}
+
+.noteText :global(s) {
+    text-decoration: line-through;
+}
+
+.noteText :global(a) {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+
+/* Dialog Buttons */
+.dialogButton {
+    box-shadow: none !important;
+    background-color: transparent !important;
+}
+
+.toolbarButton {
+    composes: dialogButton;
+    border: none !important;
+    color: var(--note-foreground-color) !important;
+}
+
+.toolbarButtonActive {
+    background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.deleteButton {
+    composes: dialogButton;
+    border: none !important;
+}
+.deleteButton:hover {
+    color: hsl(var(--destructive-foreground)) !important;
+    background-color: hsl(var(--destructive)) !important;
+}
+
+.saveButton {
+    composes: dialogButton;
+    border: 1px solid var(--note-foreground-color) !important;
+    color: var(--note-foreground-color) !important;
+}
+.saveButton:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+}

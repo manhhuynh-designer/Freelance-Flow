@@ -1,21 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Task, AppSettings, StatusColors, Client, Category, AppEvent } from '@/lib/types';
+import { Task, AppSettings, StatusColors, Client, Category, AppEvent, Quote, QuoteTemplate, Collaborator } from '@/lib/types';
 import styles from './GanttView.module.css';
 import { GanttUnified } from './GanttUnified';
 import { DragEndEvent, DndContext, DragStartEvent, DragMoveEvent } from '@dnd-kit/core';
 import { EventDetailsDialog } from '@/components/event-dialogs/EventDetailsDialog';
 import EventDialog from '@/components/event-dialogs/EventDialog';
+import { i18n } from '@/lib/i18n';
 
 export interface GanttViewProps {
   tasks: Task[];
-  clients: Client[];
-  categories: Category[];
+  events?: AppEvent[];
   settings: AppSettings;
   statusColors: StatusColors;
   updateTask: (task: Partial<Task> & { id: string }) => void;
   updateEvent?: (event: AppEvent) => void;
-  onTaskClick?: (task: Task) => void;
-  events?: AppEvent[];
+  // Drilled props
+  clients: Client[];
+  categories: Category[];
+  language: keyof typeof i18n;
+  quotes: Quote[];
+  collaboratorQuotes: Quote[];
+  collaborators: Collaborator[];
+  quoteTemplates: QuoteTemplate[];
+  handleDeleteTask: (taskId: string) => void;
+  handleEditTask: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
+  handleAddClientAndSelect: (data: Omit<Client, 'id'>) => Client;
 }
 
 function parseDateSafely(date: string | Date): Date {
@@ -28,14 +37,23 @@ function formatDate(date: Date): string {
 }
 
 const GanttChart: React.FC<GanttViewProps> = ({ 
-  tasks, 
+  tasks,
+  events = [],
   settings, 
   updateTask, 
   updateEvent = () => {}, 
   statusColors, 
+  // Drilled props
   clients, 
   categories, 
-  events = [] 
+  language,
+  quotes,
+  collaboratorQuotes,
+  collaborators,
+  quoteTemplates,
+  handleDeleteTask,
+  handleEditTask,
+  handleAddClientAndSelect,
 }) => {
   const rowHeight = 32;
   const [scale, setScale] = useState(48);
@@ -251,6 +269,17 @@ const GanttChart: React.FC<GanttViewProps> = ({
                     displayDate={displayDate}
                     onViewModeChange={setViewMode}
                     onDisplayDateChange={setDisplayDate}
+                    // Drill props down
+                    language={language}
+                    clients={clients}
+                    categories={categories}
+                    quotes={quotes}
+                    collaboratorQuotes={collaboratorQuotes}
+                    collaborators={collaborators}
+                    quoteTemplates={quoteTemplates}
+                    handleDeleteTask={handleDeleteTask}
+                    handleEditTask={handleEditTask}
+                    handleAddClientAndSelect={handleAddClientAndSelect}
                   />
               </div>
           </div>

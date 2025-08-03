@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent } from '@/components/ui/card';
-import { Task } from '@/lib/types';
-import { useDashboard } from '@/contexts/dashboard-context';
+import type { Task, AppSettings, Client, Collaborator, Category, Quote, QuoteTemplate } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, FlagOff } from 'lucide-react';
 import {
@@ -25,9 +24,32 @@ interface CompactTaskCardProps {
   task: Task;
   onClearQuadrant: (taskId: string) => void;
   variant?: 'matrix' | 'uncategorized';
+  // Props drilled down
+  settings: AppSettings;
+  clients: Client[];
+  collaborators: Collaborator[];
+  categories: Category[];
+  quoteTemplates: QuoteTemplate[];
+  quotes: Quote[];
+  collaboratorQuotes: Quote[];
+  handleEditTask: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
+  handleDeleteTask: (taskId: string) => void;
 }
 
-export function CompactTaskCard({ task, onClearQuadrant, variant = 'matrix' }: CompactTaskCardProps) {
+export function CompactTaskCard({ 
+    task, 
+    onClearQuadrant, 
+    variant = 'matrix',
+    settings,
+    clients,
+    collaborators,
+    categories,
+    quoteTemplates,
+    quotes,
+    collaboratorQuotes,
+    handleEditTask,
+    handleDeleteTask,
+}: CompactTaskCardProps) {
   const containerId = task.eisenhowerQuadrant || 'uncategorized';
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ 
     id: task.id,
@@ -36,38 +58,24 @@ export function CompactTaskCard({ task, onClearQuadrant, variant = 'matrix' }: C
       task,
       sortable: {
         containerId: containerId,
-        index: 0 // This will be set by SortableContext
+        index: 0
       }
     }
   });
-  const dashboard = useDashboard();
+  
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [forceUpdate, setForceUpdate] = useState(0);
   
-  // Force re-render key to ensure component updates when eisenhowerQuadrant changes
   const hasQuadrant = Boolean(task.eisenhowerQuadrant);
   
-  // Debug log to track quadrant state changes
-  React.useEffect(() => {
-    console.log(`Task ${task.name}: eisenhowerQuadrant = ${task.eisenhowerQuadrant}, hasQuadrant = ${hasQuadrant}, variant = ${variant}`);
-    // Force a re-render to ensure dropdown visibility updates
-    setForceUpdate(prev => prev + 1);
-  }, [task.eisenhowerQuadrant, hasQuadrant, task.name, variant]);
-
   const handleClearQuadrant = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     onClearQuadrant(task.id);
   };
   
-  if (!dashboard) return null;
-  
-  const { appSettings, clients, collaborators, categories, quoteTemplates, quotes, collaboratorQuotes, handleEditTask, handleDeleteTask } = dashboard;
-  const settings = appSettings;
-  const language = appSettings.language;
-  const lang = (language === 'vi' || language === 'en') ? language : 'vi';
-  const T = lang === 'vi' ? vi : en;
+  const language = settings.language;
+  const T = language === 'vi' ? vi : en;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -99,7 +107,7 @@ export function CompactTaskCard({ task, onClearQuadrant, variant = 'matrix' }: C
     return (
       <>
         <Card 
-          key={`${task.id}-${hasQuadrant}-${forceUpdate}`}
+          key={task.id}
           ref={setNodeRef} 
           style={{
             ...style,
@@ -182,7 +190,7 @@ export function CompactTaskCard({ task, onClearQuadrant, variant = 'matrix' }: C
   return (
     <>
       <Card 
-        key={`${task.id}-${hasQuadrant}-${forceUpdate}`}
+        key={task.id}
         ref={setNodeRef} 
         style={{
           ...style,

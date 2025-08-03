@@ -16,9 +16,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { XCircle, Trash2, Filter, Table, CalendarDays, LayoutGrid, Columns3 } from "lucide-react";
+import { XCircle, Trash2, Filter, Table, CalendarDays, LayoutGrid, Columns3, Download } from "lucide-react";
 import { TaskList } from '@/components/task-list';
-import type { Task, Quote, Collaborator, Category, Client } from "@/lib/types";
+import type { Task, Quote, Collaborator, Category, Client, AppEvent, AppSettings, QuoteTemplate } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { i18n } from "@/lib/i18n";
 import { useDashboard } from '@/contexts/dashboard-context';
@@ -36,6 +36,8 @@ import { ReadonlyURLSearchParams } from 'next/navigation';
 import { SearchCommand } from '@/components/search-command';
 import { EditTaskForm } from './edit-task-form';
 import { TaskDetailsDialog } from './task-dialogs/TaskDetailsDialog';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { DataRestoredNotification } from "@/components/data-restored-notification";
 
 export default function DashboardContent() {
     return (
@@ -54,68 +56,53 @@ function DashboardContentSearchParamsWrapper() {
 type ViewMode = 'table' | 'calendar' | 'gantt' | 'eisenhower' | 'kanban';
 
 function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSearchParams }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const context = useDashboard();
+  
   const { 
-    tasks = [], 
-    quotes = [], 
-    collaboratorQuotes = [], 
-    clients = [], 
-    collaborators = [], 
-    events = [],
-    appSettings,
-    handleViewTask = () => {},
-    setAppSettings = () => {},
-    updateKanbanSettings = () => {},
-    handleEditTask = () => {}, 
-    handleAddTask = () => {}, 
-    handleTaskStatusChange = () => {}, 
-    handleDeleteTask = () => {}, 
-    handleRestoreTask = () => {}, 
-    handlePermanentDeleteTask = () => {},
-    handleAddClientAndSelect = () => { return { id: '', name: '' }; }, 
-    quoteTemplates = [], 
-    categories = [], 
-    handleEmptyTrash = () => {}, 
-    updateTask = () => {},
-    updateEvent = () => {}
+      appData, handleViewTask, handleEditTask, handleAddTask, handleTaskStatusChange,
+      handleDeleteTask, handleRestoreTask, handlePermanentDeleteTask,
+      handleAddClientAndSelect, handleEmptyTrash, updateTask, updateEvent,
+      T, showInstallPrompt, installPromptEvent, handleInstallClick, 
+      setShowInstallPrompt, viewingTaskDetails, viewingTaskId, handleCloseTaskDetails, 
+      handleEditTaskClick, updateTaskEisenhowerQuadrant, reorderTasksInQuadrant,
+      reorderTasksInStatus, updateKanbanSettings
   } = context || {};
+
+  const {
+      tasks = [], quotes = [], collaboratorQuotes = [], clients = [], 
+      collaborators = [], events = [], appSettings, quoteTemplates = [], categories = []
+  } = appData || {};
   
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [taskForDetails, setTaskForDetails] = useState<Task | null>(null);
-
-  const router = useRouter();
-  const pathname = usePathname();
 
   const VIEW_MODE_STORAGE_key = 'dashboardViewMode';
 
-  if (!appSettings) {
+  if (!appSettings || !T || !appData || !context || !updateTaskEisenhowerQuadrant || !reorderTasksInQuadrant || !reorderTasksInStatus || !updateKanbanSettings) {
     return (
         <div className="space-y-4">
-            <Skeleton className="h-[250px] w-full" />
-            <Skeleton className="h-[400px] w-full" />
-        </div>
+            <Skeleton className="h-[250px] w-full" /><Skeleton className="h-[400px] w-full" /></div>
     );
   }
 
-  const clientForDetails = useMemo(() => taskForDetails ? clients.find(c => c.id === taskForDetails.clientId) : undefined, [taskForDetails, clients]);
-  const quoteForDetails = useMemo(() => taskForDetails ? quotes.find(q => q.id === taskForDetails.quoteId) : undefined, [taskForDetails, quotes]);
-  const collaboratorQuotesForDetails = useMemo(() => {
-    if (!taskForDetails || !taskForDetails.collaboratorQuotes) return [];
-    return taskForDetails.collaboratorQuotes.map(cq => 
-      collaboratorQuotes.find(q => q.id === cq.quoteId)
-    ).filter(Boolean) as Quote[];
-  }, [taskForDetails, collaboratorQuotes]);
-
-  const quoteForEditingTask = useMemo(() => editingTask ? quotes.find(q => q.id === editingTask.quoteId) : undefined, [editingTask, quotes]);
+  const quoteForEditingTask = useMemo(() => editingTask ? quotes.find((q: Quote) => q.id === editingTask.quoteId) : undefined, [editingTask, quotes]);
+  
   const collaboratorQuotesForEditingTask = useMemo(() => {
     if (!editingTask || !editingTask.collaboratorQuotes) return [];
     return editingTask.collaboratorQuotes.map(cq => 
-      collaboratorQuotes.find(q => q.id === cq.quoteId)
-    ).filter(Boolean) as Quote[];
+      collaboratorQuotes.find((q: Quote) => q.id === cq.quoteId)
+    ).filter((q): q is Quote => !!q);
   }, [editingTask, collaboratorQuotes]);
+
+  const collaboratorQuotesForDetails = useMemo(() => {
+    if (!viewingTaskDetails?.task?.collaboratorQuotes) return [];
+    return viewingTaskDetails.task.collaboratorQuotes.map(cq =>
+      collaboratorQuotes.find((q: Quote) => q.id === cq.quoteId)
+    ).filter((q): q is Quote => !!q);
+  }, [viewingTaskDetails, collaboratorQuotes]);
   
-  const T = i18n[appSettings.language];
   const view = searchParams.get('view') === 'trash' ? 'trash' : 'active';
   const page = Number(searchParams.get('page') || '1');
   const limit = Number(searchParams.get('limit') || '10');
@@ -127,18 +114,6 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     handleDateRangeChange, handleSortChange, handleClearFilters,
   } = useFilterLogic(tasks);
   
-  const handleSelectTaskForDetails = (task: Task) => {
-    console.log('[DashboardContent] Received task to display details:', task); // DEBUG
-    setTaskForDetails(task);
-  };
-  
-  const openEditDialogForTask = (taskId: string) => {
-    const taskToEdit = tasks.find(t => t.id === taskId);
-    if (taskToEdit) {
-      setEditingTask(taskToEdit);
-    }
-  };
-
   const [currentViewMode, setCurrentViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem(VIEW_MODE_STORAGE_key) as ViewMode) || 'kanban';
@@ -204,9 +179,13 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
       handleCalendarNavigation(calendarDate, newMode);
   };
 
+  const effectiveHandleEditTaskClick = (task: Task) => {
+    setEditingTask(task);
+  };
+
   if (view === 'trash') {
     return (
-      <div className="flex flex-col h-full gap-4">
+      <div className={cn("flex flex-col h-full gap-4", pathname.includes('/chat') || pathname.includes('/settings') || pathname.includes('/widgets') ? 'p-0' : 'p-4')}>
         <div className="flex-shrink-0">
           {filteredTasks.length > 0 && (
             <div className="flex justify-end">
@@ -243,6 +222,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
                   collaborators={collaborators}
                   categories={categories}
                   onEditTask={handleEditTask}
+                  onViewTask={handleViewTask}
                   onTaskStatusChange={handleTaskStatusChange}
                   onDeleteTask={handleDeleteTask}
                   onAddClient={handleAddClientAndSelect}
@@ -270,7 +250,9 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
         return (
           <TableView
             tasks={paginatedTasks} quotes={quotes} collaboratorQuotes={collaboratorQuotes} clients={clients}
-            collaborators={collaborators} categories={categories} onEditTask={handleEditTask}
+            collaborators={collaborators} categories={categories} 
+            onEditTask={(values, quoteColumns, collaboratorQuoteColumns, taskId) => handleEditTask(values, quoteColumns, collaboratorQuoteColumns, taskId)}
+            onViewTask={handleViewTask}
             onTaskStatusChange={handleTaskStatusChange} onDeleteTask={handleDeleteTask} onAddClient={handleAddClientAndSelect}
             quoteTemplates={quoteTemplates} view={view} onRestoreTask={handleRestoreTask} onPermanentDeleteTask={handlePermanentDeleteTask}
             settings={appSettings}
@@ -287,14 +269,63 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
           />
         );
       case 'eisenhower':
-        return ( <EisenhowerView filteredTasks={unsortedFilteredTasks} sortedTasksForUncategorized={filteredTasks} /> );
+        return ( 
+            <EisenhowerView 
+                filteredTasks={unsortedFilteredTasks} 
+                sortedTasksForUncategorized={filteredTasks}
+                allTasks={tasks}
+                T={T}
+                settings={appSettings}
+                updateTaskEisenhowerQuadrant={updateTaskEisenhowerQuadrant}
+                reorderTasksInQuadrant={reorderTasksInQuadrant}
+                clients={clients}
+                collaborators={collaborators}
+                categories={categories}
+                quoteTemplates={quoteTemplates}
+                quotes={quotes}
+                collaboratorQuotes={collaboratorQuotes}
+                handleEditTask={handleEditTask}
+                handleDeleteTask={handleDeleteTask}
+            /> 
+        );
       case 'kanban':
-        return ( <KanbanView filteredTasks={filteredTasks} /> );
+        return ( 
+            <KanbanView 
+                filteredTasks={filteredTasks}
+                appSettings={appSettings}
+                handleTaskStatusChange={handleTaskStatusChange}
+                reorderTasksInStatus={reorderTasksInStatus}
+                updateKanbanSettings={updateKanbanSettings}
+                clients={clients}
+                categories={categories}
+                quotes={quotes}
+                collaboratorQuotes={collaboratorQuotes}
+                collaborators={collaborators}
+                quoteTemplates={quoteTemplates}
+                handleDeleteTask={handleDeleteTask}
+                handleEditTask={handleEditTask}
+                handleAddClientAndSelect={handleAddClientAndSelect}
+            /> 
+        );
       case 'gantt':
         return (
           <GanttView
-            tasks={filteredTasks} events={events} clients={clients} categories={categories} settings={appSettings}
-            statusColors={appSettings.statusColors} updateTask={updateTask} updateEvent={updateEvent}
+            tasks={filteredTasks}
+            events={events}
+            clients={clients}
+            categories={categories}
+            settings={appSettings}
+            statusColors={appSettings.statusColors}
+            updateTask={updateTask}
+            updateEvent={updateEvent}
+            language={appSettings.language}
+            quotes={quotes}
+            collaboratorQuotes={collaboratorQuotes}
+            collaborators={collaborators}
+            quoteTemplates={quoteTemplates}
+            handleDeleteTask={handleDeleteTask}
+            handleEditTask={handleEditTask}
+            handleAddClientAndSelect={handleAddClientAndSelect}
           />
         );
       default: return <div>Select a view</div>;
@@ -302,34 +333,43 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   };
 
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className={cn("flex flex-col h-full gap-4", pathname.includes('/chat') || pathname.includes('/settings') || pathname.includes('/widgets') ? 'p-0' : 'p-4')}>
+        {showInstallPrompt && (
+            <Alert className="mb-4 relative">
+                <Download className="h-4 w-4" />
+                <AlertTitle>{T.installPWA}</AlertTitle>
+                <AlertDescription>{T.installPWADesc}</AlertDescription>
+                <div className="mt-2 flex gap-2">
+                    {installPromptEvent && (
+                        <Button onClick={handleInstallClick} size="sm">{T.installPWAButton}</Button>
+                    )}
+                    <Button variant="outline" size="sm" onClick={() => { if(setShowInstallPrompt) {localStorage.setItem('hidePwaInstallPrompt', 'true'); setShowInstallPrompt(false);} }}>
+                        {T.dismiss}
+                    </Button>
+                </div>
+            </Alert>
+        )}
+        <DataRestoredNotification />
+
       <SearchCommand
         tasks={tasks} isOpen={isSearchOpen} onOpenChange={setIsSearchOpen}
-        onTaskSelect={handleSelectTaskForDetails}
+        onTaskSelect={(task) => handleViewTask(task.id)}
       />
 
-      {taskForDetails && (
+      {viewingTaskDetails && (
         <TaskDetailsDialog
-          isOpen={!!taskForDetails}
-          onClose={() => setTaskForDetails(null)}
-          task={taskForDetails}
-          client={clientForDetails}
-          clients={clients}
-          collaborators={collaborators}
-          categories={categories}
-          quote={quoteForDetails}
+          isOpen={!!viewingTaskId}
+          onClose={handleCloseTaskDetails}
+          task={viewingTaskDetails.task}
+          client={viewingTaskDetails.client}
+          clients={appData.clients}
+          collaborators={appData.collaborators}
+          categories={appData.categories}
+          quote={viewingTaskDetails.quote}
           collaboratorQuotes={collaboratorQuotesForDetails}
-          settings={appSettings}
-          onEdit={() => {
-            if(taskForDetails){
-              openEditDialogForTask(taskForDetails.id);
-            }
-            setTaskForDetails(null);
-          }}
-          onDelete={(taskId) => {
-            handleDeleteTask(taskId);
-            setTaskForDetails(null);
-          }}
+          settings={appData.appSettings}
+          onEdit={() => effectiveHandleEditTaskClick(viewingTaskDetails.task)}
+          onDelete={handleDeleteTask}
         />
       )}
 
@@ -371,7 +411,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
               onDateRangeChange={handleDateRangeChange} onClearFilters={handleClearFilters} sortFilter={sortFilter || 'deadline-asc'}
               handleSortChange={handleSortChange} viewMode={currentViewMode} T={T}
               allCategories={categories} collaborators={collaborators} clients={clients}
-              statuses={context?.appSettings?.statusSettings || []} statusColors={appSettings.statusColors}
+              statuses={context?.appData?.appSettings?.statusSettings || []} statusColors={appSettings.statusColors}
             />
             </div>
             
@@ -379,6 +419,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
               <ViewModeToggle
                 currentMode={currentViewMode}
                 onModeChange={setCurrentViewMode}
+                T={T}
               />
             </div>
           </div>

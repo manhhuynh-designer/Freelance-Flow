@@ -1,160 +1,70 @@
-export const hslToRgb = (hslStr: string): [number, number, number] => {
-  const [h, s, l] = hslStr.replace(/%/g, '').split(' ').map(v => parseFloat(v));
-  const saturation = s / 100;
-  const lightness = l / 100;
-
-  if (isNaN(h) || isNaN(s) || isNaN(l)) {
-    throw new Error("Invalid HSL string");
-  }
-
-  const c = (1 - Math.abs(2 * lightness - 1)) * saturation;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = lightness - c / 2;
-  
-  let r = 0, g = 0, b = 0;
-  
-  if (0 <= h && h < 60) {
-    r = c; g = x; b = 0;
-  } else if (60 <= h && h < 120) {
-    r = x; g = c; b = 0;
-  } else if (120 <= h && h < 180) {
-    r = 0; g = c; b = x;
-  } else if (180 <= h && h < 240) {
-    r = 0; g = x; b = c;
-  } else if (240 <= h && h < 300) {
-    r = x; g = 0; b = c;
-  } else if (300 <= h && h < 360) {
-    r = c; g = 0; b = x;
-  }
-  
-  r = Math.round((r + m) * 255);
-  g = Math.round((g + m) * 255);
-  b = Math.round((b + m) * 255);
-
-  return [r, g, b];
+export function getContrastingTextColor(bgColor: string): string {
+  const color = (bgColor.charAt(0) === '#') ? bgColor.substring(1, 7) : bgColor;
+  const r = parseInt(color.substring(0, 2), 16);
+  const g = parseInt(color.substring(2, 4), 16);
+  const b = parseInt(color.substring(4, 6), 16);
+  const uicolors = [r / 255, g / 255, b / 255];
+  const c = uicolors.map((col) => {
+    if (col <= 0.03928) {
+      return col / 12.92;
+    }
+    return Math.pow((col + 0.055) / 1.055, 2.4);
+  });
+  const L = (0.2126 * c[0]) + (0.7152 * c[1]) + (0.0722 * c[2]);
+  return (L > 0.179) ? '#000000' : '#FFFFFF';
 }
 
-export const hexToRgb = (hex: string): [number, number, number] => {
-  let sanitizedHex = hex.startsWith('#') ? hex.slice(1) : hex;
-  // Handle 3-digit hex codes
-  if (sanitizedHex.length === 3) {
-      sanitizedHex = sanitizedHex.split('').map(char => char + char).join('');
+export function hexToHsl(hex: string): { h: number, s: number, l: number } | null {
+  if (!hex || hex.length < 4) {
+    return null;
   }
 
-  const r = parseInt(sanitizedHex.slice(0, 2), 16);
-  const g = parseInt(sanitizedHex.slice(2, 4), 16);
-  const b = parseInt(sanitizedHex.slice(4, 6), 16);
-  if (isNaN(r) || isNaN(g) || isNaN(b)) {
-    throw new Error('Invalid hex color');
-  }
-  return [r, g, b];
-};
+  let r: number, g: number, b: number;
+  let h: number = 0, s: number = 0, l: number = 0;
 
-export const rgbToHsl = (r: number, g: number, b: number): [number, number, number] => {
+  hex = hex.replace("#", "");
+
+  if (hex.length === 3) {
+    r = parseInt(hex.substring(0, 1).repeat(2), 16);
+    g = parseInt(hex.substring(1, 2).repeat(2), 16);
+    b = parseInt(hex.substring(2, 3).repeat(2), 16);
+  } else {
+    r = parseInt(hex.substring(0, 2), 16);
+    g = parseInt(hex.substring(2, 4), 16);
+    b = parseInt(hex.substring(4, 6), 16);
+  }
+
   r /= 255;
   g /= 255;
   b /= 255;
 
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h = 0, s = 0, l = (max + min) / 2;
+  let cmin = Math.min(r, g, b),
+    cmax = Math.max(r, g, b),
+    delta = cmax - cmin;
 
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-      case g: h = (b - r) / d + 2; break;
-      case b: h = (r - g) / d + 4; break;
-    }
-    h /= 6;
-  }
+  if (delta == 0) h = 0;
+  else if (cmax == r) h = ((g - b) / delta) % 6;
+  else if (cmax == g) h = (b - r) / delta + 2;
+  else h = (r - g) / delta + 4;
 
-  return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
-};
+  h = Math.round(h * 60);
+  if (h < 0) h += 360;
 
+  l = (cmax + cmin) / 2;
+  s = delta == 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+  s = +(s * 100).toFixed(1);
+  l = +(l * 100).toFixed(1);
 
-const foregroundOverrides: Record<string, string> = {
-    "180 80% 40%": "210 40% 98%", // Teal -> Light text
-    "120 39% 49%": "210 40% 98%", // Forest -> Light text
-    "0 0% 50%":   "210 40% 98%", // Monochrome -> Light text
-};
-
-export const getContrastingForegroundHsl = (hslStr: string): string => {
-    if (!hslStr) return "0 0% 100%"; // default to light text
-    if (foregroundOverrides[hslStr]) return foregroundOverrides[hslStr];
-    try {
-        const [r, g, b] = hslToRgb(hslStr);
-        const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-        return (yiq >= 128) ? "215 39% 27%" : "0 0% 100%"; // dark text vs light text
-    } catch (e) {
-        console.error("Could not parse HSL string for foreground:", e);
-        return "0 0% 100%"; // fallback to light text
-    }
+  return { h, s, l };
 }
 
-export const getThemeBackgroundColorHsl = (primaryHsl: string): string => {
-    if (!primaryHsl || primaryHsl === "221 83% 53%") {
-        return "0 0% 100%"; // default to white for the default theme
+export const getStatusColor = (status: string) => {
+    switch (status) {
+        case 'todo': return '#3b82f6';
+        case 'inprogress': return '#f59e42';
+        case 'done': return '#22c55e';
+        case 'onhold': return '#a855f7';
+        case 'archived': return '#6b7280';
+        default: return '#9ca3af';
     }
-    try {
-        const [h] = primaryHsl.split(" ").map(v => parseFloat(v.replace('%', '')));
-        if (isNaN(h)) return "0 0% 100%";
-        // Use the same hue, but with high saturation and very high lightness for a pastel effect.
-        return `${h} 100% 97%`;
-    } catch (e) {
-        console.error("Could not parse HSL string for background:", e);
-        return "0 0% 100%"; // fallback to white
-    }
-};
-
-export const getSidebarBackgroundColorHsl = (primaryHsl: string, theme: 'light' | 'dark'): string => {
-  if (!primaryHsl) {
-    return theme === 'light' ? "210 40% 90%" : "222 47% 18%"; // Default fallbacks
-  }
-  try {
-    const [h, s] = primaryHsl.split(" ").map(v => parseFloat(v.replace('%', '')));
-    if (isNaN(h) || isNaN(s)) return theme === 'light' ? "210 40% 90%" : "222 47% 18%";
-
-    if (theme === 'light') {
-      // A tinted, slightly darker background for the sidebar.
-      return `${h} ${s}% 94%`;
-    } else {
-      // A darker, tinted background for the sidebar in dark mode.
-      return `${h} ${s}% 15%`;
-    }
-  } catch (e) {
-    console.error("Could not parse HSL string for sidebar background:", e);
-    return theme === 'light' ? "210 40% 90%" : "222 47% 18%"; // Fallback
-  }
-};
-
-
-export const getContrastingTextColor = (hex: string) => {
-    if (!hex) return '#000000';
-    try {
-        const [r, g, b] = hexToRgb(hex);
-        const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-        return (yiq >= 128) ? '#000000' : '#ffffff';
-    } catch (e) {
-        return '#000000';
-    }
-};
-
-export const getStatusColor = (status: string, statusColors?: any): string => {
-    // If statusColors is provided (from appSettings), use it
-    if (statusColors && statusColors[status]) {
-        return statusColors[status];
-    }
-    
-    // Fallback to default colors
-    const defaultColors = {
-        'todo': '#a855f7',
-        'inprogress': '#eab308',
-        'done': '#22c55e',
-        'onhold': '#f97316',
-        'archived': '#64748b',
-    };
-    
-    return defaultColors[status as keyof typeof defaultColors] || '#64748b';
-};
+}

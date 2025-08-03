@@ -1,49 +1,44 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useEffect, forwardRef, useImperativeHandle } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { 
-  CalendarIcon, PlusCircle, Trash2, MoreVertical, Pencil, ClipboardPaste, Copy, 
-  ChevronsUpDown, ChevronUp, ChevronDown, ArrowLeft, ArrowRight, Link as LinkIcon, 
-  Briefcase, FolderPlus, SplitSquareVertical, Plus, Minus, Grip, Clock, DollarSign, 
-  Settings, MoreHorizontal, Edit2, X 
+  CalendarIcon, PlusCircle, Trash2,
+  ChevronDown, Plus, 
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
 import { useToast } from "@/hooks/use-toast";
 import { i18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import type { Task, Client, Collaborator, Category, Quote, QuoteSection, QuoteColumn, QuoteTemplate, AppSettings } from "@/lib/types";
+import type { Task, Client, Collaborator, Category, Quote, QuoteColumn, QuoteTemplate, AppSettings } from "@/lib/types";
 import type { SuggestQuoteOutput } from "@/lib/ai-types";
 import { QuoteManager } from "./quote-manager";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
 
 const formSchema = z.object({
   name: z.string().min(2, "Task name must be at least 2 characters."),
   description: z.string().optional(),
-  briefLink: z.array(z.string().url({ message: "Please enter a valid URL." })).optional().default([]),
-  driveLink: z.array(z.string().url({ message: "Please enter a valid URL." })).optional().default([]),
+  briefLink: z.array(z.string().refine(
+    (val) => val.trim() === "" || z.string().url().safeParse(val).success,
+    { message: "Please enter a valid URL or leave empty." }
+  )).optional().default([]),
+  driveLink: z.array(z.string().refine(
+    (val) => val.trim() === "" || z.string().url().safeParse(val).success,
+    { message: "Please enter a valid URL or leave empty." }
+  )).optional().default([]),
   clientId: z.string().min(1, "Please select a client."),
-  collaboratorIds: z.array(z.string()).optional().default([]), // Changed to array
+  collaboratorIds: z.array(z.string()).optional().default([]),
   categoryId: z.string().min(1, "Please select a category."),
   status: z.enum(["todo", "inprogress", "done", "onhold", "archived"]),
   subStatusId: z.string().optional(),
@@ -65,7 +60,7 @@ const formSchema = z.object({
   })).min(1, "A quote must have at least one section."),
   collaboratorQuotes: z.array(
     z.object({
-      collaboratorId: z.string(),
+      collaboratorId: z.string().optional().default(''),
       sections: z.array(
         z.object({
           id: z.string(),
@@ -86,6 +81,10 @@ const formSchema = z.object({
 
 export type TaskFormValues = z.infer<typeof formSchema>;
 
+export interface CreateTaskFormRef {
+  handleSaveDraft: () => void;
+}
+
 type CreateTaskFormProps = {
   setOpen: (open: boolean) => void;
   onSubmit: (values: TaskFormValues, quoteColumns: QuoteColumn[], collaboratorQuoteColumns: QuoteColumn[]) => void;
@@ -96,9 +95,11 @@ type CreateTaskFormProps = {
   quoteTemplates: QuoteTemplate[];
   settings: AppSettings;
   defaultDate?: Date;
+  onDirtyChange?: (isDirty: boolean) => void;
+  onRequestConfirmClose: () => void;
 };
 
-export function CreateTaskForm({ 
+export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>(({ 
   setOpen, 
   onSubmit: onFormSubmit, 
   clients, 
@@ -107,16 +108,17 @@ export function CreateTaskForm({
   onAddClient, 
   quoteTemplates, 
   settings, 
-  defaultDate 
-}: CreateTaskFormProps) {
+  defaultDate,
+  onDirtyChange,
+  onRequestConfirmClose
+}, ref) => {
   const { toast } = useToast();
-  const T = {
+  const T = useMemo(() => ({
     ...i18n[settings.language],
     addLink: ((i18n[settings.language] as any)?.addLink || "Thêm link"),
-  };
+    untitledTask: ((i18n[settings.language] as any)?.untitledTask || "Untitled Task"),
+  }), [settings.language]);
   
-  const [isAddClientOpen, setIsAddClientOpen] = useState(false);
-  const [newClientName, setNewClientName] = useState("");
   const [isCollaboratorSectionOpen, setIsCollaboratorSectionOpen] = useState(false);
   
   const defaultColumns: QuoteColumn[] = React.useMemo(() => [
@@ -127,25 +129,6 @@ export function CreateTaskForm({
   const [columns, setColumns] = useState<QuoteColumn[]>(defaultColumns);
   const [collaboratorColumns, setCollaboratorColumns] = useState<QuoteColumn[]>(defaultColumns);
   
-  // Column Dialog states
-  const [isColumnDialogOpen, setIsColumnDialogOpen] = useState(false);
-  const [editingColumn, setEditingColumn] = useState<QuoteColumn | null>(null);
-  const [deletingColumn, setDeletingColumn] = useState<QuoteColumn | null>(null);
-  
-  const [newColumnName, setNewColumnName] = useState("");
-  const [newColumnType, setNewColumnType] = useState<QuoteColumn['type']>('text');
-  const [newColumnSum, setNewColumnSum] = useState(false);
-  
-  // Collab Column Dialog states
-  const [isCollabColumnDialogOpen, setIsCollabColumnDialogOpen] = useState(false);
-  const [editingCollabColumn, setEditingCollabColumn] = useState<QuoteColumn | null>(null);
-  const [deletingCollabColumn, setDeletingCollabColumn] = useState<QuoteColumn | null>(null);
-  const [newCollabColumnName, setNewCollabColumnName] = useState("");
-  const [newCollabColumnType, setNewCollabColumnType] = useState<QuoteColumn['type']>('text');
-  const [newCollabColumnSum, setNewCollabColumnSum] = useState(false);
-  
-  const [templateToApply, setTemplateToApply] = useState<QuoteTemplate | null>(null);
-
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -171,62 +154,48 @@ export function CreateTaskForm({
     }
   });
 
-  const { fields: sectionFields, append: appendSection, remove: removeSection, move } = useFieldArray({ 
-    control: form.control, 
-    name: "sections" 
-  });
-  const { fields: collabQuoteFields, append: collabAppendQuote, remove: collabRemoveQuote, move: moveCollabQuote } = useFieldArray({ 
-    control: form.control, 
+  const { formState: { isDirty }, getValues, setValue, control, register } = form;
+  const briefLinks = useWatch({ control, name: "briefLink" });
+  const driveLinks = useWatch({ control, name: "driveLink" });
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  const { fields: collabQuoteFields, append: collabAppendQuote, remove: collabRemoveQuote } = useFieldArray({ 
+    control, 
     name: "collaboratorQuotes" 
   });
-
+  
   const handleFormSubmit = (data: TaskFormValues) => {
-    const collaboratorIds = data.collaboratorQuotes
-      ?.filter(quote => quote.collaboratorId)
-      .map(quote => quote.collaboratorId) || [];
-    
-    const formDataWithCollaborators = {
+    const cleanedData: TaskFormValues = {
       ...data,
-      collaboratorIds,
-      createdAt: new Date().toISOString()
+      briefLink: (data.briefLink || []).filter(link => link && link.trim() !== ''),
+      driveLink: (data.driveLink || []).filter(link => link && link.trim() !== ''),
+      collaboratorIds: data.collaboratorQuotes?.map(q => q.collaboratorId || "").filter(id => id) || []
     };
     
-    onFormSubmit(formDataWithCollaborators, columns, collaboratorColumns);
+    onFormSubmit(cleanedData, columns, collaboratorColumns);
+    setOpen(false);
   };
-  
-  const handleAddNewClient = () => {
-    if (newClientName.trim() && onAddClient) {
-        const newClient = onAddClient({ name: newClientName.trim() });
-        form.setValue("clientId", newClient.id, { shouldValidate: true });
-        setNewClientName("");
-        setIsAddClientOpen(false);
+
+  useImperativeHandle(ref, () => ({
+    handleSaveDraft() {
+      const values = getValues();
+      const draftData = {
+        ...values,
+        name: `[Draft] ${values.name || T.untitledTask}`,
+        status: 'archived' as const,
+      };
+      handleFormSubmit(draftData);
     }
-  };
+  }));
   
-  const handleApplyTemplate = () => {
-    if (!templateToApply) return;
-    const sectionsWithIds = templateToApply.sections.map(s => ({ 
-      ...s, 
-      id: s.id || `section-tpl-${Date.now()}-${Math.random()}`, 
-      items: s.items.map(item => ({ 
-        ...item, 
-        id: `item-tpl-${Date.now()}-${Math.random()}`, 
-        customFields: item.customFields || {} 
-      })) 
-    }));
-    form.setValue('sections', sectionsWithIds);
-    setColumns(templateToApply.columns || defaultColumns);
-    setTemplateToApply(null);
-  };
-  
-  const categoryId = form.watch('categoryId');
+  const categoryId = useWatch({ control, name: 'categoryId' });
   const categoryName = useMemo(() => 
     (categories || []).find(c => c.id === categoryId)?.name || '', 
     [categories, categoryId]
   );
-
-  const watchedSections = useWatch({ control: form.control, name: 'sections' });
-  const watchedCollabQuotes = useWatch({ control: form.control, name: 'collaboratorQuotes' });
 
   const handleApplySuggestion = (items: SuggestQuoteOutput['suggestedItems']) => {
     const newItems = items.map(item => ({
@@ -235,7 +204,7 @@ export function CreateTaskForm({
       id: `item-sugg-${Date.now()}-${Math.random()}`,
       customFields: {},
     }));
-    form.setValue('sections', [{ id: 'section-ai-1', name: T.untitledSection, items: newItems }]);
+    setValue('sections', [{ id: 'section-ai-1', name: T.untitledSection, items: newItems }]);
     setColumns(defaultColumns);
     toast({ 
       title: T.suggestionApplied, 
@@ -244,24 +213,22 @@ export function CreateTaskForm({
   };
   
   const handleCopyFromQuote = (targetCollaboratorIndex: number) => {
-    const currentSections = form.getValues('sections');
-    const currentQuotes = form.getValues('collaboratorQuotes') || [];
+    const currentSections = getValues('sections');
+    const currentQuotes = getValues('collaboratorQuotes') || [];
     
     if (targetCollaboratorIndex >= 0 && targetCollaboratorIndex < currentQuotes.length) {
-      // Copy to existing collaborator
       const updatedQuotes = [...currentQuotes];
       updatedQuotes[targetCollaboratorIndex] = {
         ...updatedQuotes[targetCollaboratorIndex],
         sections: currentSections
       };
-      form.setValue('collaboratorQuotes', updatedQuotes);
+      setValue('collaboratorQuotes', updatedQuotes);
       setCollaboratorColumns([...columns]);
       toast({ 
         title: T.copiedFromQuote, 
         description: T.copiedFromQuoteDesc 
       });
     } else {
-      // No collaborator selected, show error
       toast({ 
         title: "Lỗi", 
         description: "Vui lòng chọn collaborator trước khi sao chép", 
@@ -270,20 +237,18 @@ export function CreateTaskForm({
     }
   };
 
-  const watchedStatus = form.watch("status");
+  const watchedStatus = useWatch({ control, name: "status"});
   const availableSubStatuses = useMemo(() => {
     const mainStatusConfig = (settings.statusSettings || []).find(s => s.id === watchedStatus);
     return mainStatusConfig?.subStatuses || [];
   }, [watchedStatus, settings.statusSettings]);
   
   return (
-    <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
-          {/* Main task details */}
           <div className="space-y-4">
             <FormField 
-              control={form.control} 
+              control={control} 
               name="name" 
               render={({ field }) => (
                 <FormItem>
@@ -295,133 +260,101 @@ export function CreateTaskForm({
                 </FormItem>
               )} 
             />
-            <FormField 
-              control={form.control} 
-              name="description" 
+            <FormField
+              control={control}
+              name="description"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{T.description}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Provide a brief description of the task." {...field} />
+                    <RichTextEditor
+                      content={field.value || ""}
+                      onChange={field.onChange}
+                      T={T}
+                      placeholder="Provide a brief description of the task."
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
-              )} 
+              )}
             />
             
-            {/* Brief Link dynamic fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="briefLink"
-                render={({ field }) => {
-                  const links = field.value || [];
-                  return (
-                    <FormItem>
-                      <FormLabel>{T.briefLink}</FormLabel>
-                      <div className="space-y-2">
-                        {links.map((_: string, idx: number) => (
-                          <div key={idx} className="flex gap-2 items-center">
-                            <Input
-                              {...form.register(`briefLink.${idx}`)}
-                              placeholder="e.g., https://docs.google.com/document/..."
-                            />
-                            {idx > 0 && (
-                              <Button
+              <FormItem>
+                <FormLabel>{T.briefLink}</FormLabel>
+                <div className="space-y-2">
+                    {(briefLinks || []).map((_, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                            <FormControl>
+                                <Input {...register(`briefLink.${index}`)} placeholder="https://..." />
+                            </FormControl>
+                            <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => {
-                                  if (links.length > 1) {
-                                    const updated = [...links];
-                                    updated.splice(idx, 1);
-                                    form.setValue('briefLink', updated);
-                                  } else {
-                                    form.setValue('briefLink.0', '');
-                                  }
+                                    const newLinks = [...(briefLinks || [])];
+                                    newLinks.splice(index, 1);
+                                    setValue("briefLink", newLinks);
                                 }}
-                                disabled={links.length === 1 && !form.getValues(`briefLink.${idx}`)}
-                              >
+                            >
                                 <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
-                            {idx === links.length - 1 && links.length < 5 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => form.setValue('briefLink', [...links, ""])}
-                                title={T.addLink || "Thêm link"}
-                              >
-                                <PlusCircle className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-              <FormField
-                control={form.control}
-                name="driveLink"
-                render={({ field }) => {
-                  const links = field.value || [];
-                  return (
-                    <FormItem>
-                      <FormLabel>{T.driveLink}</FormLabel>
-                      <div className="space-y-2">
-                        {links.map((_: string, idx: number) => (
-                          <div key={idx} className="flex gap-2 items-center">
-                            <Input
-                              {...form.register(`driveLink.${idx}`)}
-                              placeholder="e.g., https://drive.google.com/drive/..."
-                            />
-                            {idx > 0 && (
-                              <Button
+                            </Button>
+                        </div>
+                    ))}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setValue("briefLink", [...(briefLinks || []), ""])}
+                        disabled={(briefLinks || []).length >= 5}
+                    >
+                        <PlusCircle className="mr-2 h-4 w-4" /> {T.addLink}
+                    </Button>
+                </div>
+                <FormMessage>{form.formState.errors.briefLink?.message}</FormMessage>
+            </FormItem>
+             <FormItem>
+                <FormLabel>{T.driveLink}</FormLabel>
+                <div className="space-y-2">
+                    {(driveLinks || []).map((_, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                            <FormControl>
+                                <Input {...register(`driveLink.${index}`)} placeholder="https://..." />
+                            </FormControl>
+                            <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => {
-                                  if (links.length > 1) {
-                                    const updated = [...links];
-                                    updated.splice(idx, 1);
-                                    form.setValue('driveLink', updated);
-                                  } else {
-                                    form.setValue('driveLink.0', '');
-                                  }
+                                    const newLinks = [...(driveLinks || [])];
+                                    newLinks.splice(index, 1);
+                                    setValue("driveLink", newLinks);
                                 }}
-                                disabled={links.length === 1 && !form.getValues(`driveLink.${idx}`)}
-                              >
+                            >
                                 <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
-                            {idx === links.length - 1 && links.length < 5 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => form.setValue('driveLink', [...links, ""])}
-                                title={T.addLink || "Thêm link"}
-                              >
-                                <PlusCircle className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
+                            </Button>
+                        </div>
+                    ))}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setValue("driveLink", [...(driveLinks || []), ""])}
+                        disabled={(driveLinks || []).length >= 5}
+                    >
+                        <PlusCircle className="mr-2 h-4 w-4" /> {T.addLink}
+                    </Button>
+                </div>
+                <FormMessage>{form.formState.errors.driveLink?.message}</FormMessage>
+            </FormItem>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
-                control={form.control}
+                control={control}
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
@@ -443,7 +376,7 @@ export function CreateTaskForm({
                 )}
               />
               <FormField
-                control={form.control}
+                control={control}
                 name="categoryId"
                 render={({ field }) => (
                   <FormItem>
@@ -470,7 +403,7 @@ export function CreateTaskForm({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField 
-                control={form.control} 
+                control={control} 
                 name="dates" 
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
@@ -517,7 +450,7 @@ export function CreateTaskForm({
               <div className="space-y-4">
                 <div className="flex gap-4">
                   <FormField 
-                    control={form.control} 
+                    control={control} 
                     name="status" 
                     render={({ field }) => (
                       <FormItem className="flex-1">
@@ -525,7 +458,7 @@ export function CreateTaskForm({
                         <Select 
                           onValueChange={(value) => { 
                             field.onChange(value); 
-                            form.setValue('subStatusId', ''); 
+                            setValue('subStatusId', ''); 
                           }} 
                           defaultValue={field.value}
                         >
@@ -548,7 +481,7 @@ export function CreateTaskForm({
                   />
                   {availableSubStatuses.length > 0 && (
                     <FormField 
-                      control={form.control} 
+                      control={control} 
                       name="subStatusId" 
                       render={({ field }) => (
                         <FormItem className="flex-1">
@@ -581,10 +514,9 @@ export function CreateTaskForm({
             </div>
           </div>
 
-          {/* Price Quote Section */}
           <Separator />
           <QuoteManager
-            control={form.control}
+            control={control}
             form={form}
             fieldArrayName="sections"
             columns={columns}
@@ -592,13 +524,12 @@ export function CreateTaskForm({
             title={T.priceQuote}
             quoteTemplates={quoteTemplates}
             settings={settings}
-            taskDescription={form.getValues('description') || ''}
+            taskDescription={getValues('description') || ''}
             taskCategory={categoryName}
             onApplySuggestion={handleApplySuggestion}
           />
 
           <Separator />
-          {/* Collaborator Section */}
           <Collapsible open={isCollaboratorSectionOpen} onOpenChange={setIsCollaboratorSectionOpen}>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
@@ -611,7 +542,6 @@ export function CreateTaskForm({
               </div>
               
               <CollapsibleContent className="space-y-4 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                {/* Multiple Collaborators Manager */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h4 className="text-sm font-medium">{T.collaborator || "Collaborators"}</h4>
@@ -623,7 +553,7 @@ export function CreateTaskForm({
                         const newQuote = {
                           collaboratorId: '',
                           sections: [{
-                            id: `section-${Date.now()}`,
+                            id: `section-collab-${Date.now()}`,
                             name: T.untitledSection,
                             items: [{ description: "", unitPrice: 0, customFields: {} }]
                           }]
@@ -641,7 +571,7 @@ export function CreateTaskForm({
                       <div className="flex justify-between items-start">
                         <div className="flex-1 mr-4">
                           <FormField 
-                            control={form.control} 
+                            control={control} 
                             name={`collaboratorQuotes.${index}.collaboratorId`}
                             render={({ field }) => (
                               <FormItem>
@@ -681,7 +611,7 @@ export function CreateTaskForm({
                       </div>
                       
                       <QuoteManager
-                        control={form.control}
+                        control={control}
                         form={form}
                         fieldArrayName={`collaboratorQuotes.${index}.sections`}
                         columns={collaboratorColumns}
@@ -697,26 +627,6 @@ export function CreateTaskForm({
                   {collabQuoteFields.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
                       <p>{T.noCollaboratorsFound || "Chưa có collaborator nào"}</p>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          const newQuote = {
-                            collaboratorId: '',
-                            sections: [{
-                              id: `section-${Date.now()}`,
-                              name: T.untitledSection,
-                              items: [{ description: "", unitPrice: 0, customFields: {} }]
-                            }]
-                          };
-                          collabAppendQuote(newQuote);
-                        }}
-                        className="mt-2"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        {T.addCollaborator || "Thêm Collaborator đầu tiên"}
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -725,13 +635,14 @@ export function CreateTaskForm({
           </Collapsible>
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+            <Button type="button" variant="ghost" onClick={onRequestConfirmClose}>
               {T.cancel}
             </Button>
             <Button type="submit">{T.createTask}</Button>
           </div>
         </form>
       </Form>
-    </>
   );
-}
+});
+
+CreateTaskForm.displayName = "CreateTaskForm";

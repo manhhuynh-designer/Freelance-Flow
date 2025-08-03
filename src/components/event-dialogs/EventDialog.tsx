@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getTranslations } from '@/lib/i18n';
 import { AppEvent, Task } from '../../lib/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,8 +46,7 @@ const EventDialog: React.FC<EventDialogProps> = ({ open, onClose, onSubmit, task
     return null; 
   }
 
-  const { language } = dashboard;
-  const T = getTranslations(language);
+  const { T } = dashboard;
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState<string | null>(null);

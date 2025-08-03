@@ -12,6 +12,7 @@ interface TableViewProps {
   clients: Client[];
   collaborators: Collaborator[];
   categories: Category[];
+  onViewTask: (taskId: string) => void;
   onEditTask: (
     values: TaskFormValues,
     quoteColumns: QuoteColumn[],
@@ -35,6 +36,7 @@ export function TableView({
   clients,
   collaborators,
   categories,
+  onViewTask,
   onEditTask,
   onTaskStatusChange,
   onDeleteTask,
@@ -54,6 +56,7 @@ export function TableView({
         clients={clients}
         collaborators={collaborators}
         categories={categories}
+        onViewTask={onViewTask}
         onEditTask={onEditTask}
         onTaskStatusChange={onTaskStatusChange}
         onDeleteTask={onDeleteTask}

@@ -39,6 +39,7 @@ import { Progress } from "@/components/ui/progress";
 import { getContrastingTextColor } from "@/lib/colors";
 import { i18n } from "@/lib/i18n";
 import { FileText, Pencil, Link as LinkIcon, Folder, Copy, Trash2, Building2, Calendar, Briefcase } from "lucide-react";
+import { RichTextViewer } from "@/components/ui/RichTextViewer";
 
 export interface TaskDetailsDialogProps {
   task: Task;
@@ -57,8 +58,8 @@ export interface TaskDetailsDialogProps {
 
 // Link Preview Component
 function LinkPreview({ url, maxLength = 30, fallback }: { url: string; maxLength?: number; fallback?: string }) {
-  const [title, setTitle] = React.useState<string>('');
-  const [favicon, setFavicon] = React.useState<string>('');
+  const [title, setTitle] = React.useState('');
+  const [favicon, setFavicon] = React.useState('');
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
 
@@ -671,8 +672,14 @@ export function TaskDetailsDialog({
                   <FileText className="h-4 w-4" />
                   {T.description}
                 </h4>
-                <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
-                  {task.description || <em className="text-muted-foreground/70">{T.noDescription}</em>}
+                <div className="text-sm text-muted-foreground rounded-md">
+                  {task.description ? (
+                    <RichTextViewer content={task.description} className="bg-muted/30 p-3 rounded-md" />
+                  ) : (
+                    <div className="bg-muted/30 p-3 rounded-md">
+                        <em className="text-muted-foreground/70">{T.noDescription}</em>
+                    </div>
+                  )}
                 </div>
               </Card>
               {/* Links & Collaborator Grid Layout */}

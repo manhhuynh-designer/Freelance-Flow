@@ -4,21 +4,30 @@ import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Task } from '@/lib/types';
+import type { Task, AppSettings, Client, Category, Quote, Collaborator, QuoteTemplate } from '@/lib/types';
 import { KanbanTaskCard } from './KanbanTaskCard';
-import { useDashboard } from '@/contexts/dashboard-context';
 
 interface KanbanColumnProps {
   id: string;
   title: string;
   tasks: Task[];
   color?: string;
+  // Drilled props
+  appSettings: AppSettings;
+  clients: Client[];
+  categories: Category[];
+  quotes: Quote[];
+  collaboratorQuotes: Quote[];
+  collaborators: Collaborator[];
+  quoteTemplates: QuoteTemplate[];
+  handleDeleteTask: (taskId: string) => void;
+  handleEditTask: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
+  handleAddClientAndSelect: (data: Omit<Client, 'id'>) => Client;
 }
 
-// Single unified droppable wrapper component
 function Droppable({ id, children }: { id: string; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ 
-    id: id, // Use simple column id, no prefix
+    id: id,
     data: { containerId: id, type: 'column' }
   });
   
@@ -34,11 +43,15 @@ function Droppable({ id, children }: { id: string; children: React.ReactNode }) 
   );
 }
 
-export function KanbanColumn({ id, title, tasks, color }: KanbanColumnProps) {
-  const dashboardContext = useDashboard();
-  const appSettings = dashboardContext?.appSettings;
+export function KanbanColumn({ 
+    id, 
+    title, 
+    tasks, 
+    color,
+    appSettings,
+    ...restOfDrilledProps 
+}: KanbanColumnProps) {
   
-  // Only use sortable for column reordering
   const {
     attributes,
     listeners,
@@ -47,7 +60,7 @@ export function KanbanColumn({ id, title, tasks, color }: KanbanColumnProps) {
     transition,
     isDragging,
   } = useSortable({ 
-    id: `sortable-${id}`, // Use different id for sortable to avoid conflicts
+    id: `sortable-${id}`,
     data: { type: 'COLUMN', column: { id, label: title } },
     disabled: false
   });
@@ -58,9 +71,6 @@ export function KanbanColumn({ id, title, tasks, color }: KanbanColumnProps) {
     opacity: isDragging ? 0.5 : 1,
   };
 
-  if (!appSettings) return null;
-
-  // Main status columns layout
   return (
     <div 
       ref={setSortableNodeRef}
@@ -86,22 +96,24 @@ export function KanbanColumn({ id, title, tasks, color }: KanbanColumnProps) {
       <Droppable id={id}>
         <div className="p-3 h-full overflow-y-auto overflow-x-hidden space-y-3">
           {tasks.length === 0 ? (
-            // Empty state with large drop area
             <div className="h-full min-h-[350px] border-2 border-dashed border-muted-foreground/30 rounded-lg hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 flex items-center justify-center">
               <div className="text-center text-muted-foreground">
-                
                 <div className="text-sm font-medium">Drop tasks here</div>
                 <div className="text-xs mt-1 opacity-60">Drag any task to this column</div>
               </div>
             </div>
           ) : (
-            // Tasks list
             <SortableContext
               items={tasks.map(t => t.id)}
               strategy={verticalListSortingStrategy}
             >
               {tasks.map(task => (
-                <KanbanTaskCard key={task.id} task={task} />
+                <KanbanTaskCard 
+                    key={task.id} 
+                    task={task} 
+                    appSettings={appSettings} 
+                    {...restOfDrilledProps}
+                />
               ))}
             </SortableContext>
           )}

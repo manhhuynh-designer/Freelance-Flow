@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-import { useDashboard } from '@/contexts/dashboard-context';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -14,13 +13,15 @@ import { Cog } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { i18n } from '@/lib/i18n';
+import type { AppSettings } from '@/lib/types';
 
-export function KanbanSettings() {
-  const dashboardContext = useDashboard();
-  if (!dashboardContext) return null;
+interface KanbanSettingsProps {
+    appSettings: AppSettings;
+    updateKanbanSettings: (settings: Partial<AppSettings>) => void;
+}
 
-  const { appSettings, updateKanbanSettings } = dashboardContext;
-  const { statusSettings, kanbanColumnVisibility = {}, kanbanSubStatusMode = 'grouped', kanbanColumnOrder = [] } = appSettings;
+export function KanbanSettings({ appSettings, updateKanbanSettings }: KanbanSettingsProps) {
+  const { statusSettings, kanbanColumnVisibility = {}, kanbanSubStatusMode = 'grouped' } = appSettings;
   const T = i18n[appSettings.language];
 
   const handleVisibilityChange = (statusId: string, checked: boolean) => {
@@ -32,7 +33,6 @@ export function KanbanSettings() {
     updateKanbanSettings({ kanbanSubStatusMode: value as 'grouped' | 'separate' });
   };
 
-  // Chỉ cho phép bật/tắt sub-status khi ở chế độ separate
   const allPossibleColumns = React.useMemo(() => {
     const columns: { id: string; label: string; isSubStatus?: boolean }[] = [];
     statusSettings.forEach(status => {
@@ -92,7 +92,6 @@ export function KanbanSettings() {
               </div>
             </div>
           )}
-          {/* Column reordering will be implemented in KanbanView using DndContext */}
         </div>
       </PopoverContent>
     </Popover>

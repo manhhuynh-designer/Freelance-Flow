@@ -106,7 +106,7 @@ export function TaskEditDialog({
             quote={quote} 
             collaboratorQuotes={collaboratorQuotes} 
             clients={clients} 
-            onAddClient={onAddClient || (() => ({ id: '', name: '', email: '', phone: '' } as Client))} 
+            onAddClient={onAddClient || (() => ({ id: '', name: '', email: [], phone: [] } as unknown as Client))} 
             quoteTemplates={quoteTemplates} 
             collaborators={collaborators} 
             settings={settings}

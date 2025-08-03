@@ -1,33 +1,27 @@
 'use client';
 
-
 import React, { useState } from 'react';
 import { Table, CalendarDays, LayoutGrid, Columns3, LineChart, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useDashboard } from '@/contexts/dashboard-context';
-import { i18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-
 
 type ViewMode = 'table' | 'calendar' | 'gantt' | 'eisenhower' | 'kanban';
 
 interface ViewModeToggleProps {
   currentMode: ViewMode;
   onModeChange: (mode: ViewMode) => void;
+  T: any; // Translation object
   className?: string;
 }
 
-
-
 export function ViewModeToggle({ 
   currentMode, 
-  onModeChange, 
+  onModeChange,
+  T,
   className 
 }: ViewModeToggleProps) {
   const [open, setOpen] = useState(false);
-  const dashboardContext = useDashboard();
-  const T = dashboardContext ? i18n[dashboardContext.language] : i18n.en;
 
   const options: { value: ViewMode; label: string; icon: React.ReactNode }[] = [
     { value: 'table', label: T.tableView, icon: <Table className="h-4 w-4" /> },

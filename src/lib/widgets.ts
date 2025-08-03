@@ -1,9 +1,10 @@
+import { Calculator } from "@/app/dashboard/widgets/calculator";
+import { StickyNotes } from "@/app/dashboard/widgets/sticky-notes";
+import { PomodoroWidget } from "@/app/dashboard/widgets/pomodoro";
+import { BrainCircuit, StickyNote, Timer } from 'lucide-react';
+import { WidgetDefinition } from "./types";
 
-import { Calculator } from "@/components/calculator";
-import { StickyNotes } from "@/components/sticky-notes";
-import { BrainCircuit, StickyNote } from 'lucide-react';
-
-export const WIDGETS = [
+export const WIDGETS: readonly WidgetDefinition[] = [
     {
         id: 'calculator',
         name: 'Simple Calculator',
@@ -22,4 +23,17 @@ export const WIDGETS = [
         icon: StickyNote,
         component: StickyNotes,
     },
-] as const;
+    {
+        id: 'pomodoro',
+        name: 'Pomodoro Timer',
+        nameKey: 'pomodoroWidgetName',
+        description: 'A timer to help you focus.',
+        descriptionKey: 'pomodoroWidgetDesc',
+        icon: Timer,
+        component: PomodoroWidget,
+        defaultSize: {
+            colSpan: 2,
+            rowSpan: 2,
+        }
+    },
+];

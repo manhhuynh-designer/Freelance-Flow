@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -80,8 +79,8 @@ export function Calculator({ settings }: CalculatorProps) {
   };
 
   return (
-    <div className="p-2">
-      <Card className="w-full max-w-xs mx-auto shadow-lg">
+    <div className="w-full h-full">
+      <Card className="w-full h-full flex flex-col shadow-lg p-2">
          <CardHeader>
             <CardTitle 
               className="text-sm font-normal text-muted-foreground cursor-pointer hover:text-foreground"
@@ -91,7 +90,7 @@ export function Calculator({ settings }: CalculatorProps) {
               {T.simpleCalculator}
             </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 flex-1 flex flex-col justify-center react-grid-draggable-cancel">
           <div>
             <Label htmlFor="expression-input" className="text-xs text-muted-foreground">{T.expression}</Label>
             <Input

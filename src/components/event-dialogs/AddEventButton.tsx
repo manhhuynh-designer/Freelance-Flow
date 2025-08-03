@@ -3,6 +3,8 @@ import { CalendarPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import EventDialog from '../event-dialogs/EventDialog';
 import { Task, AppEvent } from '../../lib/types';
+import { getTranslations } from '@/lib/i18n';
+import { useDashboard } from '@/contexts/dashboard-context';
 
 interface AddEventButtonProps {
   tasks: Task[];
@@ -11,28 +13,28 @@ interface AddEventButtonProps {
 
 export function AddEventButton({ tasks, onSubmit }: AddEventButtonProps) {
   const [open, setOpen] = React.useState(false);
+  const dashboard = useDashboard();
+  // fallback to 'en' if dashboard or language is not available
+  const language = (dashboard && 'language' in dashboard && (dashboard as any).language) ? (dashboard as any).language : 'en';
+  const T = getTranslations(language);
 
   const handleSubmit = (eventData: Partial<AppEvent>) => {
-    // Call the onSubmit prop passed down from the parent (DashboardLayout)
     onSubmit(eventData);
-    // No need to call setOpen(false) here, as EventDialog's internal
-    // logic will call its onClose prop, which is set to setOpen(false).
   };
 
   return (
     <>
-      <Button variant="outline" size="icon" onClick={() => setOpen(true)} title="New events">
+      <Button variant="outline" size="icon" onClick={() => setOpen(true)} title={(T as any).newEvent}>
         <CalendarPlus className="h-4 w-4" />
-        <span className="sr-only">New events</span>
+        <span className="sr-only">{(T as any).newEvent}</span>
       </Button>
       {open && (
         <EventDialog
           open={open}
           onClose={() => setOpen(false)}
-          // Pass the handleSubmit function to the EventDialog
           onSubmit={handleSubmit}
           tasks={tasks}
-          eventToEdit={null} // This button is for adding, not editing
+          eventToEdit={null}
         />
       )}
     </>

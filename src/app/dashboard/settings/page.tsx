@@ -1,75 +1,18 @@
-
 "use client";
 
-// Status color presets (restored, single declaration)
 const predefinedStatusColors: { name: string; colors: StatusColors }[] = [
-    {
-        name: 'Default',
-        colors: {
-            todo: '#a855f7', // purple-500
-            inprogress: '#eab308', // yellow-500
-            done: '#22c55e', // green-500
-            onhold: '#f97316', // orange-500
-            archived: '#64748b', // slate-500
-        }
-    },
-    {
-        name: 'Vibrant',
-        colors: {
-            todo: '#ef4444', // red-500
-            inprogress: '#3b82f6', // blue-500
-            done: '#16a34a', // green-600
-            onhold: '#f59e0b', // amber-500
-            archived: '#4b5563', // gray-600
-        }
-    },
-    {
-        name: 'Pastel',
-        colors: {
-            todo: '#f9a8d4', // pink-300
-            inprogress: '#93c5fd', // blue-300
-            done: '#a7f3d0', // green-200
-            onhold: '#fde68a', // amber-200
-            archived: '#d1d5db', // gray-300
-        }
-    }
+    { name: 'Default', colors: { todo: '#a855f7', inprogress: '#eab308', done: '#22c55e', onhold: '#f97316', archived: '#64748b' } },
+    { name: 'Vibrant', colors: { todo: '#ef4444', inprogress: '#3b82f6', done: '#16a34a', onhold: '#f59e0b', archived: '#4b5563' } },
+    { name: 'Pastel', colors: { todo: '#f9a8d4', inprogress: '#93c5fd', done: '#a7f3d0', onhold: '#fde68a', archived: '#d1d5db' } }
 ];
 
-// Eisenhower color schemes
 const predefinedEisenhowerSchemes = [
-    {
-        name: 'colorScheme1',
-        label: 'Classic',
-        colors: {
-            do: { background: '#fef2f2', border: '#fecaca' },
-            decide: { background: '#eff6ff', border: '#bfdbfe' },
-            delegate: { background: '#fef9c3', border: '#fde047' },
-            delete: { background: '#f3f4f6', border: '#d1d5db' }
-        }
-    },
-    {
-        name: 'colorScheme2', 
-        label: 'Vibrant',
-        colors: {
-            do: { background: '#faf5ff', border: '#d8b4fe' },
-            decide: { background: '#f0fdf4', border: '#bbf7d0' },
-            delegate: { background: '#fff7ed', border: '#fed7aa' },
-            delete: { background: '#eff6ff', border: '#bfdbfe' }
-        }
-    },
-    {
-        name: 'colorScheme3',
-        label: 'Modern', 
-        colors: {
-            do: { background: '#f0fdfa', border: '#99f6e4' },
-            decide: { background: '#fdf2f8', border: '#fbcfe8' },
-            delegate: { background: '#fffbeb', border: '#fde68a' },
-            delete: { background: '#eef2ff', border: '#c7d2fe' }
-        }
-    }
+    { name: 'colorScheme1', label: 'Classic', colors: { do: { background: '#fef2f2', border: '#fecaca' }, decide: { background: '#eff6ff', border: '#bfdbfe' }, delegate: { background: '#fef9c3', border: '#fde047' }, delete: { background: '#f3f4f6', border: '#d1d5db' } } },
+    { name: 'colorScheme2', label: 'Vibrant', colors: { do: { background: '#faf5ff', border: '#d8b4fe' }, decide: { background: '#f0fdf4', border: '#bbf7d0' }, delegate: { background: '#fff7ed', border: '#fed7aa' }, delete: { background: '#eff6ff', border: '#bfdbfe' } } },
+    { name: 'colorScheme3', label: 'Modern', colors: { do: { background: '#f0fdfa', border: '#99f6e4' }, decide: { background: '#fdf2f8', border: '#fbcfe8' }, delegate: { background: '#fffbeb', border: '#fde68a' }, delete: { background: '#eef2ff', border: '#c7d2fe' } } }
 ];
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, SetStateAction } from 'react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { QuestionMarkIcon } from '@/components/ui/question-mark-icon';
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -81,8 +24,7 @@ import { cn } from "@/lib/utils";
 import { Slider } from '@/components/ui/slider';
 import { i18n } from "@/lib/i18n";
 import { Separator } from '@/components/ui/separator';
-import type { AppSettings, ThemeSettings, StatusColors, AppData, DashboardColumn, WidgetSetting } from '@/lib/types';
-import { categories as initialCategories, STATUS_INFO } from '@/lib/data';
+import type { AppSettings, ThemeSettings, StatusColors, AppData } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -104,9 +46,8 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { CollaboratorDataService } from '@/lib/collaborator-data-service';
 import { StatusSettings } from '@/components/status-settings';
 import { LocalBackupManager } from '@/components/local-backup-manager';
-import { getThemeBackgroundColorHsl, getContrastingTextColor } from "@/lib/colors";
+import { getContrastingTextColor } from "@/lib/colors";
 import styles from './SettingsColors.module.css';
-
 import { WIDGETS } from '@/lib/widgets';
 
 const predefinedThemes: { name: string; colors: ThemeSettings & { background: string } }[] = [
@@ -122,8 +63,6 @@ const predefinedThemes: { name: string; colors: ThemeSettings & { background: st
     { name: 'Monochrome', colors: { primary: "#353B41", accent: "#F2f2f2", background: "#f4f4f4" } }
 ];
 
-// (Removed duplicate declaration)
-
 const defaultSettings: Omit<AppSettings, 'theme' | 'statusColors' | 'stickyNoteColor' | 'dashboardColumns' | 'statusSettings' | 'widgets'> = {
     trashAutoDeleteDays: 30,
     language: 'en',
@@ -134,8 +73,6 @@ const defaultSettings: Omit<AppSettings, 'theme' | 'statusColors' | 'stickyNoteC
     googleModel: 'gemini-1.5-flash',
     openaiModel: 'gpt-4o-mini',
 };
-
-
 
 import { Suspense } from "react";
 
@@ -155,75 +92,44 @@ function SettingsPageContent() {
     const [restoredData, setRestoredData] = useState<AppData | null>(null);
     const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
     const [clearConfirmText, setClearConfirmText] = useState("");
-    
-    const [originalSettings, setOriginalSettings] = useState<AppSettings | null>(null);
 
-    useEffect(() => {
-      if (dashboardContext?.appSettings && !originalSettings) {
-        setOriginalSettings(JSON.parse(JSON.stringify(dashboardContext.appSettings)));
-      }
-    }, [dashboardContext?.appSettings, originalSettings]);
+    const appData = dashboardContext?.appData;
+    const setAppData = dashboardContext?.setAppData;
+    const handleClearAllData = dashboardContext?.handleClearAllData;
+    const appSettings = appData?.appSettings;
 
-    if (!dashboardContext) {
+    if (!appData || !appSettings || !setAppData || !handleClearAllData) {
       return (
         <div className="p-4 md:p-6">
-          <Skeleton className="h-10 w-1/3" />
-          <Skeleton className="h-96 w-full" />
+          <Skeleton className="h-10 w-1/3" /><Skeleton className="h-96 w-full" />
         </div>
       );
     }
 
-    const { 
-        appSettings,
-        handleClearAllData, 
-        tasks, 
-        quotes, 
-        collaboratorQuotes, 
-        clients, 
-        collaborators, 
-        quoteTemplates, 
-        categories,
-        setTasks,
-        setQuotes,
-        setCollaboratorQuotes,
-        setClients,
-        setCollaborators,
-        setQuoteTemplates,
-        setCategories,
-        setAppSettings
-    } = dashboardContext;
-
-    const onSettingsChange = setAppSettings;
-    const appData = { tasks, quotes, collaboratorQuotes, clients, collaborators, quoteTemplates, categories, appSettings };
-
     const T = i18n[appSettings.language];
+
+    const onSettingsChange = (update: SetStateAction<AppSettings>) => {
+        setAppData((prevData: AppData) => ({
+            ...prevData,
+            appSettings: typeof update === 'function' ? update(prevData.appSettings) : update,
+        }));
+    };
     
     const handleReset = () => {
-        onSettingsChange(currentSettings => ({
-            ...currentSettings,
-            ...defaultSettings,
+        onSettingsChange(() => ({
+            ...(defaultSettings as AppSettings),
             theme: predefinedThemes[0].colors,
             statusColors: predefinedStatusColors[0].colors,
             stickyNoteColor: { background: '#fef9c3', foreground: '#713f12' },
             dashboardColumns: [
-                { id: 'name', label: 'Task', visible: true },
-                { id: 'client', label: 'Client', visible: true },
-                { id: 'category', label: 'Category', visible: true },
-                { id: 'deadline', label: 'Deadline', visible: true },
-                { id: 'status', label: 'Status', visible: true },
-                { id: 'priceQuote', label: 'Quote', visible: true },
+                { id: 'name', label: 'Task', visible: true }, { id: 'client', label: 'Client', visible: true },
+                { id: 'category', label: 'Category', visible: true }, { id: 'deadline', label: 'Deadline', visible: true },
+                { id: 'status', label: 'Status', visible: true }, { id: 'priceQuote', label: 'Quote', visible: true },
             ],
             statusSettings: [
                 { id: 'todo', label: i18n.en.statuses.todo, subStatuses: [] },
-                { id: 'inprogress', label: i18n.en.statuses.inprogress, subStatuses: [
-                    { id: 'planning', label: 'Planning' },
-                    { id: 'development', label: 'Development' },
-                    { id: 'testing', label: 'Testing' }
-                ]},
-                { id: 'done', label: i18n.en.statuses.done, subStatuses: [
-                    { id: 'completed', label: 'Completed' },
-                    { id: 'delivered', label: 'Delivered' }
-                ]},
+                { id: 'inprogress', label: i18n.en.statuses.inprogress, subStatuses: [{ id: 'planning', label: 'Planning' }, { id: 'development', label: 'Development' }, { id: 'testing', label: 'Testing' }]},
+                { id: 'done', label: i18n.en.statuses.done, subStatuses: [{ id: 'completed', label: 'Completed' }, { id: 'delivered', label: 'Delivered' }]},
                 { id: 'onhold', label: i18n.en.statuses.onhold, subStatuses: [] },
                 { id: 'archived', label: i18n.en.statuses.archived, subStatuses: [] },
             ],
@@ -232,10 +138,7 @@ function SettingsPageContent() {
               { id: 'sticky-notes', enabled: true, showInSidebar: true, colSpan: 2, rowSpan: 2 },
             ]
         }));
-        toast({
-            title: T.settingsReset,
-            description: T.settingsResetDesc,
-        });
+        toast({ title: T.settingsReset, description: T.settingsResetDesc });
     }
 
     const handleThemeChange = (themeName: string) => {
@@ -255,10 +158,7 @@ function SettingsPageContent() {
     const handleStickyNoteBgChange = (color: string) => {
         onSettingsChange(s => ({
             ...s,
-            stickyNoteColor: {
-                background: color,
-                foreground: getContrastingTextColor(color)
-            }
+            stickyNoteColor: { background: color, foreground: getContrastingTextColor(color) }
         }));
     }
 
@@ -281,10 +181,10 @@ function SettingsPageContent() {
             const text = e.target?.result;
             const data = JSON.parse(text as string) as AppData;
             if (data.tasks && data.clients && data.appSettings) {
-            setRestoredData(data);
-            setIsConfirmRestoreOpen(true);
+                setRestoredData(data);
+                setIsConfirmRestoreOpen(true);
             } else {
-            throw new Error(T.restoreFailedDesc);
+                throw new Error(T.restoreFailedDesc);
             }
         } catch (error) {
             toast({ variant: 'destructive', title: T.restoreFailed, description: (error as Error).message });
@@ -303,22 +203,13 @@ function SettingsPageContent() {
                 deletedAt: task.deletedAt ? new Date(task.deletedAt).toISOString() : undefined,
             }));
 
-            // Sync collaborator data to ensure integrity using special import processing
-            const syncedData = CollaboratorDataService.processImportedData({
-                ...restoredData,
-                tasks: parsedTasks
-            });
-
-            setTasks(syncedData.tasks);
-            setQuotes(syncedData.quotes || []);
-            setCollaboratorQuotes(syncedData.collaboratorQuotes || []);
-            setClients(syncedData.clients || []);
-            setCollaborators(syncedData.collaborators);
-            setQuoteTemplates(syncedData.quoteTemplates || []);
-            setCategories(syncedData.categories || []);
-            setAppSettings(syncedData.appSettings || defaultSettings as AppSettings);
+            const syncedData = CollaboratorDataService.processImportedData({ ...restoredData, tasks: parsedTasks });
             
-            // Restore filter presets if they exist in imported data
+            setAppData(prev => ({
+                ...prev,
+                ...syncedData
+            }));
+
             if (restoredData.filterPresets && Array.isArray(restoredData.filterPresets)) {
                 localStorage.setItem('freelance-flow-filter-presets', JSON.stringify(restoredData.filterPresets));
             }
@@ -332,10 +223,7 @@ function SettingsPageContent() {
 
     const handleClearData = () => {
         handleClearAllData();
-        toast({
-            title: T.clearAllData,
-            description: T.clearAllDataDesc,
-        });
+        toast({ title: T.clearAllData, description: T.clearAllDataDesc });
     }
 
     const confirmationText = appSettings.language === 'vi' ? 'XÓA' : 'DELETE';
@@ -351,7 +239,6 @@ function SettingsPageContent() {
                         <TabsTrigger value="api">{T.tabApi}</TabsTrigger>
                         <TabsTrigger value="data">{T.tabData}</TabsTrigger>
                     </TabsList>
-                    {/* --- Appearance Tab --- */}
                     <TabsContent value="appearance">
                         <Card>
                             <CardHeader>
@@ -374,10 +261,7 @@ function SettingsPageContent() {
                                                     htmlFor={theme.name}
                                                     className={cn("flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer","peer-data-[state=checked]:border-primary")}
                                                 >
-                                                    <div
-                                                      className="w-full h-8 rounded"
-                                                      style={{ backgroundColor: theme.colors.primary }}
-                                                    />
+                                                    <div className="w-full h-8 rounded" style={{ backgroundColor: theme.colors.primary }} />
                                                     <span className="mt-2 font-semibold">{theme.name}</span>
                                                 </Label>
                                             </div>
@@ -397,11 +281,7 @@ function SettingsPageContent() {
                                                 >
                                                     <div className="flex gap-2 w-full h-8 items-center">
                                                         {Object.values(preset.colors).map((color, index) => (
-                                                          <div
-                                                            key={index}
-                                                            className={`w-1/5 h-5 rounded-full`}
-                                                            style={{ background: color, backgroundColor: color }}
-                                                          />
+                                                          <div key={index} className={`w-1/5 h-5 rounded-full`} style={{ background: color, backgroundColor: color }} />
                                                         ))}
                                                     </div>
                                                     <span className="mt-2 font-semibold">{preset.name}</span>
@@ -433,11 +313,7 @@ function SettingsPageContent() {
                                                         <div className={`${styles.eisenhowerPreview} ${styles[`scheme${scheme.name.slice(-1)}Delete`]}`}></div>
                                                     </div>
                                                     <span className="mt-2 font-semibold">
-                                                        {
-                                                            typeof T[`colorScheme${scheme.name.slice(-1)}` as keyof typeof T] === 'string'
-                                                                ? T[`colorScheme${scheme.name.slice(-1)}` as keyof typeof T] as string
-                                                                : scheme.label
-                                                        }
+                                                        { (T[`colorScheme${scheme.name.slice(-1)}` as keyof typeof T] as string) || scheme.label }
                                                     </span>
                                                 </Label>
                                             </div>
@@ -449,33 +325,21 @@ function SettingsPageContent() {
                                     <Label>{T.dashboardColumns}</Label>
                                     <div className="grid grid-cols-2 gap-4">
                                         {(appSettings.dashboardColumns || []).map((column) => {
-                                            // Ensure label is always a string for type safety
                                             const labelKey = column.id === 'name' ? 'taskName' : column.id === 'priceQuote' ? 'priceQuote' : column.id;
                                             let columnLabel: string = column.label;
                                             const tValue = T[labelKey as keyof typeof T];
-                                            if (typeof tValue === 'string') {
-                                              columnLabel = tValue;
-                                            }
+                                            if (typeof tValue === 'string') { columnLabel = tValue; }
                                             return (
                                                 <div key={column.id} className="flex items-center space-x-2">
-                                                <Checkbox
-                                                    id={`col-${column.id}`}
-                                                    checked={column.visible}
-                                                    onCheckedChange={(checked) => {
-                                                        onSettingsChange(s => ({
-                                                            ...s,
-                                                            dashboardColumns: (s.dashboardColumns || []).map(c => 
-                                                            c.id === column.id ? { ...c, visible: !!checked } : c
-                                                            )
-                                                        }));
-                                                    }}
-                                                />
-                                                <label
-                                                    htmlFor={`col-${column.id}`}
-                                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                                >
-                                                    {columnLabel}
-                                                </label>
+                                                    <Checkbox
+                                                        id={`col-${column.id}`} checked={column.visible}
+                                                        onCheckedChange={(checked) => {
+                                                            onSettingsChange(s => ({...s, dashboardColumns: (s.dashboardColumns || []).map(c => c.id === column.id ? { ...c, visible: !!checked } : c ) }));
+                                                        }}
+                                                    />
+                                                    <label htmlFor={`col-${column.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                                        {columnLabel}
+                                                    </label>
                                                 </div>
                                             );
                                         })}
@@ -485,9 +349,7 @@ function SettingsPageContent() {
                                 <div className="space-y-2">
                                     <Label htmlFor="sticky-note-color">{T.stickyNoteBackground}</Label>
                                     <Input
-                                        id="sticky-note-color"
-                                        type="color"
-                                        value={appSettings.stickyNoteColor.background}
+                                        id="sticky-note-color" type="color" value={appSettings.stickyNoteColor.background}
                                         onChange={(e) => handleStickyNoteBgChange(e.target.value)}
                                         className="p-1 h-10 w-14"
                                     />
@@ -538,7 +400,7 @@ function SettingsPageContent() {
                                 <CardDescription>{T.statusSettingsDesc}</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <StatusSettings settings={appSettings} onSettingsChange={setAppSettings} />
+                                <StatusSettings settings={appSettings} onSettingsChange={onSettingsChange} />
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -583,32 +445,14 @@ function SettingsPageContent() {
                                     <div className="space-y-2">
                                         <div className="flex items-center gap-1">
                                             <Label htmlFor="google-api-key">Google AI API Key</Label>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" tabIndex={-1} title="Hướng dẫn lấy Google API Key">
-                                                        <QuestionMarkIcon className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-primary" />
-                                                    </a>
-                                                </TooltipTrigger>
-                                                <TooltipContent side="top">
-                                                    Dùng để truy cập Gemini. Lấy API key tại Google AI Studio.
-                                                </TooltipContent>
-                                            </Tooltip>
+                                            <Tooltip><TooltipTrigger asChild><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" tabIndex={-1} title="Hướng dẫn lấy Google API Key"><QuestionMarkIcon className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-primary" /></a></TooltipTrigger><TooltipContent side="top">Dùng để truy cập Gemini. Lấy API key tại Google AI Studio.</TooltipContent></Tooltip>
                                         </div>
                                         <Input id="google-api-key" type="password" placeholder="Enter your Google API Key" value={appSettings.googleApiKey || ''} onChange={(e) => onSettingsChange(s => ({ ...s, googleApiKey: e.target.value }))} />
                                     </div>
                                     <div className="space-y-2">
                                         <div className="flex items-center gap-1">
                                             <Label htmlFor="openai-api-key">OpenAI API Key</Label>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" tabIndex={-1} title="Hướng dẫn lấy OpenAI API Key">
-                                                        <QuestionMarkIcon className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-primary" />
-                                                    </a>
-                                                </TooltipTrigger>
-                                                <TooltipContent side="top">
-                                                    Dùng để truy cập OpenAI (GPT). Lấy API key tại OpenAI Platform.
-                                                </TooltipContent>
-                                            </Tooltip>
+                                            <Tooltip><TooltipTrigger asChild><a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" tabIndex={-1} title="Hướng dẫn lấy OpenAI API Key"><QuestionMarkIcon className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-primary" /></a></TooltipTrigger><TooltipContent side="top">Dùng để truy cập OpenAI (GPT). Lấy API key tại OpenAI Platform.</TooltipContent></Tooltip>
                                         </div>
                                         <Input id="openai-api-key" type="password" placeholder="Enter your OpenAI API Key" value={appSettings.openaiApiKey || ''} onChange={(e) => onSettingsChange(s => ({ ...s, openaiApiKey: e.target.value }))} />
                                     </div>
@@ -618,129 +462,46 @@ function SettingsPageContent() {
                     </TabsContent>
                     <TabsContent value="data">
                         <div className="space-y-6">
-                            {/* Header Section */}
                             <div className="space-y-2">
                                 <h2 className="text-xl font-semibold">{T.dataManagement || 'Data Management'}</h2>
-                                <p className="text-sm text-muted-foreground">
-                                    {T.dataManagementDesc || 'Backup, restore and manage your data'}
-                                </p>
+                                <p className="text-sm text-muted-foreground">{T.dataManagementDesc || 'Backup, restore and manage your data'}</p>
                             </div>
-
-                            {/* Backup & Export Section */}
                             <LocalBackupManager />
-
-                            {/* Import & Restore Section */}
                             <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-lg">{T.dataRestore || 'Data Restore'}</CardTitle>
-                                    <CardDescription>
-                                        {T.restoreDesc}
-                                    </CardDescription>
-                                </CardHeader>
+                                <CardHeader><CardTitle className="text-lg">{T.dataRestore || 'Data Restore'}</CardTitle><CardDescription>{T.restoreDesc}</CardDescription></CardHeader>
                                 <CardContent>
                                     <div className="flex items-center justify-between p-4 border rounded-lg">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                                </svg>
-                                            </div>
-                                            <div>
-                                                <p className="font-medium">{T.selectBackupFile || 'Select backup file'}</p>
-                                                <p className="text-sm text-muted-foreground">{T.supportedFormat || 'Supported format: .json'}</p>
-                                            </div>
+                                            <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg></div>
+                                            <div><p className="font-medium">{T.selectBackupFile || 'Select backup file'}</p><p className="text-sm text-muted-foreground">{T.supportedFormat || 'Supported format: .json'}</p></div>
                                         </div>
-                                        <Button 
-                                            variant="outline"
-                                            onClick={() => fileInputRef.current?.click()}
-                                        >
-                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                            </svg>
-                                            {T.selectFile || 'Select File'}
-                                        </Button>
+                                        <Button variant="outline" onClick={() => fileInputRef.current?.click()}><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>{T.selectFile || 'Select File'}</Button>
                                     </div>
-                                        
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        className="hidden"
-                                        accept=".json"
-                                        onChange={handleFileChange}
-                                        aria-label="Import backup JSON"
-                                    />
+                                    <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleFileChange} aria-label="Import backup JSON"/>
                                 </CardContent>
                             </Card>
-
-                            {/* Danger Zone */}
                             <Card className="border-destructive/20">
-                                <CardHeader>
-                                    <CardTitle className="text-lg text-destructive">{T.dangerZone}</CardTitle>
-                                    <CardDescription>
-                                        {T.dangerZoneDesc}
-                                    </CardDescription>
-                                </CardHeader>
+                                <CardHeader><CardTitle className="text-lg text-destructive">{T.dangerZone}</CardTitle><CardDescription>{T.dangerZoneDesc}</CardDescription></CardHeader>
                                 <CardContent>
                                     <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-destructive/10 rounded-full flex items-center justify-center">
-                                                <svg className="w-4 h-4 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </div>
-                                            <div>
-                                                <p className="font-medium">{T.clearAllData}</p>
-                                                <p className="text-sm text-muted-foreground">{T.clearAllDataDesc}</p>
-                                            </div>
+                                            <div className="w-8 h-8 bg-destructive/10 rounded-full flex items-center justify-center"><svg className="w-4 h-4 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></div>
+                                            <div><p className="font-medium">{T.clearAllData}</p><p className="text-sm text-muted-foreground">{T.clearAllDataDesc}</p></div>
                                         </div>
                                         <AlertDialog open={isConfirmClearOpen} onOpenChange={setIsConfirmClearOpen}>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="destructive">
-                                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                    {T.clearAllData}
-                                                </Button>
-                                            </AlertDialogTrigger>
+                                            <AlertDialogTrigger asChild><Button variant="destructive"><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>{T.clearAllData}</Button></AlertDialogTrigger>
                                             <AlertDialogContent>
                                                 <AlertDialogHeader>
-                                                    <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                                                        </svg>
-                                                        {T.clearAllDataWarningTitle}
-                                                    </AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        {T.clearAllDataWarningDesc?.replace('{confirmationText}', confirmationText) || `Type "${confirmationText}" to confirm deleting all data.`}
-                                                    </AlertDialogDescription>
-                                                    <div className="p-3 bg-destructive/10 rounded border border-destructive/20 mt-2">
-                                                        <span className="text-sm text-destructive font-medium">
-                                                            ⚠️ {T.warningNotReversible || 'Warning: This action cannot be undone!'}
-                                                        </span>
-                                                    </div>
+                                                    <AlertDialogTitle className="flex items-center gap-2 text-destructive"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>{T.clearAllDataWarningTitle}</AlertDialogTitle>
+                                                    <AlertDialogDescription>{T.clearAllDataWarningDesc?.replace('{confirmationText}', confirmationText) || `Type "${confirmationText}" to confirm deleting all data.`}</AlertDialogDescription>
+                                                    <div className="p-3 bg-destructive/10 rounded border border-destructive/20 mt-2"><span className="text-sm text-destructive font-medium">⚠️ {T.warningNotReversible || 'Warning: This action cannot be undone!'}</span></div>
                                                 </AlertDialogHeader>
                                                 <div className="py-2">
-                                                    <Input 
-                                                        value={clearConfirmText} 
-                                                        onChange={(e) => setClearConfirmText(e.target.value)} 
-                                                        placeholder={appSettings.language === 'vi' ? `Gõ "${confirmationText}" để xác nhận` : `Type "${confirmationText}" to confirm`}
-                                                        className="border-destructive/20 focus:border-destructive"
-                                                    />
+                                                    <Input value={clearConfirmText} onChange={(e) => setClearConfirmText(e.target.value)} placeholder={appSettings.language === 'vi' ? `Gõ "${confirmationText}" để xác nhận` : `Type "${confirmationText}" to confirm`} className="border-destructive/20 focus:border-destructive"/>
                                                 </div>
                                                 <AlertDialogFooter>
-                                                    <AlertDialogCancel onClick={() => setClearConfirmText('')}>
-                                                        {T.cancel}
-                                                    </AlertDialogCancel>
-                                                    <AlertDialogAction 
-                                                        disabled={clearConfirmText !== confirmationText} 
-                                                        className={cn(buttonVariants({ variant: "destructive" }))} 
-                                                        onClick={handleClearData}
-                                                    >
-                                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
-                                                        {T.confirmClear}
-                                                    </AlertDialogAction>
+                                                    <AlertDialogCancel onClick={() => setClearConfirmText('')}>{T.cancel}</AlertDialogCancel>
+                                                    <AlertDialogAction disabled={clearConfirmText !== confirmationText} className={cn(buttonVariants({ variant: "destructive" }))} onClick={handleClearData}><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>{T.confirmClear}</AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>

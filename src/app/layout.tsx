@@ -4,6 +4,7 @@
 import './globals.css';
 import { Inter } from 'next/font/google';
 import { Toaster } from "@/components/ui/toaster";
+import "@/styles/tiptap-content.css";
 import { ThemeProvider } from '@/components/theme-provider';
 import type { AppSettings } from '@/lib/types';
 import { useEffect, useState } from 'react';

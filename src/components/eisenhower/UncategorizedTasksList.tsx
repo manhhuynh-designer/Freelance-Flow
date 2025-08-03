@@ -6,10 +6,8 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, X } from 'lucide-react';
-import { Task } from '@/lib/types';
+import type { Task, AppSettings, Client, Collaborator, Category, Quote, QuoteTemplate } from '@/lib/types';
 import { CompactTaskCard } from './CompactTaskCard';
-import { i18n } from '@/lib/i18n';
-import { useDashboard } from '@/contexts/dashboard-context';
 import { Button } from '@/components/ui/button';
 
 interface UncategorizedTasksListProps {
@@ -17,17 +15,37 @@ interface UncategorizedTasksListProps {
   title: string;
   emptyMessage: string;
   onClearQuadrant: (taskId: string) => void;
+  // Props for drilling down to CompactTaskCard
+  T: any;
+  settings: AppSettings;
+  clients: Client[];
+  collaborators: Collaborator[];
+  categories: Category[];
+  quoteTemplates: QuoteTemplate[];
+  quotes: Quote[];
+  collaboratorQuotes: Quote[];
+  handleEditTask: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
+  handleDeleteTask: (taskId: string) => void;
 }
 
 export function UncategorizedTasksList({ 
   tasks, 
   title, 
   emptyMessage, 
-  onClearQuadrant 
+  onClearQuadrant,
+  T,
+  settings,
+  clients,
+  collaborators,
+  categories,
+  quoteTemplates,
+  quotes,
+  collaboratorQuotes,
+  handleEditTask,
+  handleDeleteTask
 }: UncategorizedTasksListProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const dashboardContext = useDashboard();
-  const T = dashboardContext ? i18n[dashboardContext.language] : i18n.en;
+  
   const { setNodeRef, isOver } = useDroppable({
     id: 'uncategorized',
     data: {
@@ -37,7 +55,6 @@ export function UncategorizedTasksList({
     }
   });
 
-  // Filter tasks based on search query only - no sorting since it comes from parent
   const filteredTasks = useMemo(() => {
     if (!searchQuery.trim()) return tasks;
     
@@ -63,7 +80,6 @@ export function UncategorizedTasksList({
           </span>
         </CardTitle>
         
-        {/* Search Input */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
@@ -111,6 +127,15 @@ export function UncategorizedTasksList({
                     task={task} 
                     onClearQuadrant={onClearQuadrant}
                     variant="uncategorized"
+                    settings={settings}
+                    clients={clients}
+                    collaborators={collaborators}
+                    categories={categories}
+                    quoteTemplates={quoteTemplates}
+                    quotes={quotes}
+                    collaboratorQuotes={collaboratorQuotes}
+                    handleEditTask={handleEditTask}
+                    handleDeleteTask={handleDeleteTask}
                   />
                 </div>
               ))}
