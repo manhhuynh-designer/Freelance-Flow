@@ -1,132 +1,100 @@
 'use server';
 
 /**
- * @fileOverview A flow for analyzing the user's time management based on their tasks and time logs.
+ * @fileOverview A flow for providing time management suggestions based on user's tasks and schedule.
  *
- * - manageTime - A function that provides insights and suggestions for time management.
- * - TimeManagementInput - The input type for the manageTime function.
- * - TimeManagementOutput - The output type for the manageTime function.
+ * - suggestTimeManagement - A function that provides time management insights
+ * - TimeManagementInput - The input type for the time management function.
+ * - TimeManagementOutput - The output type for the time management function.
  */
 
-import { ai, genkit, googleAI, openAI } from '@/ai/genkit';
-import { z } from 'genkit';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { z } from 'zod';
 
-// Define schemas for individual data types.
-const TaskSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  estimatedHours: z.number().optional(),
-  deadline: z.string().optional().describe('Deadline in YYYY-MM-DD format.'),
-});
-
-const TimeLogSchema = z.object({
-  taskId: z.string(),
-  hoursSpent: z.number(),
-  date: z.string().describe('Date of the time log in YYYY-MM-DD format.'),
-});
-
-// Define the main input schema for the flow.
+// Define the input schema
 const TimeManagementInputSchema = z.object({
-  tasks: z.array(TaskSchema).describe('A list of active tasks.'),
-  timeLogs: z.array(TimeLogSchema).describe('A list of time logs recorded by the user.'),
+  tasks: z.array(z.any()).describe("A JSON array of the user's active tasks."),
+  workingHours: z.object({
+    startTime: z.string().describe('Start time in HH:MM format'),
+    endTime: z.string().describe('End time in HH:MM format'),
+    workingDays: z.array(z.string()).describe('Array of working days'),
+  }).optional().describe('User\'s preferred working hours and days'),
+  currentDate: z.string().describe('Current date in ISO format'),
   language: z.enum(['en', 'vi']).describe("The user's selected language for the response."),
-  provider: z.enum(['google', 'openai']).describe('The AI provider to use.'),
-  apiKey: z.string().optional().describe('The API key for the selected provider.'),
-  modelName: z.string().describe("The name of the model to use."),
+  apiKey: z.string().describe('The Google API key for Gemini.'),
+  modelName: z.string().describe("The name of the Gemini model to use."),
 });
 export type TimeManagementInput = z.infer<typeof TimeManagementInputSchema>;
 
-// Define the structured output schema for the time management insights.
+// Define the output schema
 const TimeManagementOutputSchema = z.object({
-  timeAnalysis: z.record(z.object({
-    estimatedHours: z.number().optional(),
-    loggedHours: z.number(),
-    variance: z.number().describe('Difference between logged and estimated hours. Positive means overtime.'),
-  })).describe('A dictionary mapping task names to their time analysis.'),
-  
-  scheduleSuggestions: z.array(z.string()).describe('A list of suggestions to optimize the user\'s schedule (e.g., "Suggest taking a break", "Allocate focus blocks for Task X").'),
-  
-  deadlineWarnings: z.array(z.object({
+  priorityTasks: z.array(z.object({
     taskName: z.string(),
-    deadline: z.string(),
-    message: z.string().describe('A warning message about an upcoming or overdue deadline.'),
-  })).describe('A list of warnings for tasks with approaching or past deadlines.'),
+    priority: z.enum(['high', 'medium', 'low']),
+    reason: z.string(),
+  })).describe('List of tasks prioritized by urgency and importance'),
+  timeBlocks: z.array(z.object({
+    startTime: z.string(),
+    endTime: z.string(),
+    taskName: z.string(),
+    description: z.string(),
+  })).optional().describe('Suggested time blocks for focused work'),
+  suggestions: z.array(z.string()).describe('Time management tips and suggestions'),
+  workloadAnalysis: z.object({
+    overloaded: z.boolean(),
+    availableHours: z.number().optional(),
+    recommendedAdjustments: z.array(z.string()).optional(),
+  }).describe('Analysis of current workload'),
 });
 export type TimeManagementOutput = z.infer<typeof TimeManagementOutputSchema>;
 
-
-// Define the Genkit flow for time management analysis.
-const timeManagementFlow = ai.defineFlow(
-  {
-    name: 'timeManagementFlow',
-    inputSchema: TimeManagementInputSchema,
-    outputSchema: TimeManagementOutputSchema,
-  },
-  async (input) => {
+export async function suggestTimeManagement(input: TimeManagementInput): Promise<TimeManagementOutput | null> {
+  try {
     if (!input.apiKey) {
-      throw new Error('An API key is required for time management analysis.');
+      throw new Error('Google API key is required for time management suggestions.');
     }
 
-    const plugins = input.provider === 'openai'
-      ? [openAI({ apiKey: input.apiKey })]
-      : [googleAI({ apiKey: input.apiKey })];
+    const genAI = new GoogleGenerativeAI(input.apiKey);
+    const model = genAI.getGenerativeModel({ model: input.modelName });
 
-    const localAi = genkit({ plugins });
+    const prompt = `You are an expert time management consultant. Analyze the user's tasks and provide structured time management recommendations.
 
-    const prompt = `You are an expert productivity coach. Your task is to analyze a user's tasks and time logs to provide actionable time management insights.
+Based on the provided task data, working hours, and current date, help the user:
+1. Prioritize tasks by urgency and importance
+2. Suggest optimal time blocks for focused work (if working hours provided)
+3. Identify workload issues and provide solutions
+4. Offer practical time management tips
 
-Instructions:
-1.  **Time Analysis**: For each task, compare the \`estimatedHours\` with the total \`loggedHours\` from the time logs. Calculate the variance.
-2.  **Schedule Suggestions**: Based on the workload and deadlines, provide concrete suggestions to optimize the user's schedule. This could include recommending focus blocks for complex tasks or suggesting breaks.
-3.  **Deadline Warnings**: Identify any tasks that are close to their deadline or are already overdue. Create a clear warning message for each.
+Current Date: ${input.currentDate}
+Working Hours: ${input.workingHours ? JSON.stringify(input.workingHours) : 'Not specified'}
 
-Respond ONLY with a valid JSON object that conforms to the required output schema.
-The response should be in the user's selected language: ${input.language}.
+Tasks:
+${JSON.stringify(input.tasks, null, 2)}
 
-Data for Analysis:
-Tasks: ${JSON.stringify(input.tasks)}
-Time Logs: ${JSON.stringify(input.timeLogs)}
-`;
+Consider:
+- Task deadlines and urgency
+- Estimated time requirements
+- Dependencies between tasks
+- Work-life balance
+- Productivity patterns
 
-    const modelToUse = input.provider === 'openai'
-        ? `openai/${input.modelName}`
-        : googleAI.model(input.modelName);
+Respond ONLY with a valid JSON object that conforms to the required output schema. Do not add any explanatory text.
+The response should be in the user's selected language: ${input.language}.`;
 
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    // Try to parse JSON response
     try {
-      const generateConfig: any = { response_format: { type: 'json_object' } };
-       if (input.provider === 'google') {
-          generateConfig.safetySettings = [
-              { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-              { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-              { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-              { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-          ];
-      }
-
-      const { output } = await localAi.generate({
-        model: modelToUse,
-        prompt: prompt,
-        output: { schema: TimeManagementOutputSchema },
-        config: generateConfig,
-      });
-
-      if (!output) {
-        throw new Error("Failed to generate valid time management insights. The model returned an empty response.");
-      }
-
-      return output;
-    } catch (e: any) {
-      console.error("Error in timeManagementFlow:", e);
-      throw new Error(`Time management analysis failed. Details: ${e.message}`);
+      const jsonResponse = JSON.parse(text);
+      return TimeManagementOutputSchema.parse(jsonResponse);
+    } catch (parseError) {
+      console.error('Failed to parse AI response as JSON:', parseError);
+      return null;
     }
+  } catch (error: any) {
+    console.error("Error in suggestTimeManagement:", error);
+    throw error;
   }
-);
-
-// Expose the flow as a callable server function.
-export async function manageTime(input: TimeManagementInput): Promise<TimeManagementOutput> {
-  const result = await timeManagementFlow(input);
-  if (!result) {
-    throw new Error("An unexpected error occurred and the time management flow did not return a response.");
-  }
-  return result;
 }

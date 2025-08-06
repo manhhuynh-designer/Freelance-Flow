@@ -1,6 +1,4 @@
-
 "use client";
-
 import {
   Popover,
   PopoverContent,
@@ -11,9 +9,8 @@ import { Bot } from "lucide-react";
 import ChatPage from "@/app/dashboard/chat/page";
 import { useState } from "react";
 
-export function QuickChat() {
+export default function QuickChat() {
   const [open, setOpen] = useState(false);
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>

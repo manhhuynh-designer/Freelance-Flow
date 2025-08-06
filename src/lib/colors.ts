@@ -14,6 +14,59 @@ export function getContrastingTextColor(bgColor: string): string {
   return (L > 0.179) ? '#000000' : '#FFFFFF';
 }
 
+// Convert hex color to RGB
+export function hexToRgb(hex: string): { r: number, g: number, b: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
+
+// Convert RGB to HSL
+export function rgbToHsl(r: number, g: number, b: number): { h: number, s: number, l: number } {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h: number = 0;
+  let s: number = 0;
+  const l = (max + min) / 2;
+
+  if (max === min) {
+    h = s = 0; // achromatic
+  } else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+
+    h /= 6;
+  }
+
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+// Get contrasting foreground color in HSL format
+export function getContrastingForegroundHsl(backgroundColor: string): string {
+  const rgb = hexToRgb(backgroundColor);
+  if (!rgb) return 'hsl(0, 0%, 0%)';
+
+  const { r, g, b } = rgb;
+  // Calculate luminance
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  
+  // Return black or white based on luminance
+  return luminance > 0.5 ? 'hsl(0, 0%, 0%)' : 'hsl(0, 0%, 100%)';
+}
+
 export function hexToHsl(hex: string): { h: number, s: number, l: number } | null {
   if (!hex || hex.length < 4) {
     return null;
@@ -67,4 +120,22 @@ export const getStatusColor = (status: string) => {
         case 'archived': return '#6b7280';
         default: return '#9ca3af';
     }
+}
+
+// Generate sidebar background color HSL
+export function getSidebarBackgroundColorHsl(primaryHex: string): string {
+  const rgb = hexToRgb(primaryHex);
+  if (!rgb) return '210 40% 4%'; // fallback
+  
+  const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+  return `${Math.round(hsl.h)} ${Math.round(hsl.s * 100)}% 4%`;
+}
+
+// Generate theme background color HSL
+export function getThemeBackgroundColorHsl(primaryHex: string): string {
+  const rgb = hexToRgb(primaryHex);
+  if (!rgb) return '210 40% 98%'; // fallback
+  
+  const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+  return `${Math.round(hsl.h)} ${Math.round(hsl.s * 100)}% 98%`;
 }

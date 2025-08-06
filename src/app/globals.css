@@ -3,6 +3,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Utility classes for word breaking */
+.break-anywhere {
+  overflow-wrap: anywhere;
+}
+
 /* Sticky Header CSS for Table View */
 .sticky-header {
   height: 100% !important;

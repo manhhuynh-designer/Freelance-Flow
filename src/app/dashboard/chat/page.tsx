@@ -44,8 +44,23 @@ const CONVERSATIONS_KEY = 'freelance-flow-conversations';
 const OLD_CHAT_HISTORY_KEY = 'freelance-flow-chat-history';
 
 function ChatView({ isQuickChat = false }: { isQuickChat?: boolean }) {
+  const dashboardContext = useDashboard();
+  const { toast } = useToast();
+  
+  // Early return if context not available
+  if (!dashboardContext) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center">
+          <Bot className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">Loading AI Chat...</p>
+        </div>
+      </div>
+    );
+  }
+
   const { 
-    tasks, clients, collaborators, quoteTemplates, appSettings,
+    appData,
     handleTaskStatusChange, handleAiCreateTask, handleAiEditTask,
     handleDeleteTask,
     handleAddClientAndSelect,
@@ -57,9 +72,14 @@ function ChatView({ isQuickChat = false }: { isQuickChat?: boolean }) {
     handleAddCategory,
     handleEditCategory,
     handleDeleteCategory
-  } = useDashboard() || {};
-  
-  const { toast } = useToast();
+  } = dashboardContext;
+
+  // Extract data from appData
+  const tasks = appData?.tasks || [];
+  const clients = appData?.clients || [];
+  const collaborators = appData?.collaborators || [];
+  const quoteTemplates = appData?.quoteTemplates || [];
+  const appSettings = appData?.appSettings;
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -143,9 +163,16 @@ function ChatView({ isQuickChat = false }: { isQuickChat?: boolean }) {
     return activeConvo ? activeConvo.messages : [];
   }, [conversations, activeConversationId]);
 
-  // Fallback for when context is not yet available
-  if (!appSettings || !tasks || !clients || !collaborators || !quoteTemplates || !handleTaskStatusChange || !handleAiCreateTask || !handleAiEditTask || !handleDeleteTask || !handleAddClientAndSelect || !handleEditClient || !handleDeleteClient || !handleAddCollaborator || !handleEditCollaborator || !handleDeleteCollaborator || !handleAddCategory || !handleEditCategory || !handleDeleteCategory) {
-    return null; 
+  // Fallback for when essential data is not yet available
+  if (!appSettings) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center">
+          <Bot className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">Loading AI Chat...</p>
+        </div>
+      </div>
+    ); 
   }
 
   const T = i18n[appSettings.language];
@@ -253,13 +280,11 @@ function ChatView({ isQuickChat = false }: { isQuickChat?: boolean }) {
     
     startTransition(async () => {
       try {
-        const { preferredModelProvider, googleApiKey, openaiApiKey, googleModel, openaiModel } = appSettings;
-        const apiKey = preferredModelProvider === 'google' ? googleApiKey : openaiApiKey;
-        const modelName = preferredModelProvider === 'openai' 
-          ? (openaiModel || 'gpt-4o-mini')
-          : (googleModel || 'gemini-1.5-flash');
+        const { googleApiKey, googleModel } = appSettings;
+        const apiKey = googleApiKey;
+        const modelName = googleModel || 'gemini-1.5-flash';
 
-        const activeTasks = tasks.filter(t => !t.deletedAt);
+        const activeTasks = tasks.filter((t: any) => !t.deletedAt);
         
         const response = await askAboutTasksAction({
           userInput: userInput,
@@ -269,7 +294,6 @@ function ChatView({ isQuickChat = false }: { isQuickChat?: boolean }) {
           collaborators,
           quoteTemplates,
           language: appSettings.language,
-          provider: preferredModelProvider,
           apiKey,
           modelName,
         });
@@ -365,10 +389,9 @@ function ChatView({ isQuickChat = false }: { isQuickChat?: boolean }) {
                                     </div>
                                 )}
                                 <div
-                                    className={cn("max-w-xl rounded-lg px-4 py-3 whitespace-pre-wrap", 
+                                    className={cn("max-w-xl rounded-lg px-4 py-3 whitespace-pre-wrap break-anywhere", 
                                         msg.role === 'user' ? 'bg-secondary text-secondary-foreground' : 'bg-card border'
                                     )}
-                                    style={{ overflowWrap: 'anywhere' }}
                                 >
                                     {msg.role === 'model' ? (
                                         <MarkdownRenderer content={msg.content?.[0]?.text || ''} />

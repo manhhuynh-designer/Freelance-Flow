@@ -8,6 +8,7 @@ import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { ThemeProvider } from "@/components/theme-provider";
 import { Skeleton } from '@/components/ui/skeleton';
+import QuickChat from '@/components/quick-chat';
 
 // Wrapper to ensure components are only rendered on the client side
 function ClientOnly({ children }: { children: React.ReactNode }) {
@@ -57,6 +58,7 @@ export default function DashboardLayout({
                       </main>
                   </SidebarInset>
               </SidebarProvider>
+              <QuickChat />
             </Suspense>
           </ClientOnly>
         </DashboardProvider>

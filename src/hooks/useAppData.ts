@@ -25,9 +25,7 @@ const defaultSettings: AppSettings = {
     currency: 'VND',
     preferredModelProvider: 'google',
     googleApiKey: '',
-    openaiApiKey: '',
     googleModel: 'gemini-1.5-flash',
-    openaiModel: 'gpt-4o-mini',
     dashboardColumns: [
         { id: 'name', label: 'Task', visible: true },
         { id: 'client', label: 'Client', visible: true },
@@ -161,10 +159,12 @@ export function useAppData() {
     const root = window.document.documentElement;
     const primaryHex = appData.appSettings.theme.primary;
     try {
-        const [r, g, b] = hexToRgb(primaryHex);
-        const [h, s, l] = rgbToHsl(r,g,b);
-        root.style.setProperty('--primary', `${h} ${s}% ${l}%`);
-        root.style.setProperty('--primary-foreground', getContrastingForegroundHsl(`${h} ${s}% ${l}%`));
+        const rgb = hexToRgb(primaryHex);
+        if (rgb) {
+          const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+          root.style.setProperty('--primary', `${hsl.h} ${hsl.s}% ${hsl.l}%`);
+          root.style.setProperty('--primary-foreground', getContrastingForegroundHsl(primaryHex));
+        }
     } catch(e){}
   }, [appData.appSettings.theme.primary, isDataLoaded]);
   

@@ -31,8 +31,8 @@ export default function TestAI() {
         collaborators: [],
         quoteTemplates: [],
         language: 'en',
-        provider: 'google',
-        modelName: 'gemini-1.5-flash'
+        modelName: 'gemini-1.5-flash',
+        apiKey: 'test-key'
       });
       setResult(`AI test: ${JSON.stringify(response)}`);
     } catch (error: any) {

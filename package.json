@@ -16,6 +16,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@genkit-ai/firebase": "^1.15.5",
     "@genkit-ai/googleai": "^1.14.0",
     "@google/generative-ai": "^0.15.0",
     "@hookform/resolvers": "^4.1.3",

@@ -69,9 +69,7 @@ const defaultSettings: Omit<AppSettings, 'theme' | 'statusColors' | 'stickyNoteC
     currency: 'VND',
     preferredModelProvider: 'google',
     googleApiKey: '',
-    openaiApiKey: '',
     googleModel: 'gemini-1.5-flash',
-    openaiModel: 'gpt-4o-mini',
 };
 
 import { Suspense } from "react";
@@ -412,50 +410,35 @@ function SettingsPageContent() {
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="space-y-3">
-                                    <Label>{T.modelProvider}</Label>
-                                    <RadioGroup value={appSettings.preferredModelProvider} onValueChange={(value) => onSettingsChange(s => ({ ...s, preferredModelProvider: value as 'google' | 'openai' }))} className="flex gap-4">
-                                        <div key="google"><RadioGroupItem value="google" id="provider-google" className="peer sr-only" /><Label htmlFor="provider-google" className={cn("flex items-center justify-center rounded-md border-2 border-muted bg-popover p-2 px-3 hover:bg-accent hover:text-accent-foreground cursor-pointer h-10", "peer-data-[state=checked]:border-primary")}>Google AI</Label></div>
-                                        <div key="openai"><RadioGroupItem value="openai" id="provider-openai" className="peer sr-only" /><Label htmlFor="provider-openai" className={cn("flex items-center justify-center rounded-md border-2 border-muted bg-popover p-2 px-3 hover:bg-accent hover:text-accent-foreground cursor-pointer h-10", "peer-data-[state=checked]:border-primary")}>OpenAI</Label></div>
-                                    </RadioGroup>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="google-model">{T.googleModel}</Label>
-                                        <Select value={appSettings.googleModel || 'gemini-1.5-flash'} onValueChange={(value) => onSettingsChange(s => ({ ...s, googleModel: value }))} disabled={appSettings.preferredModelProvider !== 'google'}>
-                                            <SelectTrigger id="google-model"><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash</SelectItem>
-                                                <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="openai-model">{T.openaiModel}</Label>
-                                        <Select value={appSettings.openaiModel || 'gpt-4o-mini'} onValueChange={(value) => onSettingsChange(s => ({ ...s, openaiModel: value }))} disabled={appSettings.preferredModelProvider !== 'openai'}>
-                                            <SelectTrigger id="openai-model"><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                                                <SelectItem value="gpt-4o-mini">GPT-4o mini</SelectItem>
-                                                <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                    <Label>AI Provider</Label>
+                                    <div className="bg-muted p-3 rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                                                <svg className="w-3 h-3 text-primary" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                                </svg>
+                                            </div>
+                                            <span className="font-medium">Google AI (Gemini)</span>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground mt-1">Only Google AI models are supported for optimal performance.</p>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-1">
-                                            <Label htmlFor="google-api-key">Google AI API Key</Label>
-                                            <Tooltip><TooltipTrigger asChild><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" tabIndex={-1} title="Hướng dẫn lấy Google API Key"><QuestionMarkIcon className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-primary" /></a></TooltipTrigger><TooltipContent side="top">Dùng để truy cập Gemini. Lấy API key tại Google AI Studio.</TooltipContent></Tooltip>
-                                        </div>
-                                        <Input id="google-api-key" type="password" placeholder="Enter your Google API Key" value={appSettings.googleApiKey || ''} onChange={(e) => onSettingsChange(s => ({ ...s, googleApiKey: e.target.value }))} />
+                                <div className="space-y-2">
+                                    <Label htmlFor="google-model">Gemini Model</Label>
+                                    <Select value={appSettings.googleModel || 'gemini-1.5-flash'} onValueChange={(value) => onSettingsChange(s => ({ ...s, googleModel: value }))}>
+                                        <SelectTrigger id="google-model"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash</SelectItem>
+                                            <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-1">
+                                        <Label htmlFor="google-api-key">Google AI API Key</Label>
+                                        <Tooltip><TooltipTrigger asChild><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" tabIndex={-1} title="Hướng dẫn lấy Google API Key"><QuestionMarkIcon className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-primary" /></a></TooltipTrigger><TooltipContent side="top">Dùng để truy cập Gemini. Lấy API key tại Google AI Studio.</TooltipContent></Tooltip>
                                     </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-1">
-                                            <Label htmlFor="openai-api-key">OpenAI API Key</Label>
-                                            <Tooltip><TooltipTrigger asChild><a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" tabIndex={-1} title="Hướng dẫn lấy OpenAI API Key"><QuestionMarkIcon className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-primary" /></a></TooltipTrigger><TooltipContent side="top">Dùng để truy cập OpenAI (GPT). Lấy API key tại OpenAI Platform.</TooltipContent></Tooltip>
-                                        </div>
-                                        <Input id="openai-api-key" type="password" placeholder="Enter your OpenAI API Key" value={appSettings.openaiApiKey || ''} onChange={(e) => onSettingsChange(s => ({ ...s, openaiApiKey: e.target.value }))} />
-                                    </div>
+                                    <Input id="google-api-key" type="password" placeholder="Enter your Google API Key" value={appSettings.googleApiKey || ''} onChange={(e) => onSettingsChange(s => ({ ...s, googleApiKey: e.target.value }))} />
                                 </div>
                             </CardContent>
                         </Card>
