@@ -42,3 +42,4 @@ pnpm-debug.log*
 docs/*
 !docs/
 next-env.d.ts
+.vscode/tasks.json
