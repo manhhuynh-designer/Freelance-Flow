@@ -1,52 +1,80 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import type { Task, AppSettings } from '@/lib/types';
+import type { Task, AppSettings, FilterSettings } from '@/lib/types';
 import { DateRange } from 'react-day-picker';
+import { FilterSettingsService } from '@/lib/filter-settings-service';
 
 export type ViewMode = 'table' | 'calendar' | 'eisenhower' | 'kanban';
 
-export function useFilterLogic(tasks: Task[], appSettings: AppSettings, view: 'active' | 'trash') {
+export function useFilterLogic(
+  tasks: Task[], 
+  appSettings: AppSettings, 
+  view: 'active' | 'trash'
+) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  // Filter states
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(() => {
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [clientFilter, setClientFilter] = useState<string | null>(null);
+  const [date, setDate] = useState<DateRange | undefined>(undefined);
+  const [sortFilter, setSortFilter] = useState<string>('deadline-asc');
+  const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    const savedSettings = appSettings.filterSettings || FilterSettingsService.getFilterSettings();
+    const defaultSettings = FilterSettingsService.createDefaultSettings(
+      appSettings.statusSettings?.map(s => s.id) || []
+    );
+    const mergedSettings = FilterSettingsService.mergeWithDefaults(savedSettings, defaultSettings);
+
     const statuses = searchParams.get('statuses');
-    if (statuses === null) {
-      return appSettings.statusSettings?.map(s => s.id) || [];
-    }
-    if (statuses === 'none') return [];
-    return statuses.split(',').filter(Boolean);
-  });
-
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(() => {
-    return searchParams.get('category') || null;
-  });
-
-  const [clientFilter, setClientFilter] = useState<string | null>(() => {
-    return searchParams.get('client') || null;
-  });
-
-  const [date, setDate] = useState<DateRange | undefined>(() => {
+    setSelectedStatuses(
+      statuses === null ? mergedSettings.selectedStatuses :
+      statuses === 'none' ? [] :
+      statuses.split(',').filter(Boolean)
+    );
+    setCategoryFilter(searchParams.get('category') || (mergedSettings.selectedCategory === 'all' ? null : mergedSettings.selectedCategory));
+    setClientFilter(searchParams.get('client') || (mergedSettings.selectedClient === 'all' ? null : mergedSettings.selectedClient));
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     if (startDate || endDate) {
-      return {
-        from: startDate ? new Date(startDate) : undefined,
-        to: endDate ? new Date(endDate) : undefined,
-      };
+      setDate({ from: startDate ? new Date(startDate) : undefined, to: endDate ? new Date(endDate) : undefined });
+    } else if (mergedSettings.dateRange?.from || mergedSettings.dateRange?.to) {
+      setDate({ from: mergedSettings.dateRange.from ? new Date(mergedSettings.dateRange.from) : undefined, to: mergedSettings.dateRange.to ? new Date(mergedSettings.dateRange.to) : undefined });
     }
-    return undefined;
-  });
+    setSortFilter(searchParams.get('sort') || mergedSettings.sortFilter);
+  }, [appSettings.filterSettings, appSettings.statusSettings]);
 
-  const [sortFilter, setSortFilter] = useState<string>(() => {
-    return searchParams.get('sort') || 'deadline-asc';
-  });
+  useEffect(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = setTimeout(() => {
+      const filterSettingsToSave: Partial<FilterSettings> = {
+        selectedStatuses,
+        selectedCategory: categoryFilter || 'all',
+        selectedClient: clientFilter || 'all',
+        sortFilter,
+        dateRange: date ? {
+          from: date.from?.toISOString(),
+          to: date.to?.toISOString(),
+        } : undefined,
+      };
+      
+      FilterSettingsService.saveFilterSettings(filterSettingsToSave);
+    }, 300);
 
-  const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [selectedStatuses, categoryFilter, clientFilter, sortFilter, date]);
 
-  // Sync URL with filter state
   useEffect(() => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
 
@@ -96,12 +124,10 @@ export function useFilterLogic(tasks: Task[], appSettings: AppSettings, view: 'a
     const query = search ? `?${search}` : '';
     const newPath = `${pathname}${query}`;
     
-    // Only replace if the new path is different to avoid unnecessary re-renders
-    // Using window.location.search might be problematic in SSR, but this hook seems client-side only.
     if (typeof window !== 'undefined' && newPath !== `${pathname}${window.location.search}`) {
         router.replace(newPath, { scroll: false });
     }
-  }, [selectedStatuses, categoryFilter, clientFilter, date, sortFilter, pathname, router, searchParams, appSettings.statusSettings]);
+  }, [selectedStatuses, categoryFilter, clientFilter, date, sortFilter, pathname, router, searchParams]);
 
   // Filter handlers
   const handleStatusFilterChange = (statusId: string, isSelected: boolean) => {

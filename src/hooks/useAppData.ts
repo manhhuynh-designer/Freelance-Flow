@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { differenceInDays } from "date-fns";
 import { initialAppData, categories as initialCategories, initialCollaborators, initialClients, STATUS_INFO } from '@/lib/data';
-import type { Task, AppEvent, Quote, Client, QuoteColumn, QuoteTemplate, Collaborator, AppData, Category, DashboardColumn, AppSettings, QuoteSection, QuoteItem } from '@/lib/types';
+import type { Task, AppEvent, Quote, Client, QuoteColumn, QuoteTemplate, Collaborator, AppData, Category, DashboardColumn, AppSettings, QuoteSection, QuoteItem, CollaboratorQuote } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { i18n } from "@/lib/i18n";
 import { type TaskFormValues } from "@/components/create-task-form-new";
@@ -14,6 +14,7 @@ import { BackupService } from "@/lib/backup-service";
 import { LocalBackupService } from "@/lib/local-backup-service";
 import { DataPersistenceService } from "@/lib/data-persistence";
 import { EisenhowerQuadrantType } from "@/components/eisenhower/EisenhowerView";
+import { useActionBuffer } from "@/hooks/useActionBuffer";
 import { getSidebarBackgroundColorHsl, hexToRgb, rgbToHsl, getThemeBackgroundColorHsl, getContrastingForegroundHsl, getContrastingTextColor } from "@/lib/colors";
 
 const defaultSettings: AppSettings = {
@@ -46,7 +47,7 @@ const defaultSettings: AppSettings = {
         { id: 'sticky-notes', enabled: true, showInSidebar: true, colSpan: 2, rowSpan: 2 },
     ],
     eisenhowerMaxTasksPerQuadrant: 10,
-    eisenhowerColorScheme: 'colorScheme1',
+    eisenhowerColorScheme: 'colorScheme1'
 };
 
 const ensureItemIds = (sections: any[]): QuoteSection[] => {
@@ -74,6 +75,9 @@ export function useAppData() {
   const [lastBackupDate, setLastBackupDate] = useState<Date | null>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
+
+  // 🎯 Action Buffer for tracking user actions
+  const actionBuffer = useActionBuffer();
 
   const { toast } = useToast();
   const { resolvedTheme } = useTheme();
@@ -119,6 +123,12 @@ export function useAppData() {
                 };
                 loadedData = CollaboratorDataService.syncCollaboratorData(loadedData, false);
             } catch (e) {
+                console.error("Failed to parse or process data from localStorage", e);
+                toast({
+                  title: 'Data Load Error',
+                  description: 'Could not load your data. It might be corrupted. Loading default data.',
+                  variant: 'destructive',
+                });
                 loadedData = { ...initialAppData, notes:[] };
                 isFirstTimeUse = true;
             }
@@ -131,7 +141,61 @@ export function useAppData() {
         if (storedBackupDate) setLastBackupDate(new Date(storedBackupDate));
     };
     initializeData();
-  }, []); 
+
+    // 🔧 FIX: Listen for localStorage changes (from settings page restore)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === storageKey && e.newValue) {
+        try {
+          console.log('🔄 Detected localStorage change, reloading data...');
+          const newData = JSON.parse(e.newValue);
+          const parsedTasks = (newData.tasks || []).map((task: any) => ({
+            ...task,
+            startDate: new Date(task.startDate),
+            deadline: new Date(task.deadline),
+            deletedAt: task.deletedAt ? new Date(task.deletedAt).toISOString() : undefined,
+          }));
+          
+          setAppData({
+            ...newData,
+            tasks: parsedTasks,
+            notes: newData.notes || [],
+          });
+        } catch (error) {
+          console.error('Failed to parse new localStorage data:', error);
+        }
+      }
+    };
+
+    // 🔧 FIX: Listen for custom data update events (same window)
+    const handleDataUpdated = (e: CustomEvent) => {
+      try {
+        console.log('🔄 Detected custom data update event, reloading...');
+        const newData = e.detail;
+        const parsedTasks = (newData.tasks || []).map((task: any) => ({
+          ...task,
+          startDate: new Date(task.startDate),
+          deadline: new Date(task.deadline),
+          deletedAt: task.deletedAt ? new Date(task.deletedAt).toISOString() : undefined,
+        }));
+        
+        setAppData({
+          ...newData,
+          tasks: parsedTasks,
+          notes: newData.notes || [],
+        });
+      } catch (error) {
+        console.error('Failed to handle data update event:', error);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('freelance-flow-data-updated', handleDataUpdated as EventListener);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('freelance-flow-data-updated', handleDataUpdated as EventListener);
+    };
+  }, [toast]); 
 
   useEffect(() => {
     if (isDataLoaded) {
@@ -178,12 +242,52 @@ export function useAppData() {
   const handleEditTaskClick = (task: Task) => {
     setEditingTask(task);
     handleCloseTaskDetails();
-    setIsTaskFormOpen(true);
+    // Remove setIsTaskFormOpen(true) to avoid conflicts with ChatView EditTaskForm
   };
   
-  const addEvent = (event: AppEvent) => setAppData(prev => ({ ...prev, events: [...(prev.events || []), event] }));
-  const updateEvent = (event: AppEvent) => setAppData(prev => ({...prev, events: (prev.events || []).map(e => e.id === event.id ? event : e)}));
-  const deleteEvent = (eventId: string) => setAppData(prev => ({...prev, events: (prev.events || []).filter(e => e.id !== eventId)}));
+  const addEvent = (event: AppEvent) => {
+    setAppData(prev => ({ ...prev, events: [...(prev.events || []), event] }));
+    
+    // 🎯 Track event create action
+    actionBuffer.pushAction({
+      action: 'create',
+      entityType: 'event',
+      entityId: event.id,
+      newData: event,
+      description: `Created event: "${event.name}"`,
+      canUndo: true
+    });
+  };
+  
+  const updateEvent = (event: AppEvent) => {
+    setAppData(prev => ({...prev, events: (prev.events || []).map(e => e.id === event.id ? event : e)}));
+    
+    // 🎯 Track event edit action
+    actionBuffer.pushAction({
+      action: 'edit',
+      entityType: 'event',
+      entityId: event.id,
+      description: `Edited event: "${event.name}"`,
+      canUndo: true
+    });
+  };
+  
+  const deleteEvent = (eventId: string) => {
+    const event = appData.events?.find(e => e.id === eventId);
+    setAppData(prev => ({...prev, events: (prev.events || []).filter(e => e.id !== eventId)}));
+    
+    // 🎯 Track event delete action
+    if (event) {
+      actionBuffer.pushAction({
+        action: 'delete',
+        entityType: 'event',
+        entityId: eventId,
+        previousData: event,
+        description: `Deleted event: "${event.name}"`,
+        canUndo: true
+      });
+    }
+  };
   
   const handleEventSubmit = (eventData: Partial<AppEvent>) => {
     const newEvent: AppEvent = { id: `event-${Date.now()}`, ...eventData, name: eventData.name || 'Untitled Event', startTime: eventData.startTime || new Date(), endTime: eventData.endTime || new Date() };
@@ -193,15 +297,24 @@ export function useAppData() {
   
   const handleAddTask = (values: TaskFormValues, quoteColumns: QuoteColumn[], collaboratorQuoteColumns: QuoteColumn[]) => {
     const newQuoteId = `quote-${Date.now()}`;
-    const newQuote: Quote = { id: newQuoteId, sections: ensureItemIds(values.sections), total: 0, columns: quoteColumns };
+    const newQuote: Quote = { 
+      id: newQuoteId, 
+      sections: ensureItemIds(values.sections), 
+      total: 0, 
+      columns: quoteColumns,
+      status: 'draft' // FIX: Provide default status
+    };
 
-    const newCollaboratorQuotes: Quote[] = [];
+    const newCollaboratorQuotes: CollaboratorQuote[] = []; // FIX: Correctly type the array
     const collaboratorQuoteLinks: { collaboratorId: string; quoteId: string }[] = [];
     (values.collaboratorQuotes || []).forEach(cq => {
       if (cq.collaboratorId && cq.sections.length > 0) {
         const newCollabQuoteId = `collab-quote-${Date.now()}-${Math.random()}`;
+        // FIX: Create a valid CollaboratorQuote object
         newCollaboratorQuotes.push({
           id: newCollabQuoteId,
+          collaboratorId: cq.collaboratorId,
+          paymentStatus: 'pending',
           sections: ensureItemIds(cq.sections),
           total: 0,
           columns: collaboratorQuoteColumns,
@@ -237,8 +350,25 @@ export function useAppData() {
         collaboratorQuotes: [...prev.collaboratorQuotes, ...newCollaboratorQuotes],
     }));
     
+    // 🎯 Track the action in buffer
+    actionBuffer.pushAction({
+      action: 'create',
+      entityType: 'task',
+      entityId: newTask.id,
+      newData: newTask,
+      description: `Created task: "${newTask.name}"`,
+      canUndo: true
+    });
+    
     toast({ title: T.taskCreated, description: T.taskCreatedDesc });
     setIsTaskFormOpen(false);
+    
+    // Emit task:saved event for auto-opening TaskDetailsDialog
+    if (typeof window !== 'undefined') {
+      try {
+        window.dispatchEvent(new CustomEvent('task:saved', { detail: { taskId: newTask.id } }));
+      } catch {}
+    }
   };
 
   const handleEditTask = (values: TaskFormValues, quoteColumns: QuoteColumn[], collaboratorQuoteColumns: QuoteColumn[], taskId: string) => {
@@ -254,7 +384,14 @@ export function useAppData() {
         const quoteIndex = quotes.findIndex(q => q.id === existingTask.quoteId);
         const updatedQuotes = [...quotes];
         if (quoteIndex > -1) {
-            updatedQuotes[quoteIndex] = { ...updatedQuotes[quoteIndex], sections: ensureItemIds(values.sections), columns: quoteColumns };
+            // FIX: Ensure status is preserved or updated
+            const currentStatus = updatedQuotes[quoteIndex].status;
+            updatedQuotes[quoteIndex] = { 
+              ...updatedQuotes[quoteIndex], 
+              sections: ensureItemIds(values.sections), 
+              columns: quoteColumns,
+              status: currentStatus || 'draft'
+            };
         }
         
         // Update Collaborator Quotes
@@ -274,7 +411,15 @@ export function useAppData() {
                 newCollabQuoteLinks.push(existingLink);
             } else {
                 const newCollabQuoteId = `collab-quote-${Date.now()}-${Math.random()}`;
-                updatedCollaboratorQuotes.push({ id: newCollabQuoteId, sections: ensureItemIds(cq.sections), total: 0, columns: collaboratorQuoteColumns });
+                // FIX: Create a valid CollaboratorQuote when adding during an edit
+                updatedCollaboratorQuotes.push({ 
+                  id: newCollabQuoteId, 
+                  sections: ensureItemIds(cq.sections), 
+                  total: 0, 
+                  columns: collaboratorQuoteColumns,
+                  collaboratorId: cq.collaboratorId,
+                  paymentStatus: 'pending',
+                });
                 newCollabQuoteLinks.push({ collaboratorId: cq.collaboratorId, quoteId: newCollabQuoteId });
             }
         });
@@ -306,67 +451,310 @@ export function useAppData() {
         };
     });
     
+    // 🎯 Track the edit action in buffer
+    actionBuffer.pushAction({
+      action: 'edit',
+      entityType: 'task',
+      entityId: taskId,
+      description: `Edited task: "${values.name}"`,
+      canUndo: true
+    });
+    
     toast({ title: T.taskUpdated, description: T.taskUpdatedDesc });
   };
   
   const handleTaskStatusChange = (taskId: string, status: Task['status'], subStatusId?: string) => {
+    const task = appData.tasks.find(t => t.id === taskId);
+    const oldStatus = task?.status;
+    
     setAppData(prev => ({...prev, tasks: prev.tasks.map(t => t.id === taskId ? { ...t, status, subStatusId: subStatusId ?? undefined } : t)}));
+    
+    // 🎯 Track the status change action in buffer
+    if (task && oldStatus !== status) {
+      actionBuffer.pushAction({
+        action: 'statusChange',
+        entityType: 'task',
+        entityId: taskId,
+        description: `Changed task "${task.name}" status from ${oldStatus} to ${status}`,
+        canUndo: true
+      });
+    }
+    
     toast({ title: T.taskStatusUpdated, description: T.taskStatusUpdatedDesc });
   };
   
   const handleAiCreateTask = (newTaskData: any) => {
+    console.log('🚀 handleAiCreateTask called with:', newTaskData);
+    
+    // Find client ID from client name if provided
+    let clientId = '';
+    if (newTaskData.clientName) {
+      const client = appData.clients.find(c => 
+        c.name.toLowerCase() === newTaskData.clientName.toLowerCase()
+      );
+      if (client) {
+        clientId = client.id;
+      } else {
+        // Create new client if doesn't exist
+        const newClient: Client = {
+          id: `client-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          name: newTaskData.clientName,
+          email: [],
+          phone: [],
+          type: 'brand'
+        };
+        
+        setAppData(prev => ({
+          ...prev,
+          clients: [...prev.clients, newClient]
+        }));
+        
+        clientId = newClient.id;
+        console.log('👤 Created new client:', newClient);
+      }
+    }
+
+    // Find category ID from category name or use default
+    let categoryId = appData.categories.find(c => c.name === 'General')?.id || 'general';
+    if (newTaskData.categoryId) {
+      const existingCategory = appData.categories.find(c => c.id === newTaskData.categoryId);
+      if (existingCategory) {
+        categoryId = newTaskData.categoryId;
+      }
+    }
+    
+    // Create a proper Task object from AI data
+    const newTask: Task = {
+      id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: newTaskData.name || 'Unnamed Task',
+      description: newTaskData.description || '',
+      status: newTaskData.status || 'todo',
+      clientId: clientId,
+      categoryId: categoryId,
+      startDate: newTaskData.startDate ? new Date(newTaskData.startDate).toISOString() : new Date().toISOString(),
+      deadline: newTaskData.deadline ? new Date(newTaskData.deadline).toISOString() : new Date().toISOString(),
+      quoteId: '', // Will be set later if needed
+      collaboratorIds: newTaskData.collaboratorIds || [],
+      createdAt: new Date().toISOString()
+    };
+
+    console.log('✨ Creating new task:', newTask);
+
     setAppData(prev => {
-        // Logic from original file...
-        return { ...prev };
+      const updatedData = {
+        ...prev,
+        tasks: [...prev.tasks, newTask]
+      };
+      
+      // Save to localStorage
+      localStorage.setItem('freelance-flow-data', JSON.stringify(updatedData));
+      console.log('💾 Task saved to localStorage');
+      
+      return updatedData;
     });
+
+    toast({ 
+      title: "Task Created", 
+      description: `Task "${newTask.name}" has been created successfully.`
+    });
+    
+    console.log('✅ handleAiCreateTask completed successfully');
   };
 
   const handleAiEditTask = (editData: {taskId: string, updates: Partial<Task & {clientName: string}>}) => {
+    console.log('✏️ handleAiEditTask called with:', editData);
+    
     setAppData(prev => {
-        // Logic from original file...
-        return { ...prev };
+      const updatedTasks = prev.tasks.map(task => {
+        if (task.id === editData.taskId) {
+          // Handle clientName -> clientId conversion
+          let updatedClientId = task.clientId;
+          if (editData.updates.clientName) {
+            const client = prev.clients.find(c => 
+              c.name.toLowerCase() === editData.updates.clientName?.toLowerCase()
+            );
+            if (client) {
+              updatedClientId = client.id;
+            }
+          }
+          
+          const updatedTask = {
+            ...task,
+            ...editData.updates,
+            clientId: updatedClientId
+          };
+          
+          // Remove clientName from the task object as it's not a Task property
+          delete (updatedTask as any).clientName;
+          
+          console.log('📝 Updated task:', updatedTask);
+          return updatedTask;
+        }
+        return task;
+      });
+      
+      const updatedData = {
+        ...prev,
+        tasks: updatedTasks
+      };
+      
+      // Save to localStorage
+      localStorage.setItem('freelance-flow-data', JSON.stringify(updatedData));
+      console.log('💾 Task updates saved to localStorage');
+      
+      return updatedData;
     });
+
+    toast({ 
+      title: "Task Updated", 
+      description: `Task has been updated successfully.`
+    });
+    
+    console.log('✅ handleAiEditTask completed successfully');
   };
 
   const handleEditClient = (clientId: string, updates: Partial<Omit<Client, 'id'>>) => {
+    const client = appData.clients.find(c => c.id === clientId);
     setAppData(prev => ({...prev, clients: prev.clients.map(c => c.id === clientId ? { ...c, ...updates } : c)}));
+    
+    // 🎯 Track client edit action
+    if (client) {
+      actionBuffer.pushAction({
+        action: 'edit',
+        entityType: 'client',
+        entityId: clientId,
+        description: `Edited client: "${updates.name || client.name}"`,
+        canUndo: true
+      });
+    }
+    
     toast({ title: T.clientUpdated, description: T.clientUpdatedDesc });
   };
 
   const handleDeleteClient = (clientId: string) => {
+    const client = appData.clients.find(c => c.id === clientId);
     setAppData(prev => ({...prev, clients: prev.clients.filter(c => c.id !== clientId)}));
+    
+    // 🎯 Track client delete action
+    if (client) {
+      actionBuffer.pushAction({
+        action: 'delete',
+        entityType: 'client',
+        entityId: clientId,
+        previousData: client,
+        description: `Deleted client: "${client.name}"`,
+        canUndo: true
+      });
+    }
+    
     toast({ title: T.clientDeleted, description: T.clientDeletedDesc });
   };
 
   const handleAddCollaborator = (data: Omit<Collaborator, 'id'>) => {
     const newCollaborator: Collaborator = { id: `collab-${Date.now()}`, ...data };
     setAppData(prev => ({...prev, collaborators: [...prev.collaborators, newCollaborator]}));
+    
+    // 🎯 Track collaborator create action
+    actionBuffer.pushAction({
+      action: 'create',
+      entityType: 'collaborator',
+      entityId: newCollaborator.id,
+      newData: newCollaborator,
+      description: `Created collaborator: "${newCollaborator.name}"`,
+      canUndo: true
+    });
+    
     toast({ title: T.collaboratorAdded, description: T.collaboratorAddedDesc });
   };
 
   const handleEditCollaborator = (collaboratorId: string, updates: Partial<Omit<Collaborator, 'id'>>) => {
+    const collaborator = appData.collaborators.find(c => c.id === collaboratorId);
     setAppData(prev => ({...prev, collaborators: prev.collaborators.map(c => c.id === collaboratorId ? { ...c, ...updates } : c)}));
+    
+    // 🎯 Track collaborator edit action
+    if (collaborator) {
+      actionBuffer.pushAction({
+        action: 'edit',
+        entityType: 'collaborator',
+        entityId: collaboratorId,
+        description: `Edited collaborator: "${updates.name || collaborator.name}"`,
+        canUndo: true
+      });
+    }
+    
     toast({ title: T.collaboratorUpdated, description: T.collaboratorUpdatedDesc });
   };
 
   const handleDeleteCollaborator = (collaboratorId: string) => {
+    const collaborator = appData.collaborators.find(c => c.id === collaboratorId);
     setAppData(prev => ({...prev, collaborators: prev.collaborators.filter(c => c.id !== collaboratorId)}));
+    
+    // 🎯 Track collaborator delete action
+    if (collaborator) {
+      actionBuffer.pushAction({
+        action: 'delete',
+        entityType: 'collaborator',
+        entityId: collaboratorId,
+        previousData: collaborator,
+        description: `Deleted collaborator: "${collaborator.name}"`,
+        canUndo: true
+      });
+    }
+    
     toast({ title: T.collaboratorDeleted, description: T.collaboratorDeletedDesc });
   };
 
   const handleAddCategory = (data: Omit<Category, 'id'>) => {
     const newCategory: Category = { id: `cat-${Date.now()}`, ...data };
     setAppData(prev => ({...prev, categories: [...prev.categories, newCategory]}));
+    
+    // 🎯 Track category create action
+    actionBuffer.pushAction({
+      action: 'create',
+      entityType: 'category',
+      entityId: newCategory.id,
+      newData: newCategory,
+      description: `Created category: "${newCategory.name}"`,
+      canUndo: true
+    });
+    
     toast({ title: T.categoryAdded, description: T.categoryAddedDesc });
   };
 
   const handleEditCategory = (categoryId: string, updates: Partial<Omit<Category, 'id'>>) => {
+    const category = appData.categories.find(c => c.id === categoryId);
     setAppData(prev => ({...prev, categories: prev.categories.map(c => c.id === categoryId ? { ...c, ...updates } : c)}));
+    
+    // 🎯 Track category edit action
+    if (category) {
+      actionBuffer.pushAction({
+        action: 'edit',
+        entityType: 'category',
+        entityId: categoryId,
+        description: `Edited category: "${updates.name || category.name}"`,
+        canUndo: true
+      });
+    }
+    
     toast({ title: T.categoryUpdated, description: T.categoryUpdatedDesc });
   };
 
   const handleDeleteCategory = (categoryId: string) => {
+    const category = appData.categories.find(c => c.id === categoryId);
     setAppData(prev => ({...prev, categories: prev.categories.filter(c => c.id !== categoryId)}));
+    
+    // 🎯 Track category delete action
+    if (category) {
+      actionBuffer.pushAction({
+        action: 'delete',
+        entityType: 'category',
+        entityId: categoryId,
+        previousData: category,
+        description: `Deleted category: "${category.name}"`,
+        canUndo: true
+      });
+    }
+    
     toast({ title: T.categoryDeleted, description: T.categoryDeletedDesc });
   };
   
@@ -374,6 +762,17 @@ export function useAppData() {
     const task = appData.tasks.find(t => t.id === taskId); 
     if (!task) return; 
     setAppData(prev => ({...prev, tasks: prev.tasks.map(t => t.id === taskId ? { ...t, deletedAt: new Date().toISOString() } : t)})); 
+    
+    // 🎯 Track the delete action in buffer
+    actionBuffer.pushAction({
+      action: 'delete',
+      entityType: 'task',
+      entityId: taskId,
+      previousData: task,
+      description: `Moved task "${task.name}" to trash`,
+      canUndo: true
+    });
+    
     toast({ title: T.taskMovedToTrash, description: `${T.task} "${task.name}" ${T.taskMovedToTrashDesc}` }); 
   };
   const handleRestoreTask = (taskId: string) => { 
@@ -409,14 +808,26 @@ export function useAppData() {
   const handleAddClientAndSelect = (data: Omit<Client, 'id'>): Client => { 
       const newClient: Client = { id: `client-${Date.now()}`, ...data }; 
       setAppData(prev => ({...prev, clients: [...prev.clients, newClient]})); 
+      
+      // 🎯 Track client create action
+      actionBuffer.pushAction({
+        action: 'create',
+        entityType: 'client',
+        entityId: newClient.id,
+        newData: newClient,
+        description: `Created client: "${newClient.name}"`,
+        canUndo: true
+      });
+      
       toast({ title: T.clientAdded, description: `${T.client} "${data.name}" ${T.clientAddedDesc}` });
       return newClient;
   };
   const handleClearAllData = () => {
     const emptyData: AppData = {
       events: [], tasks: [], quotes: [], collaboratorQuotes: [], clients: [], collaborators: [],
-      quoteTemplates: [], categories: [], appSettings: defaultSettings, notes: []
-    };
+      quoteTemplates: [], categories: [], appSettings: defaultSettings, notes: [],
+      workSessions: []
+    } as any;
     setAppData(emptyData);
     localStorage.clear();
     toast({ title: T.clearAllData, description: T.clearAllDataDesc });
@@ -442,6 +853,40 @@ export function useAppData() {
     setInstallPromptEvent(null);
     setShowInstallPrompt(false);
   };
+  
+    const handleFileUpload = (file: File) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target?.result;
+            if (typeof text !== 'string') {
+                toast({ variant: 'destructive', title: T.restoreError, description: T.restoreErrorDesc });
+                return;
+            }
+            try {
+                const restoredData = JSON.parse(text);
+                const restoredTasks = restoredData.tasks.map((task: Task) => ({
+                  ...task,
+                  startDate: new Date(task.startDate),
+                  deadline: new Date(task.deadline),
+                }));
+        const updatedData = { 
+          ...initialAppData, 
+          ...restoredData, 
+          tasks: restoredTasks, 
+          notes: restoredData.notes || [],
+          // Ensure workSessions field always exists for productivity tracking
+          workSessions: Array.isArray(restoredData.workSessions) ? restoredData.workSessions : []
+        } as any;
+                setAppData(updatedData);
+                // Dispatch event to notify other components (e.g. settings) to reload
+                window.dispatchEvent(new CustomEvent('freelance-flow-data-updated', { detail: updatedData }));
+                toast({ title: T.restoreSuccessful, description: T.restoreSuccessfulDesc });
+            } catch (error) {
+                toast({ variant: 'destructive', title: T.restoreError, description: T.restoreErrorInvalidFile });
+            }
+        };
+        reader.readAsText(file);
+    };
   // --- END OF HANDLERS ---
   
   
@@ -496,6 +941,9 @@ export function useAppData() {
     isTaskFormOpen, isClientManagerOpen, isCollaboratorManagerOpen, isTemplateManagerOpen, isCategoryManagerOpen,
     taskFormSize, viewingTaskId, editingTask, lastBackupDate, showInstallPrompt, installPromptEvent,
     
+    // 🎯 Action buffer for tracking user actions
+    actionBuffer,
+    
     setAppData, setIsTaskFormOpen, setIsClientManagerOpen, setIsCollaboratorManagerOpen, setIsTemplateManagerOpen, 
     setIsCategoryManagerOpen, setTaskFormSize, setViewingTaskId, setEditingTask, setLastBackupDate, setShowInstallPrompt, setInstallPromptEvent,
     
@@ -504,7 +952,8 @@ export function useAppData() {
     handleEditTask, handleTaskStatusChange, handleDeleteTask, handleRestoreTask, handlePermanentDeleteTask, handleEmptyTrash, handleAddClientAndSelect,
     handleEditClient, handleDeleteClient, handleAddCollaborator, handleEditCollaborator, handleDeleteCollaborator, handleAddCategory, 
     handleEditCategory, handleDeleteCategory, handleClearAllData, handleExport, handleInstallClick, handleAiCreateTask, handleAiEditTask,
-    
+    handleFileUpload,
+
     updateTask, updateTaskEisenhowerQuadrant, reorderTasksInQuadrant, reorderTasksInStatus, updateKanbanSettings,
     
     cycleTaskFormSize, viewingTaskDetails, backupStatusText,

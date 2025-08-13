@@ -11,6 +11,7 @@ import { CreateTaskForm, type CreateTaskFormRef } from "@/components/create-task
 import { PageTitle } from "@/components/page-title";
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Expand, Shrink, PlusCircle, Download } from "lucide-react";
+import { WorkTimeTracker } from '@/components/features/WorkTimeTracker';
 import { cn } from "@/lib/utils";
 import { i18n } from '@/lib/i18n';
 
@@ -25,10 +26,12 @@ export function DashboardHeader() {
         const lang = appData.appSettings.language;
         return {
             ...i18n[lang],
-            confirmClose: (i18n[lang] as any)?.confirmClose || "Confirm Close",
-            confirmCloseDescription: (i18n[lang] as any)?.confirmCloseDescription || "You have unsaved changes. What would you like to do?",
+            // Back-compat fallbacks; unified keys are unsaved*
+            unsavedConfirmTitle: (i18n[lang] as any)?.unsavedConfirmTitle || (i18n[lang] as any)?.confirmClose || "Unsaved changes",
+            unsavedConfirmDescription: (i18n[lang] as any)?.unsavedConfirmDescription || (i18n[lang] as any)?.confirmCloseDescription || "You have unsaved changes. What would you like to do?",
+            unsavedCancel: (i18n[lang] as any)?.unsavedCancel || (i18n[lang] as any)?.cancel || "Cancel",
+            unsavedCloseWithoutSaving: (i18n[lang] as any)?.unsavedCloseWithoutSaving || (i18n[lang] as any)?.closeWithoutSaving || "Close Without Saving",
             saveDraft: (i18n[lang] as any)?.saveDraft || "Save Draft",
-            closeWithoutSaving: (i18n[lang] as any)?.closeWithoutSaving || "Close Without Saving",
         };
     }, [appData.appSettings.language]);
 
@@ -42,6 +45,12 @@ export function DashboardHeader() {
         } else {
             setIsTaskFormOpen(false);
         }
+    };
+    
+    const handleSubmitSuccess = () => {
+        // Close dialog directly without triggering warning logic
+        setIsTaskFormOpen(false);
+        setIsTaskFormDirty(false);
     };
     
     const handleConfirmSaveDraft = () => {
@@ -65,85 +74,102 @@ export function DashboardHeader() {
 
     return (
         <>
-            <header className="flex items-center justify-between p-4 border-b">
-                 <div className="flex items-center gap-4">
+      <header className="flex items-center justify-between px-6 py-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center gap-3 min-w-0">
                    <SidebarTrigger />
-                   <h1 className="text-2xl font-bold font-headline">
-                     <Suspense fallback={null}>
-                         <PageTitle />
-                     </Suspense>
-                   </h1>
-                 </div>
-                 <div className="flex items-center gap-2">
-                    <div className="text-xs text-muted-foreground hidden sm:block text-right">
-                        <div>{T.lastBackup}: {backupStatusText}</div>
-                    </div>
-                    <TooltipProvider delayDuration={100}>
+                   <div className="flex flex-col">
+                     <h1 className="text-xl font-semibold leading-tight">
+                       <Suspense fallback={null}>
+                           <PageTitle />
+                       </Suspense>
+                     </h1>
+                     <div className="text-sm text-muted-foreground hidden sm:block">
+                       {T.lastBackup}: {backupStatusText}
+                     </div>
+                   </div>
+                </div>
+                
+                <div className="flex items-center gap-5">
+                  {/* Middle cluster: time + segmented actions */}
+                  <div className="flex items-center gap-3">
+                    <div className="hidden md:block"><WorkTimeTracker /></div>
+                    <div className="hidden md:inline-flex items-stretch rounded-2xl overflow-hidden bg-primary text-primary-foreground shadow-sm divide-x divide-primary-foreground/15 border-2">
+                      <TooltipProvider delayDuration={100}>
                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" onClick={handleExport}>
-                                    <Download className="h-4 w-4" />
-                                    <span className="sr-only">{T.backupData}</span>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{T.backupData}</p>
-                            </TooltipContent>
+                          <TooltipTrigger asChild>
+                            <AddEventButton variant="segmented" tasks={appData.tasks} onSubmit={handleEventSubmit} />
+                          </TooltipTrigger>
+                          <TooltipContent><p>Add Event</p></TooltipContent>
                         </Tooltip>
-                    </TooltipProvider>
-                    <AddEventButton tasks={appData.tasks} onSubmit={handleEventSubmit} />
-                    <Dialog open={isTaskFormOpen} onOpenChange={handleSetOpen}>
-                        <DialogTrigger asChild><Button size="icon" className="sm:hidden"><PlusCircle className="h-4 w-4" /><span className="sr-only">{T.addTask}</span></Button></DialogTrigger>
-                        <DialogTrigger asChild><Button className="hidden sm:inline-flex"><PlusCircle className="mr-2 h-4 w-4" />{T.addTask}</Button></DialogTrigger>
+                      </TooltipProvider>
+                      <Dialog open={isTaskFormOpen} onOpenChange={handleSetOpen}>
+                        <TooltipProvider delayDuration={100}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-10 w-12 rounded-none bg-transparent hover:bg-primary/90 text-primary-foreground">
+                                  <PlusCircle className="h-5 w-5" />
+                                  <span className="sr-only">Add Task</span>
+                                </Button>
+                              </DialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Add Task</p></TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         <DialogContent 
-                            className={cn("max-h-[90vh] overflow-y-auto", {"sm:max-w-2xl md:max-w-5xl":"default"===taskFormSize,"sm:max-w-4xl md:max-w-7xl":"large"===taskFormSize,"w-screen h-screen max-w-none max-h-none rounded-none border-0":"fullscreen"===taskFormSize})}
-                            onInteractOutside={(e) => {
-                                if (isTaskFormDirty) {
-                                    e.preventDefault();
-                                    handleRequestClose();
-                                }
-                            }}
-                            onEscapeKeyDown={(e) => {
-                                if (isTaskFormDirty) {
-                                    e.preventDefault();
-                                    handleRequestClose();
-                                }
-                            }}
+                          className={cn("max-h-[90vh] overflow-y-auto", {"sm:max-w-2xl md:max-w-5xl":"default"===taskFormSize,"sm:max-w-4xl md:max-w-7xl":"large"===taskFormSize,"w-screen h-screen max-w-none max-h-none rounded-none border-0":"fullscreen"===taskFormSize})}
+                          onInteractOutside={(e) => { if (isTaskFormDirty) { e.preventDefault(); handleRequestClose(); } }}
+                          onEscapeKeyDown={(e) => { if (isTaskFormDirty) { e.preventDefault(); handleRequestClose(); } }}
                         >
-                            <Button variant="ghost" size="icon" className="absolute left-4 top-4 h-6 w-6" onClick={cycleTaskFormSize}>
-                                {"fullscreen"===taskFormSize?<Shrink className="h-4 w-4" />:<Expand className="h-4 w-4" />}
-                                <span className="sr-only">Toggle dialog size</span>
-                            </Button>
-                            <DialogHeader className="text-center pt-6 sm:px-10"><DialogTitle>{T.createTask}</DialogTitle><DialogDescription>{T.createTaskDesc}</DialogDescription></DialogHeader>
-                            <div className="p-1">
-                                <CreateTaskForm 
-                                    ref={createTaskFormRef}
-                                    setOpen={handleSetOpen} 
-                                    onSubmit={handleAddTask} 
-                                    clients={appData.clients} 
-                                    onAddClient={handleAddClientAndSelect} 
-                                    quoteTemplates={appData.quoteTemplates} 
-                                    collaborators={appData.collaborators} 
-                                    settings={appData.appSettings} 
-                                    categories={appData.categories} 
-                                    onDirtyChange={setIsTaskFormDirty}
-                                    onRequestConfirmClose={handleRequestClose}
-                                />
-                            </div>
+                          <Button variant="ghost" size="icon" className="absolute left-4 top-4 h-6 w-6" onClick={cycleTaskFormSize}>
+                            {"fullscreen"===taskFormSize?<Shrink className="h-4 w-4" />:<Expand className="h-4 w-4" />}
+                            <span className="sr-only">Toggle dialog size</span>
+                          </Button>
+                          <DialogHeader className="text-center pt-6 sm:px-10"><DialogTitle>{T.createTask}</DialogTitle><DialogDescription>{T.createTaskDesc}</DialogDescription></DialogHeader>
+                          <div className="p-1">
+                            <CreateTaskForm 
+                              ref={createTaskFormRef}
+                              setOpen={handleSetOpen} 
+                              onSubmit={handleAddTask} 
+                              clients={appData.clients} 
+                              onAddClient={handleAddClientAndSelect} 
+                              quoteTemplates={appData.quoteTemplates} 
+                              collaborators={appData.collaborators} 
+                              settings={appData.appSettings} 
+                              categories={appData.categories} 
+                              onDirtyChange={setIsTaskFormDirty}
+                              onSubmitSuccess={handleSubmitSuccess}
+                            />
+                          </div>
                         </DialogContent>
-                    </Dialog>
-                 </div>
+                      </Dialog>
+                    </div>
+                  </div>
+                  {/* Export button with subtle separator */}
+                  <div className="flex items-center h-10 pl-5 border-l">
+                    <TooltipProvider delayDuration={100}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={handleExport}>
+                            <Download className="h-5 w-5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Export Data</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
             </header>
             <AlertDialog open={isConfirmCloseOpen} onOpenChange={setIsConfirmCloseOpen}>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>{T.confirmClose}</AlertDialogTitle>
-                  <AlertDialogDescription>{T.confirmCloseDescription}</AlertDialogDescription>
+                  <AlertDialogTitle>{T.unsavedConfirmTitle}</AlertDialogTitle>
+                  <AlertDialogDescription>{T.unsavedConfirmDescription}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setIsConfirmCloseOpen(false)}>{T.cancel}</AlertDialogCancel>
+                  <AlertDialogCancel onClick={() => setIsConfirmCloseOpen(false)}>{T.unsavedCancel}</AlertDialogCancel>
                    <Button variant="outline" onClick={handleConfirmSaveDraft}>{T.saveDraft}</Button>
-                   <Button variant="destructive" onClick={handleConfirmCloseNoSave}>{T.closeWithoutSaving}</Button>
+                   <Button variant="destructive" onClick={handleConfirmCloseNoSave}>{T.unsavedCloseWithoutSaving}</Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

@@ -51,9 +51,9 @@ export interface TaskDetailsDialogProps {
   collaboratorQuotes?: Quote[]; // Changed to array to handle multiple collaborator quotes
   settings: AppSettings;
   isOpen: boolean;
-  onClose: () => void;
-  onEdit: () => void;
-  onDelete: (taskId: string) => void;
+  onClose?: () => void;
+  onEdit?: () => void;
+  onDelete?: (taskId: string) => void;
 }
 
 // Link Preview Component
@@ -62,8 +62,34 @@ function LinkPreview({ url, maxLength = 30, fallback }: { url: string; maxLength
   const [favicon, setFavicon] = React.useState('');
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
+  const { toast } = useToast();
+
+  // Check if it's a web URL
+  const isWebUrl = React.useMemo(() => {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }, [url]);
+
+  // Check if it's a local path (Windows or Unix style)
+  const isLocalPath = React.useMemo(() => {
+    if (isWebUrl) return false;
+    // Windows paths: C:\, D:\, \\server\share, etc.
+    // Unix paths: /home, /var, etc.
+    return /^([a-zA-Z]:\\|\\\\|\/)/i.test(url) || !url.includes('://');
+  }, [url, isWebUrl]);
 
   React.useEffect(() => {
+    // Only fetch metadata for web URLs
+    if (!isWebUrl) {
+      setLoading(false);
+      setError(false);
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(false);
@@ -102,22 +128,167 @@ function LinkPreview({ url, maxLength = 30, fallback }: { url: string; maxLength
         }
       });
     return () => { cancelled = true; };
-  }, [url, maxLength]);
+  }, [url, maxLength, isWebUrl]);
 
-  const domain = (() => {
-    try { return new URL(url).hostname; } catch { return url; }
-  })();
+  const domain = React.useMemo(() => {
+    if (isLocalPath) {
+      // For local paths, extract meaningful display name
+      try {
+        // Handle Windows and Unix paths
+        const normalizedPath = url.replace(/\\/g, '/');
+        const parts = normalizedPath.split('/').filter(Boolean);
+        
+        if (parts.length === 0) return url; // fallback to original
+        
+        // Get the last meaningful part (filename or folder)
+        const lastPart = parts[parts.length - 1];
+        
+        // If it's a file with extension, return filename
+        if (lastPart.includes('.')) {
+          return lastPart;
+        }
+        
+        // If it's a folder, return folder name with indication
+        return lastPart || parts[parts.length - 2] || url;
+      } catch {
+        return url; // fallback to original URL
+      }
+    }
+    
+    // For web URLs
+    try { 
+      return new URL(url).hostname; 
+    } catch { 
+      return url; // fallback to original URL
+    }
+  }, [url, isLocalPath]);
+
+  const handleClick = React.useCallback((e: React.MouseEvent) => {
+    if (isLocalPath) {
+      e.preventDefault();
+      // Copy local path to clipboard
+      navigator.clipboard.writeText(url).then(() => {
+        toast({
+          title: "Path Copied",
+          description: `Local path copied to clipboard: ${url}`,
+        });
+      }).catch(() => {
+        toast({
+          variant: "destructive",
+          title: "Copy Failed",
+          description: "Failed to copy path to clipboard",
+        });
+      });
+    }
+    // For web URLs, let the default behavior handle opening in new tab
+  }, [isLocalPath, url, toast]);
+
+  const displayText = React.useMemo(() => {
+    if (isLocalPath) {
+      // For local paths, always show the domain (processed path) or fallback
+      return domain || fallback || url;
+    }
+    // For web URLs, show loading/error states
+    return loading ? "Loading..." : error ? (fallback || domain || url) : (title || domain || url);
+  }, [isLocalPath, domain, loading, error, fallback, title, url]);
 
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted transition group text-left w-full">
-      {favicon ? (
-        <img src={favicon} alt="favicon" className="w-4 h-4 rounded" onError={e => { (e.target as HTMLImageElement).src = `https://www.google.com/s2/favicons?domain=${url}`; }} />
-      ) : null}
-      <span className="truncate max-w-[180px]" title={title || domain}>
-        {loading ? "Loading..." : error ? (fallback || domain) : (title || domain)}
-      </span>
-      <span className="text-xs text-muted-foreground hidden group-hover:inline">{domain}</span>
-    </a>
+    <>
+      {isWebUrl ? (
+        <a 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted transition group text-left w-full cursor-pointer"
+        >
+          {favicon ? (
+            <img 
+              src={favicon} 
+              alt="favicon" 
+              className="w-4 h-4 rounded" 
+              onError={e => { 
+                (e.target as HTMLImageElement).src = `https://www.google.com/s2/favicons?domain=${url}`; 
+              }} 
+            />
+          ) : (
+            <div className="w-4 h-4 rounded bg-muted flex items-center justify-center">
+              <LinkIcon className="w-3 h-3 text-muted-foreground" />
+            </div>
+          )}
+          <span className="truncate max-w-[180px]" title={isWebUrl ? (title || url) : url}>
+            {displayText}
+          </span>
+          <span className="text-xs text-muted-foreground hidden group-hover:inline">
+            {isWebUrl ? domain : 'Click to copy'}
+          </span>
+        </a>
+      ) : (
+        <div 
+          onClick={handleClick}
+          className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted transition group text-left w-full cursor-pointer"
+        >
+          <div className="w-4 h-4 rounded bg-muted flex items-center justify-center">
+            <Folder className="w-3 h-3 text-muted-foreground" />
+          </div>
+          <span className="truncate max-w-[180px]" title={url}>
+            {displayText}
+          </span>
+          <span className="text-xs text-muted-foreground hidden group-hover:inline">
+            Click to copy
+          </span>
+        </div>
+      )}
+    </>
+  );
+}
+
+// Links Display Component
+function LinksDisplay({ 
+  links, 
+  showAll, 
+  setShowAll, 
+  title, 
+  icon: Icon 
+}: { 
+  links: string[]; 
+  showAll: boolean; 
+  setShowAll: (show: boolean) => void; 
+  title: string;
+  icon: React.ComponentType<any>;
+}) {
+  const displayLinks = showAll ? links : links.slice(0, 5);
+  const hasMoreLinks = links.length > 5;
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="font-semibold flex items-center gap-2">
+          <Icon className="h-4 w-4" />
+          {title}
+        </h4>
+        <span className="text-xs text-muted-foreground">
+          {links.length} {links.length === 1 ? 'link' : 'links'}
+        </span>
+      </div>
+      <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
+        {displayLinks.map((link, idx) => (
+          <LinkPreview key={`${link}-${idx}`} url={link} />
+        ))}
+      </div>
+      {hasMoreLinks && (
+        <div className="mt-2 pt-2 border-t">
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+          >
+            {showAll 
+              ? `Show less (hiding ${links.length - 5} links)` 
+              : `Show all ${links.length} links (+${links.length - 5} more)`
+            }
+          </button>
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -136,7 +307,17 @@ export function TaskDetailsDialog({
   onDelete,
 }: TaskDetailsDialogProps) {
   const [selectedNav, setSelectedNav] = useState<'timeline' | 'price' | 'collaborator' | 'analytics'>('timeline');
+  const [showAllBriefLinks, setShowAllBriefLinks] = useState(false);
+  const [showAllDriveLinks, setShowAllDriveLinks] = useState(false);
   const { toast } = useToast();
+
+  // Reset link expansion state when dialog opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setShowAllBriefLinks(false);
+      setShowAllDriveLinks(false);
+    }
+  }, [isOpen]);
 
   // Ensure T is always reactive to language changes
   const T = useMemo(() => {
@@ -149,9 +330,10 @@ export function TaskDetailsDialog({
     return { ...lang };
   }, [settings.language]);
 
-  const status = STATUS_INFO.find(s => s.id === task.status);
-  const StatusIcon = status?.icon;
+  // Resolve status using user custom settings first, fallback to static STATUS_INFO
   const statusSetting = (settings.statusSettings || []).find(s => s.id === task.status);
+  const status = statusSetting || STATUS_INFO.find(s => s.id === task.status);
+  const StatusIcon = (status as any)?.icon;
   const subStatusLabel = statusSetting?.subStatuses.find(ss => ss.id === task.subStatusId)?.label;
 
 
@@ -558,7 +740,7 @@ export function TaskDetailsDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[80vw] max-w-5xl h-[80vh] min-h-[600px] max-h-[90vh] flex flex-col">
         {/* Visually hidden DialogTitle for accessibility */}
-        <span style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>
+  <span className="sr-only">
           <DialogTitle>{task.name}</DialogTitle>
         </span>
         {/* --- HEADER: Project Info --- */}
@@ -574,7 +756,7 @@ export function TaskDetailsDialog({
                 className="flex items-center gap-1"
               >
                 <StatusIcon className="h-3 w-3" />
-                {statusSetting?.label || T.statuses[status.id]}
+                {statusSetting?.label || (status && (T.statuses as any)?.[status.id]) || task.status}
                 {subStatusLabel && <span className="text-xs opacity-80">({subStatusLabel})</span>}
               </Badge>
             )}
@@ -619,7 +801,7 @@ export function TaskDetailsDialog({
         </nav>
 
         {/* --- MAIN CONTENT: Scrollable, flush left --- */}
-        <div className="flex-1 min-h-0 max-h-full overflow-y-auto pr-2" style={{ scrollbarGutter: 'stable' }}>
+  <div className="flex-1 min-h-0 max-h-full overflow-y-auto pr-2 scrollbar-gutter-stable">
           {/* Timeline Section */}
           {selectedNav === 'timeline' && (
             <div className="space-y-4">
@@ -686,37 +868,23 @@ export function TaskDetailsDialog({
               <div className="grid md:grid-cols-2 gap-4">
                 {/* Brief Links Card */}
                 {Array.isArray(task.briefLink) && task.briefLink.length > 0 && (
-                  <Card className="p-4">
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <LinkIcon className="h-4 w-4" />
-                      {T.briefLink ?? 'Brief'}
-                    </h4>
-                    <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
-                      {(task.briefLink || []).slice(0, 5).map((link, idx) => (
-                        <LinkPreview key={link+idx} url={link} />
-                      ))}
-                      {task.briefLink.length > 5 && (
-                        <span className="text-xs text-muted-foreground mt-1">+{task.briefLink.length - 5} more...</span>
-                      )}
-                    </div>
-                  </Card>
+                  <LinksDisplay 
+                    links={task.briefLink}
+                    showAll={showAllBriefLinks}
+                    setShowAll={setShowAllBriefLinks}
+                    title={T.briefLink ?? 'Brief'}
+                    icon={LinkIcon}
+                  />
                 )}
                 {/* Storage Links Card */}
                 {Array.isArray(task.driveLink) && task.driveLink.length > 0 && (
-                  <Card className="p-4">
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Folder className="h-4 w-4" />
-                      {T.driveLink ?? 'Storage'}
-                    </h4>
-                    <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
-                      {(task.driveLink || []).slice(0, 5).map((link, idx) => (
-                        <LinkPreview key={link+idx} url={link} />
-                      ))}
-                      {task.driveLink.length > 5 && (
-                        <span className="text-xs text-muted-foreground mt-1">+{task.driveLink.length - 5} more...</span>
-                      )}
-                    </div>
-                  </Card>
+                  <LinksDisplay 
+                    links={task.driveLink}
+                    showAll={showAllDriveLinks}
+                    setShowAll={setShowAllDriveLinks}
+                    title={T.driveLink ?? 'Storage'}
+                    icon={Folder}
+                  />
                 )}
                 {/* Collaborator Card - Updated for multi-collaborator support */}
                 {assignedCollaborators.length > 0 && (
@@ -840,7 +1008,16 @@ export function TaskDetailsDialog({
                 <AlertDialogCancel>{T.cancel}</AlertDialogCancel>
                 <AlertDialogAction
                   className={cn(buttonVariants({ variant: "destructive" }))}
-                  onClick={() => onDelete(task.id)}
+                  onClick={() => {
+                    try {
+                      if (onDelete) {
+                        onDelete(task.id);
+                      }
+                      onClose && onClose();
+                    } catch (error) {
+                      console.error('Error deleting task:', error);
+                    }
+                  }}
                 >
                   {T.confirmMoveToTrash}
                 </AlertDialogAction>
@@ -851,8 +1028,13 @@ export function TaskDetailsDialog({
             variant="outline"
             size="sm"
             onClick={() => {
-              onEdit();
-              onClose && onClose();
+              try {
+                // Trigger parent edit (which sets isEditingTask true)
+                // Do NOT call onClose here so selectedTask remains for the edit dialog
+                onEdit?.();
+              } catch (error) {
+                console.error('Error opening edit dialog:', error);
+              }
             }}
           >
             <Pencil className="w-4 h-4 mr-2" />

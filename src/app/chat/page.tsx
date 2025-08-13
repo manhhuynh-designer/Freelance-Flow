@@ -2,6 +2,6 @@
 import { redirect } from 'next/navigation';
 
 export default function OldChatRedirectPage() {
-  redirect('/dashboard/chat');
+  redirect('/dashboard/ai-assistant');
   return null;
 }

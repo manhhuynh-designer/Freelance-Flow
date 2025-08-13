@@ -27,6 +27,9 @@ import { Separator } from '@/components/ui/separator';
 import type { AppSettings, ThemeSettings, StatusColors, AppData } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from "@/hooks/use-toast";
+import { GeminiModel, GEMINI_MODELS, ModelFallbackManager } from '@/ai/utils/gemini-models';
+import { Badge } from '@/components/ui/badge';
+import { Zap, Star, Info } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,7 +72,7 @@ const defaultSettings: Omit<AppSettings, 'theme' | 'statusColors' | 'stickyNoteC
     currency: 'VND',
     preferredModelProvider: 'google',
     googleApiKey: '',
-    googleModel: 'gemini-1.5-flash',
+    googleModel: GeminiModel.GEMINI_2_5_FLASH,
 };
 
 import { Suspense } from "react";
@@ -86,8 +89,6 @@ function SettingsPageContent() {
     const dashboardContext = useDashboard();
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [isConfirmRestoreOpen, setIsConfirmRestoreOpen] = useState(false);
-    const [restoredData, setRestoredData] = useState<AppData | null>(null);
     const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
     const [clearConfirmText, setClearConfirmText] = useState("");
 
@@ -95,6 +96,7 @@ function SettingsPageContent() {
     const setAppData = dashboardContext?.setAppData;
     const handleClearAllData = dashboardContext?.handleClearAllData;
     const appSettings = appData?.appSettings;
+    const handleFileUpload = dashboardContext?.handleFileUpload;
 
     if (!appData || !appSettings || !setAppData || !handleClearAllData) {
       return (
@@ -106,11 +108,30 @@ function SettingsPageContent() {
 
     const T = i18n[appSettings.language];
 
-    const onSettingsChange = (update: SetStateAction<AppSettings>) => {
+    // Action tracking
+    const { actionBuffer } = dashboardContext;
+
+    const onSettingsChange = (update: SetStateAction<AppSettings>, actionDescription?: string) => {
+        const oldSettings = appData.appSettings;
+        const newSettings = typeof update === 'function' ? update(oldSettings) : update;
+        
         setAppData((prevData: AppData) => ({
             ...prevData,
-            appSettings: typeof update === 'function' ? update(prevData.appSettings) : update,
+            appSettings: newSettings,
         }));
+
+        // Track the settings change
+        if (actionDescription && actionBuffer) {
+            actionBuffer.pushAction({
+                action: 'settings',
+                entityType: 'settings',
+                entityId: 'app-settings',
+                description: actionDescription,
+                previousData: oldSettings,
+                newData: newSettings,
+                canUndo: true
+            });
+        }
     };
     
     const handleReset = () => {
@@ -142,22 +163,31 @@ function SettingsPageContent() {
     const handleThemeChange = (themeName: string) => {
         const selectedTheme = predefinedThemes.find(t => t.name === themeName);
         if (selectedTheme) {
-            onSettingsChange(s => ({ ...s, theme: selectedTheme.colors }));
+            onSettingsChange(
+                s => ({ ...s, theme: selectedTheme.colors }),
+                `Changed theme to ${themeName}`
+            );
         }
     }
 
     const handleStatusPresetChange = (name: string) => {
         const selected = predefinedStatusColors.find(p => p.name === name);
         if (selected) {
-            onSettingsChange(s => ({ ...s, statusColors: selected.colors }));
+            onSettingsChange(
+                s => ({ ...s, statusColors: selected.colors }),
+                `Changed status color scheme to ${name}`
+            );
         }
     }
 
     const handleStickyNoteBgChange = (color: string) => {
-        onSettingsChange(s => ({
-            ...s,
-            stickyNoteColor: { background: color, foreground: getContrastingTextColor(color) }
-        }));
+        onSettingsChange(
+            s => ({
+                ...s,
+                stickyNoteColor: { background: color, foreground: getContrastingTextColor(color) }
+            }),
+            `Changed sticky note color to ${color}`
+        );
     }
 
     const activeThemeName = predefinedThemes.find(t => 
@@ -173,50 +203,11 @@ function SettingsPageContent() {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-        try {
-            const text = e.target?.result;
-            const data = JSON.parse(text as string) as AppData;
-            if (data.tasks && data.clients && data.appSettings) {
-                setRestoredData(data);
-                setIsConfirmRestoreOpen(true);
-            } else {
-                throw new Error(T.restoreFailedDesc);
-            }
-        } catch (error) {
-            toast({ variant: 'destructive', title: T.restoreFailed, description: (error as Error).message });
+        if (handleFileUpload) {
+            handleFileUpload(file);
         }
-        };
-        reader.readAsText(file);
+
         event.target.value = '';
-    };
-
-    const handleConfirmRestore = () => {
-        if (restoredData) {
-            const parsedTasks = restoredData.tasks.map(task => ({
-                ...task,
-                startDate: new Date(task.startDate),
-                deadline: new Date(task.deadline),
-                deletedAt: task.deletedAt ? new Date(task.deletedAt).toISOString() : undefined,
-            }));
-
-            const syncedData = CollaboratorDataService.processImportedData({ ...restoredData, tasks: parsedTasks });
-            
-            setAppData(prev => ({
-                ...prev,
-                ...syncedData
-            }));
-
-            if (restoredData.filterPresets && Array.isArray(restoredData.filterPresets)) {
-                localStorage.setItem('freelance-flow-filter-presets', JSON.stringify(restoredData.filterPresets));
-            }
-            
-            setIsConfirmRestoreOpen(false);
-            setRestoredData(null);
-            toast({ title: T.restoreSuccessful, description: T.restoreSuccessfulDesc });
-            setTimeout(() => window.location.reload(), 1000);
-        }
     };
 
     const handleClearData = () => {
@@ -294,7 +285,10 @@ function SettingsPageContent() {
                                     <p className="text-sm text-muted-foreground">{T.eisenhowerColorSchemeDesc}</p>
                                     <RadioGroup 
                                         value={appSettings.eisenhowerColorScheme || 'colorScheme1'} 
-                                        onValueChange={(value: 'colorScheme1' | 'colorScheme2' | 'colorScheme3') => onSettingsChange(s => ({ ...s, eisenhowerColorScheme: value }))}
+                                        onValueChange={(value: 'colorScheme1' | 'colorScheme2' | 'colorScheme3') => onSettingsChange(
+                                            s => ({ ...s, eisenhowerColorScheme: value }),
+                                            `Changed Eisenhower color scheme to ${value.replace('colorScheme', 'Scheme ')}`
+                                        )}
                                         className="grid grid-cols-1 md:grid-cols-3 gap-4"
                                     >
                                         {predefinedEisenhowerSchemes.map(scheme => (
@@ -332,7 +326,11 @@ function SettingsPageContent() {
                                                     <Checkbox
                                                         id={`col-${column.id}`} checked={column.visible}
                                                         onCheckedChange={(checked) => {
-                                                            onSettingsChange(s => ({...s, dashboardColumns: (s.dashboardColumns || []).map(c => c.id === column.id ? { ...c, visible: !!checked } : c ) }));
+                                                            const columnName = column.label || column.id;
+                                                            onSettingsChange(
+                                                                s => ({...s, dashboardColumns: (s.dashboardColumns || []).map(c => c.id === column.id ? { ...c, visible: !!checked } : c ) }),
+                                                                `${checked ? 'Showed' : 'Hidden'} ${columnName} column in dashboard`
+                                                            );
                                                         }}
                                                     />
                                                     <label htmlFor={`col-${column.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -361,7 +359,10 @@ function SettingsPageContent() {
                             <CardContent className="space-y-6">
                                 <div className="space-y-3">
                                     <Label>{T.language}</Label>
-                                    <RadioGroup value={appSettings.language} onValueChange={(value) => onSettingsChange(s => ({ ...s, language: value as 'en' | 'vi' }))} className="flex gap-4">
+                                    <RadioGroup value={appSettings.language} onValueChange={(value) => onSettingsChange(
+                                        s => ({ ...s, language: value as 'en' | 'vi' }),
+                                        `Changed language to ${value === 'en' ? 'English' : 'Vietnamese'}`
+                                    )} className="flex gap-4">
                                         <div key="en"><RadioGroupItem value="en" id="lang-en" className="peer sr-only" /><Label htmlFor="lang-en" className={cn("flex items-center justify-center rounded-md border-2 border-muted bg-popover p-2 px-3 hover:bg-accent hover:text-accent-foreground cursor-pointer h-10", "peer-data-[state=checked]:border-primary")}><svg width="24" height="16" viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-auto mr-2 rounded-sm"><rect width="24" height="16" fill="#012169"/><path d="M0 0L24 16M24 0L0 16" stroke="white" strokeWidth="2"/><path d="M12 0V16M0 8H24" stroke="white" strokeWidth="4"/><path d="M12 0V16M0 8H24" stroke="#C8102E" strokeWidth="2"/></svg><span className="font-medium">English</span></Label></div>
                                         <div key="vi"><RadioGroupItem value="vi" id="lang-vi" className="peer sr-only" /><Label htmlFor="lang-vi" className={cn("flex items-center justify-center rounded-md border-2 border-muted bg-popover p-2 px-3 hover:bg-accent hover:text-accent-foreground cursor-pointer h-10", "peer-data-[state=checked]:border-primary")}><svg width="24" height="16" viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-auto mr-2 rounded-sm"><rect width="24" height="16" fill="#DA251D"/><path d="M12 2.5L13.657 7.236H18.633L14.488 10.127L16.145 14.864L12 11.973L7.855 14.864L9.512 10.127L5.367 7.236H10.343L12 2.5Z" fill="#FFFF00"/></svg><span className="font-medium">Tiếng Việt</span></Label></div>
                                     </RadioGroup>
@@ -369,7 +370,10 @@ function SettingsPageContent() {
                                 <Separator />
                                 <div className="space-y-2">
                                     <Label>{T.currency}</Label>
-                                    <Select value={appSettings.currency} onValueChange={(value) => onSettingsChange(s => ({ ...s, currency: value as 'VND' | 'USD' }))}>
+                                    <Select value={appSettings.currency} onValueChange={(value) => onSettingsChange(
+                                        s => ({ ...s, currency: value as 'VND' | 'USD' }),
+                                        `Changed currency to ${value}`
+                                    )}>
                                         <SelectTrigger className="w-[180px]"><SelectValue placeholder="Select a currency" /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="VND">{T.VND} (₫)</SelectItem>
@@ -380,12 +384,18 @@ function SettingsPageContent() {
                                 <Separator />
                                 <div className="space-y-2">
                                     <Label htmlFor="trash-days">{T.autoDeleteTrash}: {appSettings.trashAutoDeleteDays} {T.days}</Label>
-                                    <Slider id="trash-days" min={7} max={90} step={1} value={[appSettings.trashAutoDeleteDays]} onValueChange={(value) => onSettingsChange(s => ({ ...s, trashAutoDeleteDays: value[0] }))} />
+                                    <Slider id="trash-days" min={7} max={90} step={1} value={[appSettings.trashAutoDeleteDays]} onValueChange={(value) => onSettingsChange(
+                                        s => ({ ...s, trashAutoDeleteDays: value[0] }),
+                                        `Changed trash auto-delete to ${value[0]} days`
+                                    )} />
                                 </div>
                                 <Separator />
                                 <div className="space-y-2">
                                     <Label htmlFor="eisenhower-max-tasks">{T.eisenhowerMaxTasks}: {appSettings.eisenhowerMaxTasksPerQuadrant || 10}</Label>
-                                    <Slider id="eisenhower-max-tasks" min={3} max={20} step={1} value={[appSettings.eisenhowerMaxTasksPerQuadrant || 10]} onValueChange={(value) => onSettingsChange(s => ({ ...s, eisenhowerMaxTasksPerQuadrant: value[0] }))} />
+                                    <Slider id="eisenhower-max-tasks" min={3} max={20} step={1} value={[appSettings.eisenhowerMaxTasksPerQuadrant || 10]} onValueChange={(value) => onSettingsChange(
+                                        s => ({ ...s, eisenhowerMaxTasksPerQuadrant: value[0] }),
+                                        `Changed Eisenhower max tasks per quadrant to ${value[0]}`
+                                    )} />
                                     <p className="text-sm text-muted-foreground">{T.eisenhowerMaxTasksDesc}</p>
                                 </div>
                             </CardContent>
@@ -398,7 +408,17 @@ function SettingsPageContent() {
                                 <CardDescription>{T.statusSettingsDesc}</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <StatusSettings settings={appSettings} onSettingsChange={onSettingsChange} />
+                                <StatusSettings 
+                                    settings={appSettings} 
+                                    onSettingsChange={(update) => {
+                                        // StatusSettings already handles detailed tracking inside the component
+                                        const updatedSettings = typeof update === 'function' ? update(appSettings) : update;
+                                        setAppData((prevData: AppData) => ({
+                                            ...prevData,
+                                            appSettings: updatedSettings,
+                                        }));
+                                    }}
+                                />
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -424,21 +444,129 @@ function SettingsPageContent() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="google-model">Gemini Model</Label>
-                                    <Select value={appSettings.googleModel || 'gemini-1.5-flash'} onValueChange={(value) => onSettingsChange(s => ({ ...s, googleModel: value }))}>
-                                        <SelectTrigger id="google-model"><SelectValue /></SelectTrigger>
+                                    <div className="flex items-center gap-2">
+                                        <Label htmlFor="google-model">Gemini Model</Label>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-primary" />
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="max-w-sm">
+                                                <p>Chọn mô hình Gemini ưa thích. Hệ thống sẽ tự động fallback nếu mô hình cao không khả dụng.</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                    <Select 
+                                        value={appSettings.googleModel || GeminiModel.GEMINI_2_5_FLASH} 
+                                        onValueChange={(value) => onSettingsChange(
+                                            s => ({ ...s, googleModel: value }),
+                                            `Changed Google AI model to ${GEMINI_MODELS[value as GeminiModel]?.displayName || value}`
+                                        )}
+                                    >
+                                        <SelectTrigger id="google-model">
+                                            <SelectValue />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash</SelectItem>
-                                            <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro</SelectItem>
+                                            {/* Gemini 2.5 Models - Latest Generation */}
+                                            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                                🚀 Gemini 2.5 (Latest - Recommended)
+                                            </div>
+                                            <SelectItem value={GeminiModel.GEMINI_2_5_PRO}>
+                                                <div className="flex items-center gap-2 w-full">
+                                                    <Zap className="w-4 h-4 text-yellow-500" />
+                                                    <span>Gemini 2.5 Pro</span>
+                                                    <Badge variant="default" className="ml-auto bg-gradient-to-r from-yellow-500 to-orange-500">
+                                                        Premium
+                                                    </Badge>
+                                                </div>
+                                            </SelectItem>
+                                            <SelectItem value={GeminiModel.GEMINI_2_5_FLASH}>
+                                                <div className="flex items-center gap-2 w-full">
+                                                    <Zap className="w-4 h-4 text-yellow-500" />
+                                                    <span>Gemini 2.5 Flash</span>
+                                                    <Badge variant="default" className="ml-auto bg-gradient-to-r from-blue-500 to-purple-500">
+                                                        Recommended
+                                                    </Badge>
+                                                </div>
+                                            </SelectItem>
+                                            <SelectItem value={GeminiModel.GEMINI_2_5_FLASH_LITE}>
+                                                <div className="flex items-center gap-2 w-full">
+                                                    <Zap className="w-4 h-4 text-yellow-500" />
+                                                    <span>Gemini 2.5 Flash Lite</span>
+                                                    <Badge variant="secondary" className="ml-auto">
+                                                        Fast
+                                                    </Badge>
+                                                </div>
+                                            </SelectItem>
+                                            
+                                            {/* Separator */}
+                                            <div className="border-t my-2"></div>
+                                            
+                                            {/* Gemini 1.5 Models - Stable Generation */}
+                                            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                                ⚡ Gemini 1.5 (Stable)
+                                            </div>
+                                            <SelectItem value={GeminiModel.GEMINI_1_5_PRO}>
+                                                <div className="flex items-center gap-2 w-full">
+                                                    <Star className="w-4 h-4 text-blue-500" />
+                                                    <span>Gemini 1.5 Pro</span>
+                                                    <Badge variant="secondary">
+                                                        Stable
+                                                    </Badge>
+                                                </div>
+                                            </SelectItem>
+                                            <SelectItem value={GeminiModel.GEMINI_1_5_FLASH}>
+                                                <div className="flex items-center gap-2 w-full">
+                                                    <Star className="w-4 h-4 text-blue-500" />
+                                                    <span>Gemini 1.5 Flash</span>
+                                                    <Badge variant="outline">
+                                                        Legacy
+                                                    </Badge>
+                                                </div>
+                                            </SelectItem>
+                                            <SelectItem value={GeminiModel.GEMINI_1_5_FLASH_8B}>
+                                                <div className="flex items-center gap-2 w-full">
+                                                    <Star className="w-4 h-4 text-blue-500" />
+                                                    <span>Gemini 1.5 Flash 8B</span>
+                                                    <Badge variant="outline">
+                                                        Compact
+                                                    </Badge>
+                                                </div>
+                                            </SelectItem>
                                         </SelectContent>
                                     </Select>
+                                    
+                                    {/* Model Info */}
+                                    {appSettings.googleModel && GEMINI_MODELS[appSettings.googleModel as GeminiModel] && (
+                                        <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="font-medium">
+                                                    {GEMINI_MODELS[appSettings.googleModel as GeminiModel].displayName}
+                                                </span>
+                                                <Badge variant={GEMINI_MODELS[appSettings.googleModel as GeminiModel].category === '2.5' ? 'default' : 'secondary'}>
+                                                    Gemini {GEMINI_MODELS[appSettings.googleModel as GeminiModel].category}
+                                                </Badge>
+                                            </div>
+                                            <div className="text-xs text-muted-foreground space-y-1">
+                                                <div>Max tokens: {GEMINI_MODELS[appSettings.googleModel as GeminiModel].capabilities.maxTokens.toLocaleString()}</div>
+                                                <div>Rate limit: {GEMINI_MODELS[appSettings.googleModel as GeminiModel].capabilities.rateLimit} requests/min</div>
+                                                {GEMINI_MODELS[appSettings.googleModel as GeminiModel].fallbackModel && (
+                                                    <div className="text-blue-600 dark:text-blue-400">
+                                                        Fallback: {GEMINI_MODELS[GEMINI_MODELS[appSettings.googleModel as GeminiModel].fallbackModel!].displayName}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-1">
                                         <Label htmlFor="google-api-key">Google AI API Key</Label>
                                         <Tooltip><TooltipTrigger asChild><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" tabIndex={-1} title="Hướng dẫn lấy Google API Key"><QuestionMarkIcon className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-primary" /></a></TooltipTrigger><TooltipContent side="top">Dùng để truy cập Gemini. Lấy API key tại Google AI Studio.</TooltipContent></Tooltip>
                                     </div>
-                                    <Input id="google-api-key" type="password" placeholder="Enter your Google API Key" value={appSettings.googleApiKey || ''} onChange={(e) => onSettingsChange(s => ({ ...s, googleApiKey: e.target.value }))} />
+                                    <Input id="google-api-key" type="password" placeholder="Enter your Google API Key" value={appSettings.googleApiKey || ''} onChange={(e) => onSettingsChange(
+                                        s => ({ ...s, googleApiKey: e.target.value }),
+                                        e.target.value ? 'Updated Google API Key' : 'Cleared Google API Key'
+                                    )} />
                                 </div>
                             </CardContent>
                         </Card>
@@ -498,18 +626,6 @@ function SettingsPageContent() {
                     <Button variant="outline" onClick={handleReset}>{T.resetToDefaults}</Button>
                 </div>
             </div>
-             <AlertDialog open={isConfirmRestoreOpen} onOpenChange={setIsConfirmRestoreOpen}>
-                <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{T.importWarningTitle}</AlertDialogTitle>
-                    <AlertDialogDescription>{T.importWarningDesc}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setRestoredData(null)}>{T.cancel}</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleConfirmRestore}>{T.confirmImport}</AlertDialogAction>
-                </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </>
     );
 }

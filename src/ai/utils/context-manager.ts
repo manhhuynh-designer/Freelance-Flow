@@ -31,43 +31,61 @@ export class ContextManager {
    * @param options - The options for building the prompt.
    * @returns The fully constructed system prompt string.
    */
-  static buildSystemPrompt(options: BuildPromptOptions): string {
-    const { language, intent, data } = options;
+  static buildSystemPrompt(input: {
+    userInput: string;
+    tasks: any[];
+    clients: any[];
+    collaborators: any[];
+    language: string;
+    contextMemory?: any[];
+    detectedLanguage?: string;
+    detectedIntent?: string;
+  }): string {
+    const lang = input.language as 'en' | 'vi';
     const currentDate = format(new Date(), 'yyyy-MM-dd');
 
     let prompt = '';
 
-    // 1. Start with the base assistant persona.
-    prompt += systemPrompts.freelanceAssistant[language];
+    // 1. Base assistant persona
+    prompt += systemPrompts.freelanceAssistant[lang];
 
-    // 2. Add common context (date, language).
-    prompt += contextPrompts.common[language].replace('{currentDate}', currentDate);
+    // 2. Common context with date
+    prompt += contextPrompts.common[lang].replace('{currentDate}', currentDate);
     
-    // 3. Add a clear instruction about the user's detected intent.
-    if (intent !== 'unknown' && intent !== 'query') {
-        prompt += `\n\nIMPORTANT: The user's primary intent has been identified as '${intent}'. You should prioritize generating the corresponding action in your response.`;
+    // 3. Intent context if detected
+    if (input.detectedIntent && input.detectedIntent !== 'unknown' && input.detectedIntent !== 'query') {
+        prompt += `\n\nIMPORTANT: The user's primary intent has been identified as '${input.detectedIntent}'. You should prioritize generating the corresponding action in your response.`;
     }
 
-    // 4. Add action instructions.
-    prompt += contextPrompts.actionInstructions[language];
+    // 4. Action instructions
+    prompt += contextPrompts.actionInstructions[lang];
 
-    // 5. Add a few-shot examples to guide the model.
-    prompt += `\n\nHere are some examples of how to respond correctly:\n${fewShotExamples[language]}`;
+    // 5. Few-shot examples
+    prompt += `\n\nHere are some examples of how to respond correctly:\n${fewShotExamples[lang]}`;
 
-    // 6. Add data context if available.
-    prompt += contextPrompts.categoryContext[language];
+    // 6. Category context
+    prompt += contextPrompts.categoryContext[lang];
+
+    // 7. Context memory if available
+    if (input.contextMemory && input.contextMemory.length > 0) {
+      const memoryContext = input.contextMemory.map((entry: any, index: number) => 
+        `${index + 1}. Previous: "${entry.userQuery}" → "${entry.aiResponse}" (Topics: ${entry.topics?.join(', ') || 'N/A'})`
+      ).join('\n');
+      
+      prompt += lang === 'vi' 
+        ? `\n\nBối cảnh từ các cuộc trò chuyện trước:\n${memoryContext}`
+        : `\n\nContext from previous conversations:\n${memoryContext}`;
+    }
     
-    if (data.clients && data.clients.length > 0) {
-      prompt += contextPrompts.clientContext[language].replace('{clients}', JSON.stringify(data.clients));
+    // 8. Data contexts
+    if (input.clients && input.clients.length > 0) {
+      prompt += contextPrompts.clientContext[lang].replace('{clients}', JSON.stringify(input.clients));
     }
-    if (data.collaborators && data.collaborators.length > 0) {
-        prompt += contextPrompts.collaboratorContext[language].replace('{collaborators}', JSON.stringify(data.collaborators));
+    if (input.collaborators && input.collaborators.length > 0) {
+        prompt += contextPrompts.collaboratorContext[lang].replace('{collaborators}', JSON.stringify(input.collaborators));
     }
-    if (data.quoteTemplates && data.quoteTemplates.length > 0) {
-        prompt += contextPrompts.quoteTemplateContext[language].replace('{quoteTemplates}', JSON.stringify(data.quoteTemplates));
-    }
-    if (data.tasks && data.tasks.length > 0) {
-      prompt += contextPrompts.taskContext[language].replace('{tasks}', JSON.stringify(data.tasks));
+    if (input.tasks && input.tasks.length > 0) {
+      prompt += contextPrompts.taskContext[lang].replace('{tasks}', JSON.stringify(input.tasks));
     }
 
     return prompt;

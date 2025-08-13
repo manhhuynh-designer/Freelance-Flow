@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useDashboard } from '@/contexts/dashboard-context';
 import {
     Sidebar, SidebarHeader, SidebarContent, SidebarSeparator, SidebarGroup, SidebarGroupLabel,
@@ -22,7 +22,6 @@ import { WIDGETS } from '@/lib/widgets';
 import type { AppSettings } from '@/lib/types';
 
 function SidebarTrashMenuItem({ T }: { T: any }) {
-  const { useSearchParams } = require('next/navigation');
   const searchParams = useSearchParams();
   return (
     <SidebarMenuItem>

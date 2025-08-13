@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "./ui/button";
 import { Bot } from "lucide-react";
-import ChatPage from "@/app/dashboard/chat/page";
+import ChatView from "@/components/ChatView";
 import { useState } from "react";
 
 export default function QuickChat() {
@@ -30,7 +30,7 @@ export default function QuickChat() {
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <div className="flex-1 flex flex-col min-h-0 bg-background">
-          <ChatPage isQuickChat={true} />
+          <ChatView isQuickChat={true} showHistoryPanel={false} />
         </div>
       </PopoverContent>
     </Popover>

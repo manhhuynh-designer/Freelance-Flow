@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format, addDays, startOfMonth } from "date-fns";
 import { 
   CalendarIcon, PlusCircle, Trash2, MoreVertical, Pencil, ClipboardPaste, Copy, 
   ChevronsUpDown, ChevronUp, ChevronDown, ArrowLeft, ArrowRight, 
@@ -26,6 +26,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import TaskDateRangePicker from "./TaskDateRangePicker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -63,7 +64,7 @@ const formSchema = z.object({
     items: z.array(
         z.object({
             id: z.string().optional(),
-            description: z.string().min(1, "Description cannot be empty."),
+            description: z.string().optional().default(""),
             unitPrice: z.coerce.number().min(0, "Price cannot be negative.").default(0),
             customFields: z.record(z.any()).optional(),
         })
@@ -79,7 +80,7 @@ const formSchema = z.object({
           items: z.array(
             z.object({
               id: z.string().optional(),
-              description: z.string().min(1, "Description cannot be empty."),
+              description: z.string().optional().default(""),
               unitPrice: z.coerce.number().min(0, "Price cannot be negative.").default(0),
               customFields: z.record(z.any()).optional(),
             })
@@ -105,6 +106,9 @@ type EditTaskFormProps = {
   quoteTemplates: QuoteTemplate[];
   settings: AppSettings;
   defaultDate?: Date | null;
+  onDirtyChange?: (dirty: boolean) => void;
+  onRegisterExternalSubmit?: (fn: () => void) => void;
+  onRegisterDirtyCheck?: (fn: () => boolean) => void;
 };
 
 import { Expand, Shrink } from "lucide-react";
@@ -120,15 +124,16 @@ export function EditTaskForm({
   onAddClient,
   quoteTemplates,
   settings,
-  defaultDate
+  defaultDate,
+  onDirtyChange,
+  onRegisterExternalSubmit,
+  onRegisterDirtyCheck,
 }: EditTaskFormProps) {
-  // Dialog size state for resize toggle
-  const { toast } = useToast();
   const T = {
     ...i18n[settings.language],
     addLink: ((i18n[settings.language] as any)?.addLink || "Thêm link"),
   };
-  
+  const { toast } = useToast();
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
   const [newClientName, setNewClientName] = useState("");
   const [isCollaboratorSectionOpen, setIsCollaboratorSectionOpen] = useState(!!collaboratorQuotes && collaboratorQuotes.length > 0);
@@ -213,6 +218,30 @@ export function EditTaskForm({
 
   const watchedSections = useWatch({ control: form.control, name: "sections" });
   const watchedCollabQuotes = useWatch({ control: form.control, name: "collaboratorQuotes" });
+  const watchedStatus = useWatch({ control: form.control, name: "status" });
+  const watchedCategoryId = useWatch({ control: form.control, name: "categoryId" });
+  const watchedDescription = useWatch({ control: form.control, name: "description" });
+
+  const availableSubStatuses = useMemo(() => {
+    const mainStatusConfig = (settings.statusSettings || []).find(s => s.id === watchedStatus);
+    return mainStatusConfig?.subStatuses || [];
+  }, [watchedStatus, settings.statusSettings]);
+
+  // Report dirty state to parent (for unsaved-changes guard)
+  React.useEffect(() => {
+    onDirtyChange?.(form.formState.isDirty);
+  }, [form.formState.isDirty, onDirtyChange]);
+
+  // Expose live dirty check to parent (dialog) to ensure guards run on latest state
+  const dirtyRef = React.useRef(form.formState.isDirty);
+  React.useEffect(() => { dirtyRef.current = form.formState.isDirty; }, [form.formState.isDirty]);
+  React.useEffect(() => {
+    if (onRegisterDirtyCheck) {
+      onRegisterDirtyCheck(() => dirtyRef.current);
+    }
+  }, [onRegisterDirtyCheck]);
+
+  // Note: external submit registration is set up after onSubmit/onError are defined below
 
   const handleCopyFromQuote = useCallback((targetCollaboratorIndex: number) => {
     if (!quote?.sections || quote.sections.length === 0) {
@@ -261,6 +290,12 @@ export function EditTaskForm({
 
     console.log('Final filtered values being submitted:', filteredValues);
     onFormSubmit(filteredValues, columns, collaboratorColumns, taskToEdit.id);
+    // Dispatch a global event to signal save (for opening details dialog at higher level)
+    if (typeof window !== 'undefined') {
+      try {
+        window.dispatchEvent(new CustomEvent('task:saved', { detail: { taskId: taskToEdit.id } }));
+      } catch {}
+    }
   }, [onFormSubmit, columns, collaboratorColumns, taskToEdit, toast, T]);
 
   const onError = useCallback((errors: any) => {
@@ -293,6 +328,13 @@ export function EditTaskForm({
       variant: "destructive",
     });
   }, [toast]);
+
+  // Allow parent to trigger submit programmatically (after handlers exist)
+  React.useEffect(() => {
+    if (!onRegisterExternalSubmit) return;
+    const submit = () => form.handleSubmit(onSubmit, onError)();
+    onRegisterExternalSubmit(submit);
+  }, [onRegisterExternalSubmit, form, onSubmit, onError]);
 
   const handleAddClient = useCallback(() => {
     if (newClientName.trim() === "") {
@@ -564,41 +606,13 @@ export function EditTaskForm({
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>{T.dates}</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !field.value?.from && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value?.from ? (
-                              field.value.to ? (
-                                <>
-                                  {format(field.value.from, "LLL dd, y")} -{" "}
-                                  {format(field.value.to, "LLL dd, y")}
-                                </>
-                              ) : (
-                                format(field.value.from, "LLL dd, y")
-                              )
-                            ) : (
-                              <span>{T.pickDateRange}</span>
-                            )}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="range"
-                          selected={{ from: field.value?.from, to: field.value?.to }}
-                          onSelect={(range) => field.onChange({ from: range?.from, to: range?.to })}
-                          numberOfMonths={2}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormControl>
+                      <TaskDateRangePicker
+                        value={field.value as any}
+                        onChange={(range) => field.onChange(range as any)}
+                        T={T as any}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} 
@@ -611,24 +625,55 @@ export function EditTaskForm({
                     render={({ field }) => (
                       <FormItem className="flex-1">
                         <FormLabel>{T.status}</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select 
+                          onValueChange={(value) => { field.onChange(value); form.setValue('subStatusId', ''); }} 
+                          value={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder={T.selectStatus} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="todo">{T.statuses?.todo || 'Báo giá'}</SelectItem>
-                            <SelectItem value="inprogress">{T.statuses?.inprogress || 'Đang thực hiện'}</SelectItem>
-                            <SelectItem value="done">{T.statuses?.done || 'Hoàn thành'}</SelectItem>
-                            <SelectItem value="onhold">{T.statuses?.onhold || 'Tạm dừng'}</SelectItem>
-                            <SelectItem value="archived">{T.statuses?.archived || 'Lưu trữ'}</SelectItem>
+                            {(settings.statusSettings || []).map((s) => (
+                              <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )} 
                   />
+                  {availableSubStatuses.length > 0 && (
+                    <FormField 
+                      control={form.control} 
+                      name="subStatusId" 
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormLabel>{T.subStatuses}</FormLabel>
+                          <Select 
+                            onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} 
+                            value={field.value || '__none__'}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={T.selectSubStatus} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="__none__">{T.none}</SelectItem>
+                              {availableSubStatuses.map((sub) => (
+                                <SelectItem key={sub.id} value={sub.id}>
+                                  {sub.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )} 
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -644,8 +689,22 @@ export function EditTaskForm({
             fieldArrayName="sections"
             columns={columns}
             setColumns={setColumns}
-            title="Báo giá"
+            title={T.priceQuote}
+            quoteTemplates={quoteTemplates}
             settings={settings}
+            taskDescription={watchedDescription || ''}
+            taskCategory={(categories || []).find(c => c.id === watchedCategoryId)?.name || ''}
+            onApplySuggestion={(items) => {
+              const newItems = items.map(item => ({
+                description: item.description,
+                unitPrice: item.unitPrice,
+                id: `item-sugg-${Date.now()}-${Math.random()}`,
+                customFields: {},
+              }));
+              form.setValue('sections', [{ id: 'section-ai-1', name: T.untitledSection, items: newItems }]);
+              setColumns(defaultColumns);
+              toast({ title: T.suggestionApplied, description: T.suggestionAppliedDesc?.replace('{count}', String(items.length)) });
+            }}
             onCopyFromQuote={undefined}
             showCopyFromQuote={false}
           />
@@ -777,7 +836,7 @@ export function EditTaskForm({
           </Collapsible>
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+            <Button type="button" variant="ghost" data-intent="close" onClick={() => setOpen(false)}>
               {T.cancel}
             </Button>
             <Button type="submit">{T.save}</Button>

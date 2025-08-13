@@ -10,66 +10,12 @@ import { Label } from '@/components/ui/label';
 import type { AppSettings } from '@/lib/types';
 import { i18n } from '@/lib/i18n';
 import { Timer, Play, Pause, RefreshCw, MoreVertical, SkipForward, Expand, Minimize } from 'lucide-react';
-
-type SessionType = 'work' | 'break';
+import { usePomodoroTimer, type PomodoroSessionType } from '@/hooks/usePomodoroTimer';
+import { useDashboard } from '@/contexts/dashboard-context';
 
 type PomodoroProps = {
     settings: AppSettings;
 }
-
-const usePomodoroTimer = () => {
-    const [settings, setSettings] = useState({ work: 25, break: 5 });
-    const [sessionType, setSessionType] = useState<SessionType>('work');
-    const [timeRemaining, setTimeRemaining] = useState(settings.work * 60);
-    const [isActive, setIsActive] = useState(false);
-
-    const audio = useMemo(() => {
-        if (typeof window !== 'undefined') {
-            return new Audio('https://www.soundjay.com/buttons/sounds/button-3.mp3');
-        }
-        return null;
-    }, []);
-    
-    const skipSession = useCallback(() => {
-        setIsActive(false);
-        const nextSession = sessionType === 'work' ? 'break' : 'work';
-        setSessionType(nextSession);
-        setTimeRemaining(settings[nextSession] * 60);
-    }, [sessionType, settings]);
-
-    useEffect(() => {
-        let interval: NodeJS.Timeout | null = null;
-        if (isActive && timeRemaining > 0) {
-            interval = setInterval(() => setTimeRemaining(time => time - 1), 1000);
-        } else if (isActive && timeRemaining === 0) {
-            audio?.play().catch(e => console.error("Error playing sound:", e));
-            skipSession();
-        }
-        return () => { if (interval) clearInterval(interval); };
-    }, [isActive, timeRemaining, skipSession, audio]);
-    
-    const toggle = () => setIsActive(!isActive);
-    
-    const reset = () => {
-        setIsActive(false);
-        setTimeRemaining(settings[sessionType] * 60);
-    }
-    
-    const updateSettings = (newSettings: { work: number, break: number }) => {
-        setSettings(newSettings);
-        if (!isActive) {
-           setTimeRemaining(newSettings[sessionType] * 60);
-        }
-    };
-    
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-        const secs = (seconds % 60).toString().padStart(2, '0');
-        return `${mins}:${secs}`;
-    };
-
-    return { timeRemaining, isActive, sessionType, toggle, reset, skipSession, updateSettings, settings, formatTime };
-};
 
 const FullscreenPomodoro = ({ T, timeRemaining, isActive, sessionType, toggle, reset, skipSession, formatTime, onClose }: any) => {
     const getBackgroundColor = () => {
@@ -120,7 +66,15 @@ const FullscreenPomodoro = ({ T, timeRemaining, isActive, sessionType, toggle, r
 
 export function PomodoroWidget({ settings: appSettings }: PomodoroProps) {
   const T = i18n[appSettings.language];
-  const pomodoro = usePomodoroTimer();
+  const { workTime } = useDashboard() as any;
+  const pomodoro = usePomodoroTimer({
+    initialSettings: { work: 25, break: 5 }, // Có thể lấy từ appSettings sau
+    onSessionComplete: (sessionType, durationMinutes) => {
+      if (sessionType === 'work') {
+        workTime.savePomodoroSession(durationMinutes);
+      }
+    }
+  });
   const [localSettings, setLocalSettings] = useState(pomodoro.settings);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -131,7 +85,7 @@ export function PomodoroWidget({ settings: appSettings }: PomodoroProps) {
 
   const handleSettingsSave = () => pomodoro.updateSettings(localSettings);
 
-  const sessionTitles: Record<SessionType, string> = {
+  const sessionTitles: Record<PomodoroSessionType, string> = {
       work: T.pomodoroWork,
       break: T.pomodoroBreak,
   };

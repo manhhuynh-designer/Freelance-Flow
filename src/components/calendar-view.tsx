@@ -8,9 +8,7 @@ import styles from './calendar-header.module.css';
 import { TaskDetailsDialog } from './task-dialogs/TaskDetailsDialog';
 import { EditTaskForm, type TaskFormValues } from './edit-task-form';
 import { CreateTaskForm, type CreateTaskFormRef } from './create-task-form-new';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogCancel } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
+import { TaskEditDialog } from './task-dialogs/TaskEditDialog';
 
 export type CalendarDisplayMode = 'week' | 'month';
 
@@ -67,19 +65,19 @@ export function CalendarView({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [pendingEdit, setPendingEdit] = useState(false);
 
-  const [isCreateTaskDirty, setIsCreateTaskDirty] = useState(false);
-  const [isConfirmCloseOpen, setIsConfirmCloseOpen] = useState(false);
-  const createTaskFormRef = useRef<CreateTaskFormRef>(null);
+  // Using TaskEditDialog guard; no local dirty state needed here
 
   const t = useMemo(() => {
     const lang = settings.language;
     const baseLang = i18n[lang] || i18n.en;
     return {
       ...baseLang,
-      confirmClose: (baseLang as any)?.confirmClose || "Confirm Close",
-      confirmCloseDescription: (baseLang as any)?.confirmCloseDescription || "You have unsaved changes. What would you like to do?",
-      saveDraft: (baseLang as any)?.saveDraft || "Save Draft",
-      closeWithoutSaving: (baseLang as any)?.closeWithoutSaving || "Close Without Saving",
+  // Use unified unsaved* keys
+  unsavedConfirmTitle: (baseLang as any)?.unsavedConfirmTitle || (baseLang as any)?.confirmClose || "Unsaved changes",
+  unsavedConfirmDescription: (baseLang as any)?.unsavedConfirmDescription || (baseLang as any)?.confirmCloseDescription || "You have unsaved changes. What would you like to do?",
+  unsavedCancel: (baseLang as any)?.unsavedCancel || (baseLang as any)?.cancel || "Cancel",
+  unsavedCloseWithoutSaving: (baseLang as any)?.unsavedCloseWithoutSaving || (baseLang as any)?.closeWithoutSaving || "Close Without Saving",
+  saveDraft: (baseLang as any)?.saveDraft || "Save Draft",
     }
   }, [settings.language]);
 
@@ -103,38 +101,6 @@ export function CalendarView({
     setPendingEdit(false);
   };
   
-  const handleSetCreateTaskOpen = (open: boolean) => {
-      if(open) {
-          setIsTaskEditOpen(true);
-      } else {
-          handleCloseCreateDialog();
-      }
-  }
-
-  const handleCloseCreateDialog = () => {
-    if (isCreateTaskDirty && !selectedTask) {
-        setIsConfirmCloseOpen(true);
-    } else {
-        setIsTaskEditOpen(false);
-        setSelectedTask(null);
-        setSelectedDate(null);
-        setIsCreateTaskDirty(false);
-    }
-  }
-
-  const handleConfirmSaveDraft = () => {
-    createTaskFormRef.current?.handleSaveDraft();
-    setIsConfirmCloseOpen(false);
-  };
-
-  const handleConfirmCloseNoSave = () => {
-      setIsCreateTaskDirty(false);
-      setIsConfirmCloseOpen(false);
-      setIsTaskEditOpen(false);
-      setSelectedTask(null);
-      setSelectedDate(null);
-  };
-  
   const handleTaskSubmit = (values: TaskFormValues, quoteColumns: QuoteColumn[], collaboratorQuoteColumns: QuoteColumn[], taskId?: string) => {
     if (taskId) {
       onEditTask(values, quoteColumns, collaboratorQuoteColumns, taskId);
@@ -145,7 +111,6 @@ export function CalendarView({
     setSelectedTask(null);
     setSelectedDate(null);
     setPendingEdit(false);
-    setIsCreateTaskDirty(false);
   };
 
   const handleTaskClick = (task: Task) => {
@@ -184,62 +149,27 @@ export function CalendarView({
         />
       )}
 
-      <Dialog open={isTaskEditOpen} onOpenChange={handleSetCreateTaskOpen}>
-          <DialogContent 
-              className="max-h-[90vh] overflow-y-auto sm:max-w-2xl md:max-w-5xl"
-              onInteractOutside={(e) => {
-                  if (isCreateTaskDirty && !selectedTask) {
-                    e.preventDefault();
-                    handleCloseCreateDialog();
-                  }
-              }}
-               onEscapeKeyDown={(e) => {
-                  if (isCreateTaskDirty && !selectedTask) {
-                      e.preventDefault();
-                      handleCloseCreateDialog();
-                  }
-              }}
-            >
-            <DialogTitle>{selectedTask ? t.editTask : t.createTask}</DialogTitle>
-            {selectedTask ? (
-              <EditTaskForm
-                setOpen={setIsTaskEditOpen}
-                onSubmit={handleTaskSubmit} taskToEdit={selectedTask}
-                quote={selectedTask ? quotes.find(q => q.id === selectedTask.quoteId) : undefined}
-                collaboratorQuotes={selectedTask?.collaboratorQuotes?.map(cq => collaboratorQuotes.find(q => q.id === cq.quoteId)).filter(Boolean) as Quote[] ?? []}
-                clients={clients} collaborators={collaborators} categories={categories}
-                onAddClient={onAddClient} quoteTemplates={quoteTemplates} settings={settings}
-                defaultDate={selectedDate}
-              />
-            ) : (
-              <CreateTaskForm
-                ref={createTaskFormRef}
-                setOpen={setIsTaskEditOpen}
-                onSubmit={onAddTask ? (values, qc, cqc) => handleTaskSubmit(values, qc, cqc) : () => {}}
-                clients={clients} collaborators={collaborators} categories={categories}
-                onAddClient={onAddClient} quoteTemplates={quoteTemplates} settings={settings}
-                defaultDate={selectedDate ?? undefined}
-                onDirtyChange={setIsCreateTaskDirty}
-                onRequestConfirmClose={handleCloseCreateDialog}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
-     
-
-      <AlertDialog open={isConfirmCloseOpen} onOpenChange={setIsConfirmCloseOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t.confirmClose}</AlertDialogTitle>
-            <AlertDialogDescription>{t.confirmCloseDescription}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmCloseOpen(false)}>{t.cancel}</AlertDialogCancel>
-             <Button variant="outline" onClick={handleConfirmSaveDraft}>{t.saveDraft}</Button>
-             <Button variant="destructive" onClick={handleConfirmCloseNoSave}>{t.closeWithoutSaving}</Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <TaskEditDialog
+        task={selectedTask}
+        quote={selectedTask ? quotes.find(q => q.id === selectedTask.quoteId) : undefined}
+        collaboratorQuotes={selectedTask?.collaboratorQuotes?.map(cq => collaboratorQuotes.find(q => q.id === cq.quoteId)).filter(Boolean) as Quote[] ?? []}
+        clients={clients}
+        collaborators={collaborators}
+        categories={categories}
+        quoteTemplates={quoteTemplates}
+        settings={settings}
+        isOpen={isTaskEditOpen}
+        onOpenChange={(open) => {
+          setIsTaskEditOpen(open);
+          if (!open) {
+            setSelectedTask(null);
+            setSelectedDate(null);
+          }
+        }}
+        onSubmit={(values, qc, cqc, taskId) => handleTaskSubmit(values, qc, cqc, taskId)}
+        onAddClient={onAddClient}
+        defaultDate={selectedDate}
+      />
 
       <div className="w-full h-full flex flex-col">
         <div className="flex items-center justify-between mb-4 px-4 pt-4 flex-shrink-0 gap-4">

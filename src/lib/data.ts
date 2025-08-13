@@ -215,8 +215,9 @@ export const initialQuoteTemplates: QuoteTemplate[] = [
 
 export const initialAppData: AppData = {
     tasks,
-events: [],
+    events: [],
     notes: [],
+    workSessions: [], // Initialize empty work sessions
     quotes,
     collaboratorQuotes: [],
     clients: initialClients,
@@ -251,7 +252,13 @@ events: [],
             { id: 'status', label: 'Status', visible: true },
             { id: 'priceQuote', label: 'Quote', visible: true },
         ],
-        statusSettings: [],
+        statusSettings: [
+            { id: 'todo', label: 'To Do', subStatuses: [] },
+            { id: 'inprogress', label: 'In Progress', subStatuses: [] },
+            { id: 'done', label: 'Done', subStatuses: [] },
+            { id: 'onhold', label: 'On Hold', subStatuses: [] },
+            { id: 'archived', label: 'Archived', subStatuses: [] },
+        ],
         widgets: []
     }
 };

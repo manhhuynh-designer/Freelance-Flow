@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { X, Plus } from "lucide-react"
 import type { AppSettings, StatusSetting } from "@/lib/types"
 import { i18n } from "@/lib/i18n"
+import { useDashboard } from "@/contexts/dashboard-context"
 
 type StatusSettingsProps = {
   settings: AppSettings
@@ -18,17 +19,37 @@ const SUB_STATUS_LIMIT = 5;
 export function StatusSettings({ settings, onSettingsChange }: StatusSettingsProps) {
   const T = i18n[settings.language]
   const [newSubStatusInputs, setNewSubStatusInputs] = React.useState<Record<string, string>>({})
+  
+  // Get action buffer for tracking changes
+  const dashboardContext = useDashboard();
+  const actionBuffer = dashboardContext?.actionBuffer;
 
   const handleLabelChange = (statusId: StatusSetting['id'], newLabel: string) => {
+    const oldLabel = (settings.statusSettings || []).find(s => s.id === statusId)?.label;
+    
     onSettingsChange(prev => ({
       ...prev,
       statusSettings: (prev.statusSettings || []).map(s =>
         s.id === statusId ? { ...s, label: newLabel } : s
       ),
     }))
+    
+    // Track the change
+    if (actionBuffer && oldLabel !== newLabel) {
+      actionBuffer.pushAction({
+        action: 'settings',
+        entityType: 'settings',
+        entityId: `status-${statusId}`,
+        description: `Changed status "${oldLabel}" label to "${newLabel}"`,
+        canUndo: true
+      });
+    }
   }
   
   const handleSubStatusLabelChange = (statusId: StatusSetting['id'], subStatusId: string, newLabel: string) => {
+    const status = (settings.statusSettings || []).find(s => s.id === statusId);
+    const oldLabel = status?.subStatuses.find(ss => ss.id === subStatusId)?.label;
+    
     onSettingsChange(prev => ({
       ...prev,
       statusSettings: (prev.statusSettings || []).map(s =>
@@ -42,6 +63,17 @@ export function StatusSettings({ settings, onSettingsChange }: StatusSettingsPro
           : s
       ),
     }))
+    
+    // Track the change
+    if (actionBuffer && oldLabel !== newLabel) {
+      actionBuffer.pushAction({
+        action: 'settings',
+        entityType: 'settings',
+        entityId: `substatus-${subStatusId}`,
+        description: `Changed sub-status "${oldLabel}" to "${newLabel}" in ${status?.label}`,
+        canUndo: true
+      });
+    }
   }
 
   const handleNewSubStatusInputChange = (statusId: StatusSetting['id'], value: string) => {
@@ -53,6 +85,8 @@ export function StatusSettings({ settings, onSettingsChange }: StatusSettingsPro
     const subStatusLabel = newSubStatusInputs[statusId]?.trim()
     if (!subStatusLabel) return
 
+    const status = (settings.statusSettings || []).find(s => s.id === statusId);
+    
     onSettingsChange(prev => ({
       ...prev,
       statusSettings: (prev.statusSettings || []).map(s => {
@@ -65,10 +99,25 @@ export function StatusSettings({ settings, onSettingsChange }: StatusSettingsPro
         return s;
       }),
     }))
+    
     setNewSubStatusInputs(prev => ({ ...prev, [statusId]: "" }))
+    
+    // Track the addition
+    if (actionBuffer) {
+      actionBuffer.pushAction({
+        action: 'create',
+        entityType: 'settings',
+        entityId: `substatus-new`,
+        description: `Added sub-status "${subStatusLabel}" to ${status?.label}`,
+        canUndo: true
+      });
+    }
   }
 
   const handleDeleteSubStatus = (statusId: StatusSetting['id'], subStatusId: string) => {
+    const status = (settings.statusSettings || []).find(s => s.id === statusId);
+    const subStatus = status?.subStatuses.find(ss => ss.id === subStatusId);
+    
     onSettingsChange(prev => ({
       ...prev,
       statusSettings: (prev.statusSettings || []).map(s =>
@@ -77,6 +126,17 @@ export function StatusSettings({ settings, onSettingsChange }: StatusSettingsPro
           : s
       ),
     }))
+    
+    // Track the deletion
+    if (actionBuffer && subStatus) {
+      actionBuffer.pushAction({
+        action: 'delete',
+        entityType: 'settings',
+        entityId: `substatus-${subStatusId}`,
+        description: `Deleted sub-status "${subStatus.label}" from ${status?.label}`,
+        canUndo: true
+      });
+    }
   }
 
   return (

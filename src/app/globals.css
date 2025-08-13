@@ -369,3 +369,180 @@
   color: hsl(var(--primary));
   text-decoration: underline;
 }
+
+/* Force correct text color for primary buttons in specific themes */
+/* These themes need white text: Default, Crimson, Forest, Violet, Monochrome */
+
+/* Use specific HSL values that match theme-applicator output */
+:root[style*="--primary: 223 78% 53%"] button[class*="bg-primary"],
+:root[style*="--primary: 223 78% 53%"] .bg-primary,
+:root[style*="--primary: 354 72% 51%"] button[class*="bg-primary"], 
+:root[style*="--primary: 354 72% 51%"] .bg-primary,
+:root[style*="--primary: 120 34% 49%"] button[class*="bg-primary"],
+:root[style*="--primary: 120 34% 49%"] .bg-primary,
+:root[style*="--primary: 262 77% 52%"] button[class*="bg-primary"],
+:root[style*="--primary: 262 77% 52%"] .bg-primary,
+:root[style*="--primary: 210 10% 23%"] button[class*="bg-primary"],
+:root[style*="--primary: 210 10% 23%"] .bg-primary {
+  color: white !important;
+}
+
+/* Alternative approach using CSS variables with higher specificity */
+@layer components {
+  button[class*="bg-primary"].text-primary-foreground {
+    color: hsl(var(--primary-foreground)) !important;
+  }
+  
+  .bg-primary.text-primary-foreground {
+    color: hsl(var(--primary-foreground)) !important;
+  }
+  
+  /* Calendar date picker text color fixes - Enhanced for better contrast */
+  .rdp-day_selected,
+  .rdp-day_range_start,
+  .rdp-day_range_end {
+    color: white !important;
+    background: hsl(var(--primary)) !important;
+  }
+  
+  /* Enhanced range middle days with better contrast - compatible with TimeRangePicker */
+  .rdp-day_range_middle,
+  .rdp-day_range_middle .rdp-day,
+  .rdp-day_range_middle .rdp-button_reset,
+  .rdp-day_range_middle button {
+    color: hsl(var(--foreground)) !important;
+    background: hsl(var(--primary) / 0.2) !important;
+    font-weight: 500 !important;
+  }
+  
+  /* Ensure all date range text is visible and contrasted */
+  .rdp-day:not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end).rdp-day_range_middle,
+  .rdp-day:not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end).rdp-day_range_middle button {
+    color: hsl(var(--foreground)) !important;
+    background: hsl(var(--primary) / 0.2) !important;
+    font-weight: 500 !important;
+  }
+  
+  /* Enhanced hover states - compatible with TimeRangePicker */
+  .rdp-day_range_middle:hover,
+  .rdp-day_range_middle button:hover {
+    color: hsl(var(--foreground)) !important;
+    background: hsl(var(--primary) / 0.3) !important;
+    font-weight: 500 !important;
+  }
+  
+  /* Additional safety for date picker button text */
+  .rdp button:not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end) {
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  /* Specific styling for range middle with strong contrast */
+  .rdp-day_range_middle button,
+  .rdp-day.rdp-day_range_middle button {
+    color: hsl(var(--primary)) !important;
+    background: hsl(var(--primary) / 0.15) !important;
+    font-weight: 600 !important;
+  }
+  
+  .rdp-day_today {
+    color: hsl(var(--accent-foreground)) !important;
+    background: hsl(var(--accent)) !important;
+  }
+  
+  .rdp-day:not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle):not(.rdp-day_today) {
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  .rdp-day_outside {
+    color: hsl(var(--muted-foreground)) !important;
+    opacity: 0.5 !important;
+  }
+}
+
+/* CRITICAL: High-priority date range picker fixes */
+@layer components {
+  /* Override all existing date range styles with maximum specificity */
+  .rdp .rdp-day_range_middle,
+  .rdp .rdp-day_range_middle .rdp-day,
+  .rdp .rdp-day_range_middle button,
+  .rdp-day.rdp-day_range_middle,
+  .rdp-day.rdp-day_range_middle button,
+  [data-rdp] .rdp-day_range_middle,
+  [data-rdp] .rdp-day_range_middle button {
+    color: hsl(var(--foreground)) !important;
+    background-color: hsl(var(--primary) / 0.15) !important;
+    font-weight: 500 !important;
+    border: none !important;
+  }
+
+  /* Enhanced hover states with maximum specificity */
+  .rdp .rdp-day_range_middle:hover,
+  .rdp .rdp-day_range_middle:hover button,
+  .rdp-day.rdp-day_range_middle:hover,
+  .rdp-day.rdp-day_range_middle:hover button,
+  [data-rdp] .rdp-day_range_middle:hover,
+  [data-rdp] .rdp-day_range_middle:hover button {
+    color: hsl(var(--foreground)) !important;
+    background-color: hsl(var(--primary) / 0.25) !important;
+    font-weight: 500 !important;
+  }
+
+  /* Ensure start and end days have proper colors */
+  .rdp .rdp-day_range_start,
+  .rdp .rdp-day_range_end,
+  .rdp .rdp-day_selected {
+    color: hsl(var(--primary-foreground)) !important;
+    background-color: hsl(var(--primary)) !important;
+  }
+
+  /* Safety net for all date picker buttons */
+  .rdp button[type="button"]:not(.rdp-day_selected):not(.rdp-day_range_start):not(.rdp-day_range_end) {
+    color: hsl(var(--foreground)) !important;
+  }
+}
+
+/* FALLBACK: Even higher priority override for stubborn styles */
+.rdp-day_range_middle, 
+.rdp-day_range_middle button,
+.rdp .rdp-day_range_middle,
+.rdp .rdp-day_range_middle button {
+  color: hsl(var(--foreground)) !important;
+  background: hsl(var(--primary) / 0.15) !important;
+}
+
+.rdp-day_range_middle:hover,
+.rdp-day_range_middle:hover button,
+.rdp .rdp-day_range_middle:hover,
+.rdp .rdp-day_range_middle:hover button {
+  color: hsl(var(--foreground)) !important;
+  background: hsl(var(--primary) / 0.25) !important;
+}
+
+/* NUCLEAR OPTION: Maximum specificity override */
+html body .rdp-day_range_middle,
+html body .rdp-day_range_middle button,
+html body .rdp .rdp-day_range_middle,
+html body .rdp .rdp-day_range_middle button,
+html body div .rdp-day_range_middle,
+html body div .rdp-day_range_middle button {
+  color: hsl(var(--foreground)) !important;
+  background-color: hsl(var(--primary) / 0.15) !important;
+  font-weight: 500 !important;
+}
+
+html body .rdp-day_range_middle:hover,
+html body .rdp-day_range_middle:hover button,
+html body .rdp .rdp-day_range_middle:hover,
+html body .rdp .rdp-day_range_middle:hover button,
+html body div .rdp-day_range_middle:hover,
+html body div .rdp-day_range_middle:hover button {
+  color: hsl(var(--foreground)) !important;
+  background-color: hsl(var(--primary) / 0.25) !important;
+  font-weight: 500 !important;
+}
+
+@layer utilities {
+  .scrollbar-gutter-stable {
+    scrollbar-gutter: stable;
+  }
+}

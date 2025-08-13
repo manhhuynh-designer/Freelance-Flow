@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from './ui/card';
 import {
@@ -31,10 +31,11 @@ import { CalendarView, type CalendarDisplayMode } from './calendar-view';
 import { EisenhowerView } from './eisenhower/EisenhowerView';
 import { KanbanView } from './kanban/KanbanView';
 import { GanttView } from './calendar/GanttView';
-import { useFilterLogic } from '@/components/hooks/useFilterLogic';
+import { useFilterLogic } from '@/hooks/use-filter-logic';
 import { ReadonlyURLSearchParams } from 'next/navigation';
 import { SearchCommand } from '@/components/search-command';
 import { EditTaskForm } from './edit-task-form';
+import { TaskEditDialog } from './task-dialogs/TaskEditDialog';
 import { TaskDetailsDialog } from './task-dialogs/TaskDetailsDialog';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DataRestoredNotification } from "@/components/data-restored-notification";
@@ -48,7 +49,6 @@ export default function DashboardContent() {
 }
 
 function DashboardContentSearchParamsWrapper() {
-  const { useSearchParams } = require('next/navigation');
   const searchParams = useSearchParams();
   return <DashboardContentInner searchParams={searchParams} />;
 }
@@ -60,6 +60,15 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   const pathname = usePathname();
   const context = useDashboard();
   
+  // 🔧 DEBUG: Log dashboard context data
+  console.log('📊 Dashboard Content data status:', {
+    hasContext: !!context,
+    hasAppData: !!context?.appData,
+    tasksCount: context?.appData?.tasks?.length || 0,
+    clientsCount: context?.appData?.clients?.length || 0,
+    isDataLoaded: context?.isDataLoaded,
+  });
+  
   const { 
       appData, handleViewTask, handleEditTask, handleAddTask, handleTaskStatusChange,
       handleDeleteTask, handleRestoreTask, handlePermanentDeleteTask,
@@ -67,18 +76,36 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
       T, showInstallPrompt, installPromptEvent, handleInstallClick, 
       setShowInstallPrompt, viewingTaskDetails, viewingTaskId, handleCloseTaskDetails, 
       handleEditTaskClick, updateTaskEisenhowerQuadrant, reorderTasksInQuadrant,
-      reorderTasksInStatus, updateKanbanSettings
+      reorderTasksInStatus, updateKanbanSettings, actionBuffer
   } = context || {};
 
   const {
       tasks = [], quotes = [], collaboratorQuotes = [], clients = [], 
       collaborators = [], events = [], appSettings, quoteTemplates = [], categories = []
   } = appData || {};
+  const collabQuotesAsQuote = useMemo(() => collaboratorQuotes as unknown as Quote[], [collaboratorQuotes]);
   
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const VIEW_MODE_STORAGE_key = 'dashboardViewMode';
+
+  // Enhanced view mode change handler with action tracking
+  const handleViewModeChange = (mode: ViewMode) => {
+    const oldMode = currentViewMode;
+    setCurrentViewMode(mode);
+    
+    // Track the view mode change
+    if (actionBuffer && oldMode !== mode) {
+      actionBuffer.pushAction({
+        action: 'settings',
+        entityType: 'settings',
+        entityId: 'view-mode',
+        description: `Changed view from ${oldMode} to ${mode}`,
+        canUndo: false // View mode changes don't need undo
+      });
+    }
+  };
 
   if (!appSettings || !T || !appData || !context || !updateTaskEisenhowerQuadrant || !reorderTasksInQuadrant || !reorderTasksInStatus || !updateKanbanSettings) {
     return (
@@ -90,18 +117,39 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   const quoteForEditingTask = useMemo(() => editingTask ? quotes.find((q: Quote) => q.id === editingTask.quoteId) : undefined, [editingTask, quotes]);
   
   const collaboratorQuotesForEditingTask = useMemo(() => {
-    if (!editingTask || !editingTask.collaboratorQuotes) return [];
+    if (!editingTask || !editingTask.collaboratorQuotes) return [] as Quote[];
     return editingTask.collaboratorQuotes.map(cq => 
-      collaboratorQuotes.find((q: Quote) => q.id === cq.quoteId)
+      collabQuotesAsQuote.find(q => q.id === cq.quoteId)
     ).filter((q): q is Quote => !!q);
-  }, [editingTask, collaboratorQuotes]);
+  }, [editingTask, collabQuotesAsQuote]);
 
   const collaboratorQuotesForDetails = useMemo(() => {
-    if (!viewingTaskDetails?.task?.collaboratorQuotes) return [];
+    if (!viewingTaskDetails?.task?.collaboratorQuotes) return [] as Quote[];
     return viewingTaskDetails.task.collaboratorQuotes.map(cq =>
-      collaboratorQuotes.find((q: Quote) => q.id === cq.quoteId)
+      collabQuotesAsQuote.find(q => q.id === cq.quoteId)
     ).filter((q): q is Quote => !!q);
-  }, [viewingTaskDetails, collaboratorQuotes]);
+  }, [viewingTaskDetails, collabQuotesAsQuote]);
+
+  // Auto-open details after save (create or edit)
+  useEffect(() => {
+    const handleTaskSaved = (e: any) => {
+      try {
+        const id = e?.detail?.taskId;
+        if (id && handleViewTask) {
+          handleViewTask(id);
+        }
+        setEditingTask(null);
+      } catch {}
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('task:saved', handleTaskSaved);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('task:saved', handleTaskSaved);
+      }
+    };
+  }, [handleViewTask]);
   
   const view = searchParams.get('view') === 'trash' ? 'trash' : 'active';
   const page = Number(searchParams.get('page') || '1');
@@ -112,7 +160,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     collaboratorFilter, date, sortFilter, handleStatusFilterChange, handleStatusDoubleClick, 
     handleStatusBatchChange, handleCategoryChange, handleClientChange, handleCollaboratorChange, 
     handleDateRangeChange, handleSortChange, handleClearFilters,
-  } = useFilterLogic(tasks);
+  } = useFilterLogic(tasks, appSettings, view);
   
   const [currentViewMode, setCurrentViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
@@ -175,8 +223,20 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   };
   
   const handleCalendarModeChange = (newMode: CalendarDisplayMode) => {
+      const oldMode = calendarMode;
       setCalendarMode(newMode);
       handleCalendarNavigation(calendarDate, newMode);
+      
+      // Track calendar view mode change
+      if (actionBuffer && oldMode !== newMode) {
+        actionBuffer.pushAction({
+          action: 'settings',
+          entityType: 'settings',
+          entityId: 'calendar-view-mode',
+          description: `Changed calendar view from ${oldMode} to ${newMode}`,
+          canUndo: false
+        });
+      }
   };
 
   const effectiveHandleEditTaskClick = (task: Task) => {
@@ -203,12 +263,12 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
                                 {T.deletePermanently} {filteredTasks.length} {T.task}(s).
                             </AlertDialogDescription>
                         </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>{T.cancel}</AlertDialogCancel>
-                            <AlertDialogAction className={cn(buttonVariants({ variant: "destructive" }))} onClick={handleEmptyTrash}>{T.delete}</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{T.cancel}</AlertDialogCancel>
+              <AlertDialogAction className={cn(buttonVariants({ variant: "destructive" }))} onClick={handleEmptyTrash}>{T.delete}</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
             </div>
           )}
         </div>
@@ -217,7 +277,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
                 <TaskList 
                   tasks={paginatedTasks}
                   quotes={quotes}
-                  collaboratorQuotes={collaboratorQuotes}
+                  collaboratorQuotes={collabQuotesAsQuote}
                   clients={clients}
                   collaborators={collaborators}
                   categories={categories}
@@ -249,7 +309,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
       case 'table':
         return (
           <TableView
-            tasks={paginatedTasks} quotes={quotes} collaboratorQuotes={collaboratorQuotes} clients={clients}
+            tasks={paginatedTasks} quotes={quotes} collaboratorQuotes={collabQuotesAsQuote} clients={clients}
             collaborators={collaborators} categories={categories} 
             onEditTask={(values, quoteColumns, collaboratorQuoteColumns, taskId) => handleEditTask(values, quoteColumns, collaboratorQuoteColumns, taskId)}
             onViewTask={handleViewTask}
@@ -261,7 +321,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
       case 'calendar':
         return (
           <CalendarView
-            tasks={filteredTasks} events={events} quotes={quotes} collaboratorQuotes={collaboratorQuotes} clients={clients}
+            tasks={filteredTasks} events={events} quotes={quotes} collaboratorQuotes={collabQuotesAsQuote} clients={clients}
             collaborators={collaborators} categories={categories} onEditTask={handleEditTask} onAddTask={handleAddTask}
             onDeleteTask={handleDeleteTask} onAddClient={handleAddClientAndSelect} quoteTemplates={quoteTemplates}
             settings={appSettings} currentDate={calendarDate} viewMode={calendarMode}
@@ -283,14 +343,14 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
                 categories={categories}
                 quoteTemplates={quoteTemplates}
                 quotes={quotes}
-                collaboratorQuotes={collaboratorQuotes}
+                collaboratorQuotes={collabQuotesAsQuote}
                 handleEditTask={handleEditTask}
                 handleDeleteTask={handleDeleteTask}
             /> 
         );
       case 'kanban':
         return ( 
-            <KanbanView 
+      <KanbanView 
                 filteredTasks={filteredTasks}
                 appSettings={appSettings}
                 handleTaskStatusChange={handleTaskStatusChange}
@@ -299,7 +359,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
                 clients={clients}
                 categories={categories}
                 quotes={quotes}
-                collaboratorQuotes={collaboratorQuotes}
+        collaboratorQuotes={collabQuotesAsQuote}
                 collaborators={collaborators}
                 quoteTemplates={quoteTemplates}
                 handleDeleteTask={handleDeleteTask}
@@ -320,7 +380,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
             updateEvent={updateEvent}
             language={appSettings.language}
             quotes={quotes}
-            collaboratorQuotes={collaboratorQuotes}
+            collaboratorQuotes={collabQuotesAsQuote}
             collaborators={collaborators}
             quoteTemplates={quoteTemplates}
             handleDeleteTask={handleDeleteTask}
@@ -373,31 +433,22 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
         />
       )}
 
-      <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
-          <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-              <DialogHeader>
-                  <DialogTitle>{T.editTask}</DialogTitle>
-                  <DialogDescription>{editingTask?.name}</DialogDescription>
-              </DialogHeader>
-              <div className="flex-1 overflow-y-auto px-1">
-                  {editingTask && (
-                      <EditTaskForm
-                          setOpen={(open) => !open && setEditingTask(null)}
-                          onSubmit={handleEditTask}
-                          taskToEdit={editingTask}
-                          quote={quoteForEditingTask}
-                          collaboratorQuotes={collaboratorQuotesForEditingTask}
-                          clients={clients}
-                          collaborators={collaborators}
-                          categories={categories}
-                          onAddClient={handleAddClientAndSelect}
-                          quoteTemplates={quoteTemplates}
-                          settings={appSettings}
-                      />
-                  )}
-              </div>
-          </DialogContent>
-      </Dialog>
+      <TaskEditDialog
+        task={editingTask}
+        quote={quoteForEditingTask}
+        collaboratorQuotes={collaboratorQuotesForEditingTask}
+        clients={clients}
+        collaborators={collaborators}
+        categories={categories}
+        quoteTemplates={quoteTemplates}
+        settings={appSettings}
+        isOpen={!!editingTask}
+        onOpenChange={(open) => {
+          if (!open) setEditingTask(null);
+        }}
+        onSubmit={handleEditTask}
+        onAddClient={handleAddClientAndSelect}
+      />
 
       <div className="flex-shrink-0">
           <div className="flex items-start justify-between gap-4 mb-4">
@@ -415,15 +466,16 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
             />
             </div>
             
-            <div className="flex-shrink-0 self-start sticky top-0 z-10">
+            <div className="flex-shrink-0 self-start sticky top-0 z-10 flex items-center gap-2">
               <ViewModeToggle
                 currentMode={currentViewMode}
-                onModeChange={setCurrentViewMode}
+                onModeChange={handleViewModeChange}
                 T={T}
               />
             </div>
           </div>
       </div>
+
       
       <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <CardContent className={cn("flex-1 min-h-0 flex flex-col", currentViewMode === 'calendar' ? "p-0" : currentViewMode === 'table' ? "p-0" : currentViewMode === 'kanban' ? "p-0 overflow-hidden" : "p-0 overflow-y-auto")}>

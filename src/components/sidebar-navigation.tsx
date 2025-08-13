@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from 'next/navigation';
-import { LayoutGrid, MessageCircle, Puzzle } from "lucide-react";
+import { LayoutGrid, Puzzle, Bot } from "lucide-react";
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { i18n } from "@/lib/i18n";
 import { useDashboard } from "@/contexts/dashboard-context";
@@ -26,9 +26,10 @@ export function SidebarNavigation() {
                     <Link href="/dashboard/widgets"><Puzzle />{T.widgets}</Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
+            
             <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/dashboard/chat'}>
-                    <Link href="/dashboard/chat"><MessageCircle />{T.chatWithAI}</Link>
+                <SidebarMenuButton asChild isActive={pathname === '/dashboard/ai-assistant' || pathname === '/dashboard/chat'}>
+                                        <Link href="/dashboard/ai-hub"><Bot />AI Hub</Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
         </SidebarMenu>

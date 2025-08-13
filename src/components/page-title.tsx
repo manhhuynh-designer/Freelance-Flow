@@ -12,21 +12,40 @@ export function PageTitle() {
   const T = i18n[appData.appSettings.language];
   const view = searchParams.get('view');
 
+  // Enhanced page title logic with more specific titles
+  if (pathname === '/dashboard/ai-hub') {
+    return <>AI Hub</>;
+  }
   if (pathname === '/dashboard/chat') {
-    return <>{T.chatWithAI}</>;
+    return <>AI Chat</>;
   }
   if (pathname === '/dashboard/settings') {
-    return <>{T.settings}</>;
+    return <>Settings</>;
+  }
+  if (pathname === '/dashboard/calendar') {
+    return <>Calendar</>;
+  }
+  if (pathname === '/dashboard/clients') {
+    return <>Clients</>;
+  }
+  if (pathname === '/dashboard/quotes') {
+    return <>Quotes</>;
+  }
+  if (pathname === '/dashboard/collaborators') {
+    return <>Team</>;
   }
   if (pathname === '/dashboard' && view === 'trash') {
-    return <>{T.trashCan}</>;
+    return <>Trash</>;
+  }
+  if (pathname === '/dashboard' && view === 'calendar') {
+    return <>Calendar View</>;
   }
   if (pathname === '/dashboard/widgets') {
-    return <>{T.widgets}</>;
+    return <>Widgets</>;
   }
   if (pathname === '/dashboard') {
-    return <>{T.tasksDashboard}</>;
+    return <>Tasks</>;
   }
   
-  return <>{T.dashboard}</>;
+  return <>Dashboard</>;
 }

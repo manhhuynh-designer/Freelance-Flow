@@ -1,5 +1,6 @@
 import React from 'react';
 import { WIDGETS } from './widgets';
+import type { WorkSession } from './helpers/time-analyzer';
 
 export type DashboardColumn = {
   id: 'name' | 'client' | 'category' | 'collaborator' | 'deadline' | 'status' | 'priceQuote';
@@ -39,6 +40,9 @@ export type Quote = {
   sections: QuoteSection[];
   total: number;
   columns?: QuoteColumn[];
+  // Bổ sung theo Spec
+  status: 'draft' | 'sent' | 'accepted' | 'invoiced' | 'paid' | 'rejected';
+  paidDate?: string;
 };
 
 export type QuoteTemplate = {
@@ -54,6 +58,18 @@ export type CollaboratorQuote = {
   sections: QuoteSection[];
   total: number;
   columns?: QuoteColumn[];
+  // Bổ sung theo Spec
+  paymentStatus: 'pending' | 'paid';
+  paidDate?: string;
+};
+
+// Type mới cho chi phí chung
+export type GeneralExpense = { 
+  id: string; 
+  name: string; 
+  amount: number; 
+  date: string; // ISO String
+  category: 'marketing' | 'software' | 'office' | 'other';
 };
 
 export type Task = {
@@ -179,6 +195,19 @@ export type StatusColors = {
     archived: string;
 };
 
+export type FilterSettings = {
+  selectedStatuses: string[];
+  selectedCategory: string;
+  selectedCollaborator: string;
+  selectedClient: string;
+  sortFilter: string;
+  isExpanded: boolean;
+  dateRange?: {
+    from?: string;
+    to?: string;
+  };
+};
+
 export type AppSettings = {
   theme: ThemeSettings;
   statusColors: StatusColors;
@@ -195,10 +224,12 @@ export type AppSettings = {
   dashboardColumns?: DashboardColumn[];
   widgets: WidgetSetting[];
   eisenhowerMaxTasksPerQuadrant?: number; // New setting for Eisenhower matrix
+  aiFeedback?: any[]; // AI feedback collection
   kanbanColumnOrder?: string[];
   kanbanColumnVisibility?: Record<string, boolean>;
   kanbanSubStatusMode?: 'grouped' | 'separate';
   eisenhowerColorScheme?: 'colorScheme1' | 'colorScheme2' | 'colorScheme3'; // Color scheme for Eisenhower matrix
+  filterSettings?: FilterSettings; // Add filter settings to app settings
 };
 
 export type FilterPreset = {
@@ -219,12 +250,14 @@ export type AppData = {
   tasks: Task[];
   events: AppEvent[];
   quotes: Quote[];
-  collaboratorQuotes: Quote[];
+  collaboratorQuotes: CollaboratorQuote[]; // Sửa lại từ Quote[] để đúng ngữ nghĩa hơn
   clients: Client[];
   collaborators: Collaborator[];
   quoteTemplates: QuoteTemplate[];
   categories: Category[];
   notes: Note[];
+  workSessions?: WorkSession[]; // Add work sessions support
   appSettings: AppSettings;
   filterPresets?: FilterPreset[]; // Add filter presets to export data
+  expenses?: GeneralExpense[]; // <-- Bổ sung theo Spec
 };

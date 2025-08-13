@@ -1,10 +1,12 @@
 "use client";
 
 import { Suspense, useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { DashboardProvider } from '@/contexts/dashboard-context';
 import { ThemeApplicator } from '@/components/theme-applicator';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
+import { WorkTimeTracker } from '@/components/features/WorkTimeTracker';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { ThemeProvider } from "@/components/theme-provider";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,6 +40,13 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  
+  // Hide QuickChat when in AI hub or chat pages
+  const shouldShowQuickChat = !pathname?.includes('/dashboard/chat') && 
+                             !pathname?.includes('/dashboard/ai-hub') && 
+                             !pathname?.includes('/dashboard/ai-assistant');
+  
   return (
     <ThemeProvider
             attribute="class"
@@ -58,7 +67,7 @@ export default function DashboardLayout({
                       </main>
                   </SidebarInset>
               </SidebarProvider>
-              <QuickChat />
+              {shouldShowQuickChat && <QuickChat />}
             </Suspense>
           </ClientOnly>
         </DashboardProvider>

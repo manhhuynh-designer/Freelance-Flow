@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, forwardRef, useImperativeHandle } 
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format, addDays, startOfMonth } from "date-fns";
 import { 
   CalendarIcon, PlusCircle, Trash2,
   ChevronDown, Plus, 
@@ -18,6 +18,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import TaskDateRangePicker from "./TaskDateRangePicker";
 import { useToast } from "@/hooks/use-toast";
 import { i18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -52,7 +53,8 @@ const formSchema = z.object({
     items: z.array(
         z.object({
             id: z.string().optional(),
-            description: z.string().min(1, "Description cannot be empty."),
+            // Make description optional to avoid forcing values in quote table
+            description: z.string().optional().default(""),
             unitPrice: z.coerce.number().min(0, "Price cannot be negative.").default(0),
             customFields: z.record(z.any()).optional(),
         })
@@ -68,7 +70,7 @@ const formSchema = z.object({
           items: z.array(
             z.object({
               id: z.string().optional(),
-              description: z.string().min(1, "Description cannot be empty."),
+              description: z.string().optional().default(""),
               unitPrice: z.coerce.number().min(0, "Price cannot be negative.").default(0),
               customFields: z.record(z.any()).optional(),
             })
@@ -96,7 +98,7 @@ type CreateTaskFormProps = {
   settings: AppSettings;
   defaultDate?: Date;
   onDirtyChange?: (isDirty: boolean) => void;
-  onRequestConfirmClose: () => void;
+  onSubmitSuccess?: () => void;
 };
 
 export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>(({ 
@@ -110,13 +112,26 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
   settings, 
   defaultDate,
   onDirtyChange,
-  onRequestConfirmClose
+  onSubmitSuccess
 }, ref) => {
   const { toast } = useToast();
   const T = useMemo(() => ({
     ...i18n[settings.language],
     addLink: ((i18n[settings.language] as any)?.addLink || "Thêm link"),
     untitledTask: ((i18n[settings.language] as any)?.untitledTask || "Untitled Task"),
+  // Unsaved changes dialog keys (shared with TaskEditDialog)
+  unsavedConfirmTitle: ((i18n[settings.language] as any)?.unsavedConfirmTitle || "Unsaved changes"),
+  unsavedConfirmDescription: ((i18n[settings.language] as any)?.unsavedConfirmDescription || "You have unsaved changes. What would you like to do?"),
+  unsavedCloseWithoutSaving: ((i18n[settings.language] as any)?.unsavedCloseWithoutSaving || "Close Without Saving"),
+  unsavedSave: ((i18n[settings.language] as any)?.unsavedSave || "Save"),
+  unsavedCancel: ((i18n[settings.language] as any)?.unsavedCancel || "Cancel"),
+  // Save Draft dialog keys
+  saveDraft: ((i18n[settings.language] as any)?.saveDraft || "Save Draft"),
+  saveDraftConfirmTitle: ((i18n[settings.language] as any)?.saveDraftConfirmTitle || "Save as draft?"),
+  saveDraftConfirmDescription: ((i18n[settings.language] as any)?.saveDraftConfirmDescription || "This will save the task as a draft (Archived). You can continue editing later."),
+  continueEditing: ((i18n[settings.language] as any)?.continueEditing || "Continue editing"),
+  draftSaved: ((i18n[settings.language] as any)?.draftSaved || "Draft Saved"),
+  draftSavedDesc: ((i18n[settings.language] as any)?.draftSavedDesc || "Your task has been saved as a draft."),
   }), [settings.language]);
   
   const [isCollaboratorSectionOpen, setIsCollaboratorSectionOpen] = useState(false);
@@ -176,7 +191,13 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
     };
     
     onFormSubmit(cleanedData, columns, collaboratorColumns);
-    setOpen(false);
+    
+    // Reset form and dirty state
+    form.reset();
+    onDirtyChange?.(false);
+    
+    // Notify success - parent will handle closing
+    onSubmitSuccess?.();
   };
 
   useImperativeHandle(ref, () => ({
@@ -187,7 +208,23 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
         name: `[Draft] ${values.name || T.untitledTask}`,
         status: 'archived' as const,
       };
-      handleFormSubmit(draftData);
+      
+      // Call the main submit handler which will handle reset and close
+      const cleanedData: TaskFormValues = {
+        ...draftData,
+        briefLink: (draftData.briefLink || []).filter(link => link && link.trim() !== ''),
+        driveLink: (draftData.driveLink || []).filter(link => link && link.trim() !== ''),
+        collaboratorIds: draftData.collaboratorQuotes?.map(q => q.collaboratorId || "").filter(id => id) || []
+      };
+      
+      onFormSubmit(cleanedData, columns, collaboratorColumns);
+      
+      // Reset form and dirty state
+      form.reset();
+      onDirtyChange?.(false);
+      
+      // Notify success - parent will handle closing
+      onSubmitSuccess?.();
     }
   }));
   
@@ -198,7 +235,7 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
   );
 
   const handleApplySuggestion = (items: SuggestQuoteOutput['suggestedItems']) => {
-    const newItems = items.map(item => ({
+    const newItems = items.map((item: SuggestQuoteOutput['suggestedItems'][number]) => ({
       description: item.description,
       unitPrice: item.unitPrice,
       id: `item-sugg-${Date.now()}-${Math.random()}`,
@@ -244,9 +281,10 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
   }, [watchedStatus, settings.statusSettings]);
   
   return (
+    <div className="p-4 md:p-6">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
-          <div className="space-y-4">
+        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 md:space-y-6">
+          <div className="space-y-3 md:space-y-4">
             <FormField 
               control={control} 
               name="name" 
@@ -408,41 +446,13 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>{T.dates}</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !field.value?.from && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value?.from ? (
-                              field.value.to ? (
-                                <>
-                                  {format(field.value.from, "LLL dd, y")} -{" "}
-                                  {format(field.value.to, "LLL dd, y")}
-                                </>
-                              ) : (
-                                format(field.value.from, "LLL dd, y")
-                              )
-                            ) : (
-                              <span>{T.pickDateRange}</span>
-                            )}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="range"
-                          selected={{ from: field.value?.from, to: field.value?.to }}
-                          onSelect={(range) => field.onChange({ from: range?.from, to: range?.to })}
-                          numberOfMonths={2}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormControl>
+                      <TaskDateRangePicker
+                        value={field.value as any}
+                        onChange={(range) => field.onChange(range as any)}
+                        T={T as any}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} 
@@ -635,13 +645,14 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
           </Collapsible>
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={onRequestConfirmClose}>
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               {T.cancel}
             </Button>
             <Button type="submit">{T.createTask}</Button>
           </div>
         </form>
       </Form>
+    </div>
   );
 });
 

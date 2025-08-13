@@ -160,12 +160,20 @@ export function StickyNotes({ settings }: StickyNotesProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [activeNote, setActiveNote] = useState<Note | null>(null);
     const [dialogText, setDialogText] = useState("");
+    const [isSettingContent, setIsSettingContent] = useState(false);
     
     const T = (settings.language === 'vi' ? vi : en) as any;
     
     const editor = useEditor({
         extensions: [ 
-            StarterKit.configure({ heading: false }), 
+            StarterKit.configure({ 
+                heading: false,
+                paragraph: {
+                    HTMLAttributes: {
+                        class: 'tiptap-paragraph',
+                    },
+                },
+            }), 
             TiptapUnderline,
             Link.configure({
                 autolink: true,
@@ -173,16 +181,50 @@ export function StickyNotes({ settings }: StickyNotesProps) {
                 linkOnPaste: true,
             })
         ],
-        content: dialogText,
-        onUpdate: ({ editor }) => { setDialogText(editor.getHTML()); },
+        content: '',
+        onUpdate: ({ editor }) => { 
+            if (!isSettingContent) {
+                setDialogText(editor.getHTML()); 
+            }
+        },
         immediatelyRender: false,
         editorProps: {
-            attributes: { class: 'prose dark:prose-invert min-h-[120px] w-full rounded-md bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50' },
+            attributes: { 
+                class: 'prose dark:prose-invert min-h-[120px] w-full rounded-md bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+                'data-placeholder': T.enterNoteText || 'Enter your note text...'
+            },
+            handleKeyDown: (view, event) => {
+                // Allow normal text input including spaces and newlines
+                return false;
+            }
         },
     });
     
-    useEffect(() => { if(editor) { editor.commands.setContent(dialogText); } }, [dialogText, editor]);
-    useEffect(() => { if (!isDialogOpen) { editor?.commands.clearContent(); } }, [isDialogOpen, editor]);
+    // Only update editor content when dialog opens with different content
+    useEffect(() => {
+        if (editor && isDialogOpen) {
+            const currentContent = editor.getHTML();
+            if (currentContent !== dialogText) {
+                setIsSettingContent(true);
+                editor.commands.setContent(dialogText);
+                setIsSettingContent(false);
+                // Focus editor after content is set
+                setTimeout(() => {
+                    editor.commands.focus();
+                }, 50);
+            }
+        }
+    }, [isDialogOpen, editor]);
+
+    // Clear content when dialog closes
+    useEffect(() => { 
+        if (!isDialogOpen && editor) { 
+            setIsSettingContent(true);
+            editor.commands.clearContent(); 
+            setIsSettingContent(false);
+            setDialogText('');
+        } 
+    }, [isDialogOpen, editor]);
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -194,17 +236,46 @@ export function StickyNotes({ settings }: StickyNotesProps) {
 
     useEffect(() => { if (!isInitialLoad) { localStorage.setItem('freelance-flow-notes', JSON.stringify(notes)); } }, [notes, isInitialLoad]);
 
-    const handleAddNoteClick = () => { setActiveNote(null); setDialogText(""); setIsDialogOpen(true); };
-    const handleEditNoteClick = (note: Note) => { setActiveNote(note); setDialogText(note.text); setIsDialogOpen(true); };
-    const handleDeleteNote = (id: number) => { setNotes(notes.filter(note => note.id !== id)); };
+    const handleAddNoteClick = () => { 
+        setActiveNote(null); 
+        setDialogText(""); 
+        setIsDialogOpen(true); 
+    };
+    
+    const handleEditNoteClick = (note: Note) => { 
+        setActiveNote(note); 
+        setDialogText(note.text); 
+        setIsDialogOpen(true); 
+    };
+    
+    const handleDeleteNote = (id: number) => { 
+        setNotes(notes.filter(note => note.id !== id)); 
+    };
     
     const handleSaveNote = () => {
-      const isEmpty = !editor?.getText().trim();
-      if (isEmpty) { if (activeNote) { handleDeleteNote(activeNote.id); } setIsDialogOpen(false); return; };
-      const noteContent = editor?.getHTML() || '';
-      if (activeNote) { setNotes(notes.map(n => n.id === activeNote.id ? { ...n, text: noteContent } : n)); }
-      else { setNotes([...notes, { id: Date.now(), text: noteContent }]); }
-      setIsDialogOpen(false);
+        if (!editor) return;
+        
+        const currentText = editor.getText().trim();
+        const currentHTML = editor.getHTML();
+        
+        // Check if the note is empty
+        const isEmpty = !currentText || currentText === '';
+        
+        if (isEmpty) { 
+            if (activeNote) { 
+                handleDeleteNote(activeNote.id); 
+            } 
+            setIsDialogOpen(false); 
+            return; 
+        };
+        
+        if (activeNote) { 
+            setNotes(notes.map(n => n.id === activeNote.id ? { ...n, text: currentHTML } : n)); 
+        } else { 
+            setNotes([...notes, { id: Date.now(), text: currentHTML }]); 
+        }
+        
+        setIsDialogOpen(false);
     };
     
     const handleDragStart = (event: DragStartEvent) => {
@@ -278,7 +349,9 @@ export function StickyNotes({ settings }: StickyNotesProps) {
                     </DialogHeader>
                     <div className="p-0">
                        <Toolbar editor={editor} T={T} />
-                       <EditorContent editor={editor} />
+                       <div className={styles.tiptapEditor}>
+                           <EditorContent editor={editor} />
+                       </div>
                     </div>
                     <DialogFooter className="flex justify-between w-full sm:justify-between pt-4">
                          <div className="flex-1 flex justify-start">

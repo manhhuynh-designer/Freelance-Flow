@@ -2,17 +2,19 @@
 
 import { createContext, ReactNode, useContext } from 'react';
 import { useAppData } from '@/hooks/useAppData';
+import { useWorkTimeData } from '@/hooks/useWorkTimeData';
 
-type DashboardContextType = ReturnType<typeof useAppData>;
+type DashboardContextType = ReturnType<typeof useAppData> & { workTime: ReturnType<typeof useWorkTimeData> };
 
 export const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
     const data = useAppData();
+    const workTime = useWorkTimeData(data.appData?.workSessions);
     
     // The check for isDataLoaded will be moved to the layout
     return (
-        <DashboardContext.Provider value={data}>
+    <DashboardContext.Provider value={{ ...data, workTime }}>
             {children}
         </DashboardContext.Provider>
     );

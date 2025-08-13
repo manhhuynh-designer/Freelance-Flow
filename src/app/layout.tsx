@@ -8,6 +8,8 @@ import "@/styles/tiptap-content.css";
 import { ThemeProvider } from '@/components/theme-provider';
 import type { AppSettings } from '@/lib/types';
 import { useEffect, useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-body' });
 
@@ -47,6 +49,9 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
           <Toaster />
+          {/* Vercel Analytics & Speed Insights */}
+          <Analytics />
+          <SpeedInsights />
         </ThemeProvider>
       </body>
     </html>

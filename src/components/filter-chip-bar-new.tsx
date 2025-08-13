@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,6 +14,8 @@ import { STATUS_INFO } from '@/lib/data';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
 
+
+import { FilterSettingsService } from '@/lib/filter-settings-service';
 
 interface FilterChipBarProps {
   // Filter states
@@ -75,7 +77,20 @@ export function FilterChipBar({
   statuses,
   statusColors
 }: FilterChipBarProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  // Load saved expanded state from localStorage
+  const [isExpanded, setIsExpanded] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return FilterSettingsService.getExpandedState();
+    }
+    return false;
+  });
+
+  // Save expanded state to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      FilterSettingsService.saveExpandedState(isExpanded);
+    }
+  }, [isExpanded]);
 
   const getStatusInfo = (statusId: string) => {
     return STATUS_INFO.find(s => s.id === statusId);
