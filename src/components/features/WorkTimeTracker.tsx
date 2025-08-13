@@ -6,12 +6,22 @@ import { Check, Play } from 'lucide-react';
 // Header pill style work time tracker (clickable pill toggles state)
 export function WorkTimeTracker() {
   const { workTime } = useDashboard() as any;
-  const active = !!workTime?.stats?.activeSession;
+  const activeSession = Array.isArray(workTime?.sessions)
+    ? workTime.sessions.find((s: any) => s?.type === 'WORK_SESSION' && !s?.endTime)
+    : undefined;
+  const active = !!activeSession;
   const [_, setTick] = useState(0);
-  useEffect(()=>{ if (active) { const id = setInterval(()=>setTick(t=>t+1),1000); return ()=>clearInterval(id);} }, [active]);
-  const duration = active && workTime.stats?.activeSession ? Math.floor((Date.now()- new Date(workTime.stats.activeSession.startTime).getTime())/1000) : 0;
-  const h = Math.floor(duration/3600), m = Math.floor((duration%3600)/60), s = duration%60;
-  const handleToggle = () => { active ? workTime.checkOut() : workTime.checkIn(); };
+  useEffect(() => {
+    if (active) {
+      const id = setInterval(() => setTick((t) => t + 1), 1000);
+      return () => clearInterval(id);
+    }
+  }, [active]);
+  const duration = activeSession
+    ? Math.floor((Date.now() - new Date(activeSession.startTime).getTime()) / 1000)
+    : 0;
+  const h = Math.floor(duration / 3600), m = Math.floor((duration % 3600) / 60), s = duration % 60;
+  const handleToggle = () => { active ? workTime?.checkOut?.() : workTime?.checkIn?.(); };
   const timeText = active ? `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}` : 'OFF';
   return (
     <button

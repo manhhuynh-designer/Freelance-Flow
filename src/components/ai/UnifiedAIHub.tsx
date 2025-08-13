@@ -65,7 +65,10 @@ export default function UnifiedAIHub() {
             </div>
             
             <TabsList className="grid w-full grid-cols-5 bg-muted/50">
-              <TabsTrigger value="chat" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger
+                value="chat"
+                className="text-foreground data-[state=inactive]:text-foreground data-[state=inactive]:bg-transparent hover:bg-muted data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
                 <MessageCircle className="w-4 h-4 mr-2" />
                 {T.aiChat}
               </TabsTrigger>

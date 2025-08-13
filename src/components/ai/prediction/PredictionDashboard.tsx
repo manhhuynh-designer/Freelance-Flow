@@ -184,13 +184,14 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
         });
         if (response.success) {
           try {
-            const raw = response.message.content.trim();
-            // Remove common fences
+            const raw = (response.message?.content || '').toString();
+            // Remove code fences anywhere and normalize quotes
             let cleaned = raw
-              .replace(/^```json\s*/i, '')
-              .replace(/^```\s*/i, '')
-              .replace(/```$/i, '')
-              .trim();
+              .replace(/```json/gi, '')
+              .replace(/```/g, '')
+              .trim()
+              .replace(/[\u2018\u2019]/g, "'")
+              .replace(/[\u201C\u201D]/g, '"');
             // Heuristic: extract first JSON array if extra prose present
             if (!cleaned.startsWith('[')) {
               const firstBracket = cleaned.indexOf('[');
@@ -199,15 +200,15 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
                 cleaned = cleaned.substring(firstBracket, lastBracket + 1);
               }
             }
-            // Final safety: strip trailing commas before array close
-            cleaned = cleaned.replace(/,\s*]/g, ']');
+            // Final safety: strip trailing commas before array or object close
+            cleaned = cleaned.replace(/,\s*([}\]])/g, '$1');
             const parsed = JSON.parse(cleaned) as StructuredInsight[];
             // Basic shape validation
             const valid = parsed.filter(p => p && p.category && p.severity && p.insight && p.suggestion);
             if (!valid.length) throw new Error('No valid insight objects');
             setAiInsights(valid);
           } catch (pe) {
-            console.error('Parse error', pe, 'RAW_RESPONSE:', response.message.content);
+            console.error('Parse error', pe, { cleanedSnippet: typeof cleaned === 'string' ? cleaned.slice(0, 500) : cleaned }, 'RAW_RESPONSE:', response.message?.content);
             toast({ variant: 'destructive', title: 'AI JSON parse failed' });
           }
         } else {
