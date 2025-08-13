@@ -183,10 +183,13 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
           messages: [{ role: 'user', content: prompt, timestamp: new Date() }]
         });
         if (response.success) {
+          // Hoist raw/cleaned so we can reference them in the catch for logging
+          let raw: string = '';
+          let cleaned: string = '';
           try {
-            const raw = (response.message?.content || '').toString();
+            raw = (response.message?.content || '').toString();
             // Remove code fences anywhere and normalize quotes
-            let cleaned = raw
+            cleaned = raw
               .replace(/```json/gi, '')
               .replace(/```/g, '')
               .trim()
@@ -208,7 +211,10 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
             if (!valid.length) throw new Error('No valid insight objects');
             setAiInsights(valid);
           } catch (pe) {
-            console.error('Parse error', pe, { cleanedSnippet: typeof cleaned === 'string' ? cleaned.slice(0, 500) : cleaned }, 'RAW_RESPONSE:', response.message?.content);
+            const snippet = typeof cleaned === 'string' && cleaned
+              ? cleaned.slice(0, 500)
+              : (typeof raw === 'string' ? raw.slice(0, 500) : '');
+            console.error('Parse error', pe, { cleanedSnippet: snippet }, 'RAW_RESPONSE:', response.message?.content);
             toast({ variant: 'destructive', title: 'AI JSON parse failed' });
           }
         } else {

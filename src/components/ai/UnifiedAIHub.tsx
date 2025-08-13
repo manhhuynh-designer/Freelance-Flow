@@ -72,6 +72,10 @@ export default function UnifiedAIHub() {
                 <MessageCircle className="w-4 h-4 mr-2" />
                 {T.aiChat}
               </TabsTrigger>
+              <TabsTrigger value="writing" className="flex items-center gap-2 data-[state=active]:bg-sky-500 data-[state=active]:text-white">
+                <Pencil className="w-4 h-4" />
+                <span className="hidden sm:inline">{T.aiWritingSupport || 'AI Writing'}</span>
+              </TabsTrigger>
               <TabsTrigger value="predictions" className="flex items-center gap-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white">
                 <Zap className="w-4 h-4" />
                 <span className="hidden sm:inline">{T.predictions}</span>
@@ -79,10 +83,6 @@ export default function UnifiedAIHub() {
               <TabsTrigger value="business" className="flex items-center gap-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
                 <Briefcase className="w-4 h-4" />
                 <span className="hidden sm:inline">{T.business}</span>
-              </TabsTrigger>
-              <TabsTrigger value="writing" className="flex items-center gap-2 data-[state=active]:bg-sky-500 data-[state=active]:text-white">
-                <Pencil className="w-4 h-4" />
-                <span className="hidden sm:inline">{T.aiWritingSupport || 'AI Writing'}</span>
               </TabsTrigger>
               <TabsTrigger value="history" className="flex items-center gap-2 data-[state=active]:bg-gray-500 data-[state=active]:text-white">
                 <History className="w-4 h-4" />
@@ -99,7 +99,14 @@ export default function UnifiedAIHub() {
               </div>
             </TabsContent>
 
-            {/* AI Feature Tabs */}
+            {/* AI Writing Support Tab */}
+            <TabsContent value="writing" className="h-full overflow-y-auto m-0 p-6">
+              <div className="max-w-5xl mx-auto space-y-4">
+                <AIWritingSupport />
+              </div>
+            </TabsContent>
+
+            {/* AI Prediction Tab */}
             <TabsContent value="predictions" className="h-full overflow-y-auto m-0 p-6">
               <div className="max-w-7xl mx-auto">
                 {/* Real-time Prediction Dashboard */}
@@ -107,18 +114,14 @@ export default function UnifiedAIHub() {
               </div>
             </TabsContent>
 
+            {/* Business Dashboard Tab */}
             <TabsContent value="business" className="h-full overflow-y-auto m-0 p-6">
               <div className="max-w-7xl mx-auto">
                 <BusinessDashboard />
               </div>
             </TabsContent>
 
-            <TabsContent value="writing" className="h-full overflow-y-auto m-0 p-6">
-              <div className="max-w-5xl mx-auto space-y-4">
-                <AIWritingSupport />
-              </div>
-            </TabsContent>
-
+            {/* Action History Tab */}
             <TabsContent value="history" className="h-full overflow-y-auto m-0 p-6">
               <div className="max-w-7xl mx-auto">
                 <ActionHistorySimple />

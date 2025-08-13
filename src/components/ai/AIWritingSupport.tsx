@@ -1,26 +1,767 @@
 "use client";
 
+import { useState, useEffect, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Pencil, Loader2, Wand2, Copy, AlertTriangle, History, Save, Trash2, Star, View, Upload, Expand } from 'lucide-react';
 import { useDashboard } from '@/contexts/dashboard-context';
+import { useToast } from "@/hooks/use-toast";
+import { writingAssistantAction } from '@/app/actions/ai-actions';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TiptapUnderline from '@tiptap/extension-underline';
+import Link from '@tiptap/extension-link';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import '@/styles/tiptap-content.css';
 
-// Placeholder component for upcoming AI Writing Support features.
-// Reuses existing translation system; minimal structure to avoid rework later.
+type WritingAction = 'write' | 'edit' | 'reply' | 'summarize' | 'translate';
+type WritingTone = 'formal' | 'casual' | 'professional' | 'friendly';
+type OutputLength = 'short' | 'medium' | 'long';
+type OutputLanguage = 'en' | 'vi';
+
+interface WritingSettings { action: WritingAction; tone: WritingTone; length: OutputLength; outputLanguage: OutputLanguage; }
+interface Preset extends WritingSettings { id: string; name: string; }
+
+interface ContextVersion {
+  id: string;
+  text: string;
+  timestamp: string;
+  label: string;
+  outputText?: string; // Store associated output for this version
+}
+
+interface HistoryItem { 
+  id: string; 
+  timestamp: string; 
+  title: string; 
+  baseText: string; 
+  prompt: string; 
+  outputText: string; 
+  settings: WritingSettings;
+  versions?: ContextVersion[];
+  currentVersionId?: string;
+}
+
+// Constants moved outside to prevent re-creation on each render
+const T = { title: 'AI Writing Assistant', inputContext: 'Nội dung gốc (*)', promptLabel: 'Yêu cầu thêm (Tùy chọn)', result: 'Kết quả', generate: "Tạo", generating: 'Đang tạo...', edit: "Sửa", view: "Xem", copy: "Copy", presets: "Presets", history: "History", actionLabel: 'Hành động', toneLabel: 'Văn phong', lengthLabel: 'Độ dài', outputLanguageLabel: 'Ngôn ngữ' };
+const actions = {write:"Viết mới", edit:"Sửa", reply: "Trả lời", summarize: "Tóm tắt", translate: "Dịch"};
+const tones = {professional:"Chuyên nghiệp", casual:"Thân mật", friendly: "Thân thiện", formal: "Trang trọng"};
+const lengths = {short:"Ngắn", medium:"Vừa", long:"Dài"};
+const languages = {vi:"Tiếng Việt", en:"English"};
+
+// ControlPanel moved outside as a separate component to prevent re-creation
+interface ControlPanelProps {
+  inDialog?: boolean;
+  baseText: string;
+  prompt: string;
+  settings: WritingSettings;
+  isLoading: boolean;
+  onBaseTextChange: (value: string) => void;
+  onPromptChange: (value: string) => void;
+  onSettingsChange: (settings: WritingSettings) => void;
+  onGenerate: () => void;
+}
+
+const ControlPanel = memo<ControlPanelProps>(({ 
+  inDialog = false, 
+  baseText, 
+  prompt, 
+  settings, 
+  isLoading, 
+  onBaseTextChange, 
+  onPromptChange, 
+  onSettingsChange, 
+  onGenerate
+}) => (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor={`base-text-${inDialog}`}>{T.inputContext}</Label>
+      <Textarea 
+        id={`base-text-${inDialog}`} 
+        value={baseText} 
+        onChange={(e) => onBaseTextChange(e.target.value)}
+        disabled={isLoading} 
+        className={inDialog ? "min-h-[150px]" : "min-h-[100px]"} 
+        placeholder="Nhập nội dung gốc để AI xử lý..."
+      />
+      
+      <div>
+        <Label htmlFor={`prompt-${inDialog}`}>{T.promptLabel}</Label>
+        <Textarea 
+          id={`prompt-${inDialog}`} 
+          value={prompt} 
+          onChange={(e) => onPromptChange(e.target.value)}
+          disabled={isLoading} 
+          className="min-h-[80px]" 
+          placeholder="Nhập yêu cầu thêm cho AI..." 
+        />
+      </div>
+
+      <div>
+        <Label>{T.actionLabel}</Label>
+        <Select 
+          disabled={isLoading} 
+          value={settings.action} 
+          onValueChange={(v) => onSettingsChange({...settings, action: v as WritingAction})}
+        >
+          <SelectTrigger><SelectValue/></SelectTrigger>
+          <SelectContent>{Object.entries(actions).map(([k,v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label>{T.toneLabel}</Label>
+        <Select 
+          disabled={isLoading} 
+          value={settings.tone} 
+          onValueChange={(v) => onSettingsChange({...settings, tone: v as WritingTone})}
+        >
+          <SelectTrigger><SelectValue/></SelectTrigger>
+          <SelectContent>{Object.entries(tones).map(([k,v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label>{T.lengthLabel}</Label>
+        <Select 
+          disabled={isLoading} 
+          value={settings.length} 
+          onValueChange={(v) => onSettingsChange({...settings, length: v as OutputLength})}
+        >
+          <SelectTrigger><SelectValue/></SelectTrigger>
+          <SelectContent>{Object.entries(lengths).map(([k,v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label>{T.outputLanguageLabel}</Label>
+        <Select 
+          disabled={isLoading} 
+          value={settings.outputLanguage} 
+          onValueChange={(v) => onSettingsChange({...settings, outputLanguage: v as OutputLanguage})}
+        >
+          <SelectTrigger><SelectValue/></SelectTrigger>
+          <SelectContent>{Object.entries(languages).map(([k,v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+    </div>
+    <Button onClick={onGenerate} disabled={isLoading || !baseText.trim()} size="lg" className="w-full !mt-5">
+      <Wand2 className="mr-2 h-4 w-4"/> {isLoading ? T.generating : T.generate}
+    </Button>
+  </div>
+));
+
 export function AIWritingSupport() {
   const { appData } = useDashboard();
-  const language = appData?.appSettings?.language || 'en';
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center gap-2">
-        <Pencil className="w-5 h-5 text-sky-600" />
-        <CardTitle className="text-lg">AI Writing Support</CardTitle>
-      </CardHeader>
-      <CardContent className="text-sm text-muted-foreground space-y-3">
-        <p>Placeholder area for AI-assisted writing tools (drafting, refining, summarizing, translating).</p>
-        <p className="text-xs">Language: {language}</p>
-      </CardContent>
-    </Card>
-  );
+  const { toast } = useToast();
+  
+  const [prompt, setPrompt] = useState('Viết email marketing giới thiệu sản phẩm mới.');
+  const [baseText, setBaseText] = useState('Sản phẩm XYZ với công nghệ vượt trội.');
+  const [settings, setSettings] = useState<WritingSettings>({ action: 'write', tone: 'professional', length: 'medium', outputLanguage: 'vi' });
+  const [outputText, setOutputText] = useState('');
+  // Removed isEditingOutput - always editable now
+  const [isLoading, setIsLoading] = useState(false);
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [isPresetDialogOpen, setIsPresetDialogOpen] = useState(false);
+  const [isControlDialogOpen, setIsControlDialogOpen] = useState(false);
+  const [presetName, setPresetName] = useState('');
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  // Version management state
+  const [contextVersions, setContextVersions] = useState<ContextVersion[]>([]);
+  const [currentVersionId, setCurrentVersionId] = useState<string | null>(null);
+  const [isVersionDialogOpen, setIsVersionDialogOpen] = useState(false);
+
+  const hasApiKey = !!appData?.appSettings?.googleApiKey;
+  const outputEditor = useEditor({ 
+    extensions: [
+      StarterKit.configure({
+        paragraph: {
+          HTMLAttributes: {
+            class: 'tiptap-paragraph',
+          },
+        },
+      }),
+      TiptapUnderline,
+      Link.configure({
+        autolink: true,
+        openOnClick: true,
+        linkOnPaste: true,
+      })
+    ], 
+    content: '', 
+    editable: true, 
+    editorProps: { 
+      attributes: { 
+        class: 'prose dark:prose-invert min-h-full max-w-none w-full outline-none focus:outline-none border-none ring-0 focus:ring-0 tiptap-rendered-content' 
+      } 
+    }, 
+    immediatelyRender: false 
+  });
+  
+  useEffect(() => {
+    // Di chuyển console.log vào đây để chúng chỉ chạy khi hasApiKey hoặc appData thay đổi, và không trong mỗi render.
+    console.log("hasApiKey status:", hasApiKey);
+    console.log("googleApiKey from appData:", appData?.appSettings?.googleApiKey); // Kiểm tra giá trị thực tế
+
+    try {
+      const presetsData = JSON.parse(localStorage.getItem('ai-writing-presets') || '[]');
+      const historyData = JSON.parse(localStorage.getItem('ai-writing-history') || '[]');
+      const versionsData = JSON.parse(localStorage.getItem('ai-writing-versions') || '[]');
+      
+      setPresets(Array.isArray(presetsData) ? presetsData : []);
+      setHistory(Array.isArray(historyData) ? historyData : []);
+      setContextVersions(Array.isArray(versionsData) ? versionsData : []);
+    } catch (e) {
+      // Reset to defaults if localStorage data is corrupted
+      setPresets([]);
+      setHistory([]);
+      setContextVersions([]);
+    }
+    setIsInitialLoad(false);
+  }, [hasApiKey, appData, isInitialLoad]); // Thêm hasApiKey và appData vào dependency array
+  
+  useEffect(() => { if (!isInitialLoad) localStorage.setItem('ai-writing-presets', JSON.stringify(presets)); }, [presets, isInitialLoad]);
+  useEffect(() => { if (!isInitialLoad) localStorage.setItem('ai-writing-history', JSON.stringify(history)); }, [history, isInitialLoad]);
+  useEffect(() => { if (!isInitialLoad) localStorage.setItem('ai-writing-versions', JSON.stringify(contextVersions)); }, [contextVersions, isInitialLoad]);
+  useEffect(() => { 
+    if (outputEditor) {
+      const currentContent = outputEditor.getHTML();
+      if (currentContent !== outputText) {
+        outputEditor.commands.setContent(outputText || ''); 
+      }
+    }
+  }, [outputText, outputEditor]);
+
+  const addToHistory = (item: Omit<HistoryItem, 'id' | 'timestamp'>) => {
+    // Check if there's an existing history item with similar base text (version relationship)
+    const existingItem = history.find(h => h.title === item.title || 
+      (h.baseText === item.baseText && h.prompt === item.prompt));
+    
+    if (existingItem) {
+      // Update existing item with new output and version info
+      const newVersion: ContextVersion = {
+        id: `version-${Date.now()}`,
+        text: item.baseText,
+        timestamp: new Date().toISOString(),
+        label: `Version ${(existingItem.versions?.length || 0) + 1}`,
+        outputText: item.outputText
+      };
+      
+      setHistory(prev => prev.map(h => 
+        h.id === existingItem.id 
+          ? {
+              ...h,
+              outputText: item.outputText,
+              timestamp: new Date().toISOString(),
+              versions: [...(h.versions || []), newVersion],
+              currentVersionId: newVersion.id
+            }
+          : h
+      ));
+    } else {
+      // Create new history item
+      const newHistoryItem: HistoryItem = {
+        ...item,
+        id: `hist-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        versions: currentVersionId ? contextVersions.filter(v => v.id === currentVersionId) : [],
+        currentVersionId: currentVersionId || undefined
+      };
+      
+      setHistory(prev => [newHistoryItem, ...prev.slice(0, 49)]);
+    }
+  };
+  const deleteHistoryItem = (id: string) => setHistory(prev => prev.filter(h => h.id !== id));
+  
+  // Helper functions for content processing
+  const isLikelyHTML = (content: string): boolean => {
+    return /<\/?[a-z][\s\S]*>/i.test(content);
+  };
+
+  const isLikelyMarkdown = (content: string): boolean => {
+    // Check for common markdown patterns
+    const markdownPatterns = [
+      /^#{1,6}\s/m,           // Headers
+      /\*\*.*?\*\*/,          // Bold
+      /\*.*?\*/,              // Italic
+      /\[.*?\]\(.*?\)/,       // Links
+      /`.*?`/,                // Inline code
+      /```[\s\S]*?```/,       // Code blocks
+      /^\s*[-*+]\s/m,         // Lists
+      /^\s*\d+\.\s/m,         // Numbered lists
+    ];
+    return markdownPatterns.some(pattern => pattern.test(content));
+  };
+
+  const convertMarkdownToHTML = (markdown: string): string => {
+    if (!markdown) return '';
+    
+    let html = markdown
+      // Headers (must be at start of line)
+      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+      // Bold and Italic
+      .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/__(.*?)__/g, '<strong>$1</strong>')
+      .replace(/_(.*?)_/g, '<em>$1</em>')
+      // Strikethrough
+      .replace(/~~(.*?)~~/g, '<del>$1</del>')
+      // Links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+      // Code blocks (must come before inline code)
+      .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+      // Inline code
+      .replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Handle lists more carefully
+    const lines = html.split('\n');
+    const processedLines: string[] = [];
+    let inUL = false;
+    let inOL = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Check for unordered list items
+      const ulMatch = line.match(/^[-*+]\s+(.*)$/);
+      // Check for ordered list items
+      const olMatch = line.match(/^\d+\.\s+(.*)$/);
+      
+      if (ulMatch) {
+        if (inOL) {
+          processedLines.push('</ol>');
+          inOL = false;
+        }
+        if (!inUL) {
+          processedLines.push('<ul>');
+          inUL = true;
+        }
+        processedLines.push(`<li>${ulMatch[1]}</li>`);
+      } else if (olMatch) {
+        if (inUL) {
+          processedLines.push('</ul>');
+          inUL = false;
+        }
+        if (!inOL) {
+          processedLines.push('<ol>');
+          inOL = true;
+        }
+        processedLines.push(`<li>${olMatch[1]}</li>`);
+      } else {
+        // Close any open lists
+        if (inUL) {
+          processedLines.push('</ul>');
+          inUL = false;
+        }
+        if (inOL) {
+          processedLines.push('</ol>');
+          inOL = false;
+        }
+        
+        // Add line as paragraph if not empty
+        if (line) {
+          processedLines.push(`<p>${line}</p>`);
+        }
+      }
+    }
+    
+    // Close any remaining open lists
+    if (inUL) processedLines.push('</ul>');
+    if (inOL) processedLines.push('</ol>');
+
+    return processedLines.join('\n');
+  };
+
+  const processAIOutput = (content: string): string => {
+    if (!content) return '';
+    
+    if (isLikelyHTML(content)) {
+      return content;
+    } else if (isLikelyMarkdown(content)) {
+      return convertMarkdownToHTML(content);
+    } else {
+      // Plain text - convert line breaks to HTML
+      return content.replace(/\n/g, '<br>');
+    }
+  };
+  
+  const handleGenerateText = async () => {
+    // Giữ console.log này ở đây vì chúng nằm trong logic điều kiện và hành vi của người dùng
+    console.log("Entering handleGenerateText...");
+    console.log("Current baseText:", baseText);
+    console.log("Checking hasApiKey for handleGenerateText:", hasApiKey);
+    console.log("Checking appData.appSettings.googleApiKey for handleGenerateText:", appData?.appSettings?.googleApiKey);
+
+    if (!hasApiKey || !appData?.appSettings?.googleApiKey || !baseText.trim()) {
+        console.warn("Generation stopped: Missing API Key or empty base text.");
+        if (!hasApiKey || !appData?.appSettings?.googleApiKey) {
+            toast({ variant: "destructive", title: "Cấu hình thiếu", description: "Vui lòng cung cấp Google API Key trong cài đặt ứng dụng." });
+        } else if (!baseText.trim()) {
+            toast({ variant: "destructive", title: "Lỗi đầu vào", description: "Vui lòng nhập nội dung gốc để tạo văn bản." });
+        }
+        return;
+    }
+    
+    setIsLoading(true);
+    
+    // Clear output before generating new content
+    setOutputText('');
+    if (outputEditor) {
+      outputEditor.commands.setContent('');
+    }
+    
+    try {
+      const result = await writingAssistantAction({
+        baseText, prompt, ...settings,
+        apiKey: appData.appSettings.googleApiKey, modelName: appData.appSettings.googleModel || 'gemini-1.5-flash',
+      });
+      console.log("Result from writingAssistantAction:", result); // Log toàn bộ kết quả
+      if (result.success && result.result) {
+        const processedContent = processAIOutput(result.result.mainContent);
+        setOutputText(processedContent);
+        
+        // Update current version with new output if exists
+        if (currentVersionId && result.result) {
+          setContextVersions(prev => prev.map(v => 
+            v.id === currentVersionId 
+              ? { ...v, outputText: result.result!.mainContent }
+              : v
+          ));
+        }
+        
+        addToHistory({ title: result.result.summaryTitle, baseText, prompt, outputText: result.result.mainContent, settings });
+      } else {
+        // Đảm bảo thông báo lỗi cụ thể hơn
+        const errorMessage = result.error || 'Unknown error occurred during AI writing action.';
+        console.error("Error from writingAssistantAction:", errorMessage); // Log lỗi chi tiết
+        throw new Error(errorMessage); // Ném lỗi để toast xử lý
+      }
+    } catch (err: any) {
+      console.error("Caught error in handleGenerateText:", err); // Log lỗi chi tiết từ catch
+      toast({ variant: "destructive", title: "Lỗi tạo văn bản AI", description: err instanceof Error ? err.message : JSON.stringify(err) });
+    } finally { setIsLoading(false); }
+  };
+  
+  const loadHistoryItem = (item: HistoryItem, loadOutput: boolean = true) => { 
+    setPrompt(item.prompt); 
+    setBaseText(item.baseText); 
+    setSettings(item.settings);
+    
+    // Only load output if explicitly requested (for history viewing)
+    if (loadOutput) {
+      const processedContent = processAIOutput(item.outputText);
+      setOutputText(processedContent); 
+    }
+    
+    // Load associated versions
+    if (item.versions) {
+      setContextVersions(item.versions);
+      setCurrentVersionId(item.currentVersionId || null);
+    }
+    
+    toast({title:`Loaded: ${item.title}`}); 
+  };
+  const loadPreset = (preset: Preset) => {setSettings(preset); toast({title:`Loaded: ${preset.name}`})};
+  const deletePreset = (id: string) => setPresets(presets.filter(p=>p.id !== id));
+  const handleOpenSavePresetDialog = () => {setPresetName(''); setIsPresetDialogOpen(true)};
+  const confirmSavePreset = () => { if(presetName.trim()){ setPresets(p => [...p, {id:`p-${Date.now()}`, name:presetName.trim(), ...settings}]); setIsPresetDialogOpen(false); toast({title:"Preset Saved!"}) }};
+  
+  const moveResultToContext = () => {
+    const currentHTML = outputEditor?.getHTML() || outputText;
+    const plainText = outputEditor?.getText() || '';
+    
+    console.log('Moving result to context');
+    console.log('Current HTML:', currentHTML);
+    console.log('Current outputText:', outputText);
+    
+    // Create a new version from current context if it exists and is different
+    if (baseText.trim()) {
+      const newVersion: ContextVersion = {
+        id: `version-${Date.now()}`,
+        text: baseText,
+        timestamp: new Date().toISOString(),
+        label: `Version ${contextVersions.length + 1}`,
+        outputText: currentHTML // Save current output with this version
+      };
+      
+      console.log('Creating new version with outputText:', currentHTML);
+      
+      // Check if this version already exists
+      const existingVersion = contextVersions.find(v => v.text === baseText);
+      if (!existingVersion) {
+        setContextVersions(prev => [...prev, newVersion]);
+        setCurrentVersionId(newVersion.id);
+      } else {
+        // Update existing version with current output
+        setContextVersions(prev => prev.map(v => 
+          v.id === existingVersion.id 
+            ? { ...v, outputText: currentHTML }
+            : v
+        ));
+        setCurrentVersionId(existingVersion.id);
+      }
+    }
+    
+    // Set new context content
+    const newContextText = isLikelyHTML(currentHTML) ? plainText : currentHTML;
+    setBaseText(newContextText);
+    
+    toast({ title: 'Đã chuyển kết quả vào Context và tạo version mới' });
+  };
+
+  const restoreVersion = (versionId: string) => {
+    const version = contextVersions.find(v => v.id === versionId);
+    if (!version) return;
+    
+    console.log('Restoring version:', version);
+    console.log('Version has outputText:', !!version.outputText);
+    
+    // Save current context as new version if different
+    if (baseText.trim() && baseText !== version.text) {
+      const currentHTML = outputEditor?.getHTML() || outputText;
+      const currentVersion: ContextVersion = {
+        id: `version-${Date.now()}`,
+        text: baseText,
+        timestamp: new Date().toISOString(),
+        label: `Version ${contextVersions.length + 1} (Auto-saved)`,
+        outputText: currentHTML
+      };
+      setContextVersions(prev => [...prev, currentVersion]);
+    }
+    
+    setBaseText(version.text);
+    setCurrentVersionId(version.id);
+    
+    // Restore associated output if available
+    if (version.outputText) {
+      const processedContent = processAIOutput(version.outputText);
+      console.log('Setting output text to:', processedContent);
+      setOutputText(processedContent);
+      
+      // Force update the editor content with a slight delay to ensure state is updated
+      setTimeout(() => {
+        if (outputEditor) {
+          console.log('Updating editor content with delay');
+          outputEditor.commands.setContent(processedContent);
+        }
+      }, 100);
+    } else {
+      console.log('No output text in version, clearing');
+      // Clear output if no output is associated with this version
+      setOutputText('');
+      if (outputEditor) {
+        outputEditor.commands.setContent('');
+      }
+    }
+    
+    setIsVersionDialogOpen(false);
+    toast({ title: `Đã khôi phục ${version.label}` });
+  };
+
+  const deleteVersion = (versionId: string) => {
+    setContextVersions(prev => prev.filter(v => v.id !== versionId));
+    if (currentVersionId === versionId) {
+      setCurrentVersionId(null);
+    }
+    toast({ title: 'Đã xóa version' });
+  };
+  
+  return (<>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start h-full">
+      <div className="lg:col-span-1 space-y-6">
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between py-3">
+                <CardTitle className="text-lg">Controls</CardTitle>
+                <Button variant="ghost" size="icon" onClick={() => setIsControlDialogOpen(true)}>
+                  <Expand className="w-4 h-4"/>
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <ControlPanel 
+                  baseText={baseText}
+                  prompt={prompt}
+                  settings={settings}
+                  isLoading={isLoading}
+                  onBaseTextChange={setBaseText}
+                  onPromptChange={setPrompt}
+                  onSettingsChange={setSettings}
+                  onGenerate={handleGenerateText}
+                />
+              </CardContent>
+          </Card>
+          <Card>
+            <Tabs defaultValue="presets"><TabsList className="grid w-full grid-cols-2"><TabsTrigger value="presets">Presets</TabsTrigger><TabsTrigger value="history">History</TabsTrigger></TabsList>
+                <TabsContent value="presets" className="m-0">
+                    <div className="border-t p-2"><Button onClick={handleOpenSavePresetDialog} className="w-full" size="sm" variant="outline"><Save className="w-4 h-4 mr-2"/>Save Current</Button></div>
+                    <CardContent className="p-2 max-h-[250px] overflow-y-auto">{presets.length>0 ? presets.map(p=><div key={p.id} className="flex group items-center text-sm"><Button variant="link" onClick={()=>loadPreset(p)} className="flex-1 justify-start h-auto font-normal truncate p-1">{p.name}</Button><Button variant="ghost" size="icon" className="w-7 h-7 shrink-0 opacity-0 group-hover:opacity-100" onClick={()=>deletePreset(p.id)}><Trash2 className="w-4 h-4"/></Button></div>):<p className="text-center p-4">No presets.</p>}</CardContent>
+                </TabsContent>
+                <TabsContent value="history" className="m-0">
+                    <CardContent className="p-2 max-h-[280px] overflow-y-auto">{history.length>0?history.map(h=><div key={h.id} className="flex group items-center border-b p-1 text-sm"><div className="flex-1 overflow-hidden cursor-pointer" onClick={()=>loadHistoryItem(h, true)}><p className="font-semibold truncate">{h.title}</p><p className="text-xs text-muted-foreground">{new Date(h.timestamp).toLocaleString()}</p></div><Button variant="ghost" size="icon" className="w-8 h-8 shrink-0 opacity-0 group-hover:opacity-100" onClick={(e)=>{e.stopPropagation();deleteHistoryItem(h.id)}}><Trash2 className="w-4 h-4"/></Button></div>):<p className="text-center p-4">No history.</p>}</CardContent>
+                </TabsContent>
+            </Tabs>
+          </Card>
+      </div>
+      <div className="lg:col-span-2 h-full">
+          <Card className="h-full flex flex-col">
+              <CardHeader className="flex flex-row justify-between items-center py-3">
+                  <CardTitle className="text-lg">{T.result}</CardTitle>
+                  <div className="flex gap-2">
+                      {Array.isArray(contextVersions) && contextVersions.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsVersionDialogOpen(true)}
+                          className="h-8 text-xs"
+                        >
+                          <History className="mr-1 h-3 w-3"/>
+                          Versions ({contextVersions.length})
+                        </Button>
+                      )}
+                      <Button variant="outline" size="sm" disabled={!outputText} onClick={moveResultToContext}>
+                        <Upload className="mr-2 w-4 h-4"/>
+                        Dùng làm Context
+                      </Button>
+                      <Button variant="ghost" size="sm" disabled={!outputText} onClick={()=>{const c = outputEditor?.getHTML() || outputText; if(c) navigator.clipboard.writeText(c)}}>
+                        <Copy className="mr-2 w-4 h-4"/>
+                        {T.copy}
+                      </Button>
+                  </div>
+              </CardHeader>
+              <CardContent className="flex-1 p-2">
+                  {isLoading ? (
+                    <div className="flex h-full items-center justify-center">
+                      <Loader2 className="w-8 h-8 animate-spin"/>
+                    </div>
+                  ) : (
+                    <div className="p-2 rounded-md outline-none focus:outline-none border-0 ring-0 tiptap-content">
+                      <EditorContent 
+                        editor={outputEditor}
+                        onBlur={() => {
+                          const content = outputEditor?.getHTML() || '';
+                          setOutputText(content);
+                        }}
+                      />
+                    </div>
+                  )}
+              </CardContent>
+          </Card>
+      </div>
+    </div>
+    <Dialog open={isControlDialogOpen} onOpenChange={setIsControlDialogOpen}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Edit Controls (Expanded)</DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[70vh] overflow-y-auto p-4">
+          <ControlPanel 
+            inDialog={true}
+            baseText={baseText}
+            prompt={prompt}
+            settings={settings}
+            isLoading={isLoading}
+            onBaseTextChange={setBaseText}
+            onPromptChange={setPrompt}
+            onSettingsChange={setSettings}
+            onGenerate={handleGenerateText}
+          />
+        </div>
+        <DialogFooter>
+          <Button onClick={() => setIsControlDialogOpen(false)}>Done</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <Dialog open={isPresetDialogOpen} onOpenChange={setIsPresetDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Save Preset</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <Label htmlFor="preset-name">Preset Name</Label>
+          <Input 
+            id="preset-name" 
+            value={presetName} 
+            onChange={(e) => setPresetName(e.target.value)}
+            placeholder="Nhập tên preset..."
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsPresetDialogOpen(false)}>Cancel</Button>
+          <Button onClick={confirmSavePreset} disabled={!presetName.trim()}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <Dialog open={isVersionDialogOpen} onOpenChange={setIsVersionDialogOpen}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Context Versions</DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[400px] overflow-y-auto space-y-2">
+          {!Array.isArray(contextVersions) || contextVersions.length === 0 ? (
+            <p className="text-center text-muted-foreground py-4">No versions available</p>
+          ) : (
+            contextVersions.map((version) => (
+              <div key={version.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium truncate">{version.label}</p>
+                    {version.id === currentVersionId && (
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Current</span>
+                    )}
+                    {version.outputText && (
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Has Result</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(version.timestamp).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-muted-foreground truncate mt-1">
+                    Context: {version.text.substring(0, 60)}...
+                  </p>
+                  {version.outputText && (
+                    <p className="text-xs text-green-700 truncate mt-1">
+                      Result: {version.outputText.replace(/<[^>]*>/g, '').substring(0, 60)}...
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-1 ml-2">
+                  {version.id !== currentVersionId && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => restoreVersion(version.id)}
+                    >
+                      Restore
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => deleteVersion(version.id)}
+                  >
+                    <Trash2 className="w-4 h-4"/>
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <DialogFooter>
+          <Button onClick={() => setIsVersionDialogOpen(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </>);
 }
 
 export default AIWritingSupport;
