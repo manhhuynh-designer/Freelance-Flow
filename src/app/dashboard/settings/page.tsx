@@ -52,6 +52,7 @@ import { LocalBackupManager } from '@/components/local-backup-manager';
 import { getContrastingTextColor } from "@/lib/colors";
 import styles from './SettingsColors.module.css';
 import { WIDGETS } from '@/lib/widgets';
+import { FeedbackForm } from '@/components/feedback-form';
 
 const predefinedThemes: { name: string; colors: ThemeSettings & { background: string } }[] = [
     { name: 'Default', colors: { primary: "#2A5EE5", accent: "#ffffff", background: "#f5f6fa" } },
@@ -220,13 +221,14 @@ function SettingsPageContent() {
     return (
         <>
             <div className="p-4 md:p-6">
-                <Tabs defaultValue="appearance" className="space-y-6">
+        <Tabs defaultValue="appearance" className="space-y-6">
                     <TabsList>
                         <TabsTrigger value="appearance">{T.tabAppearance}</TabsTrigger>
                         <TabsTrigger value="general">{T.tabGeneral}</TabsTrigger>
                         <TabsTrigger value="statuses">{T.tabStatuses}</TabsTrigger>
                         <TabsTrigger value="api">{T.tabApi}</TabsTrigger>
-                        <TabsTrigger value="data">{T.tabData}</TabsTrigger>
+            <TabsTrigger value="data">{T.tabData}</TabsTrigger>
+            <TabsTrigger value="support">{T.support || 'Support'}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="appearance">
                         <Card>
@@ -616,6 +618,47 @@ function SettingsPageContent() {
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="support">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Left: Contact/Feedback */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">{T.contactTitle || 'Get in Touch'}</CardTitle>
+                                    <CardDescription>{T.contactDesc || "Have feedback or a feature request? We'd love to hear from you."}</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <FeedbackForm language={appSettings.language} />
+                                </CardContent>
+                            </Card>
+
+                            {/* Right: Terms of Service */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">{T.termsTitle || 'Terms of Service'}</CardTitle>
+                                    <CardDescription>
+                                        {(T.termsUpdated || 'Last updated') + ': ' + new Date().toISOString().split('T')[0]}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="prose dark:prose-invert max-w-none space-y-4 text-sm">
+                                        <p>{T.termsIntro || "By using Freelance Flow, you agree to these terms. This app is provided as-is, stores data locally in your browser, and only sends data to AI providers when you explicitly use AI features with your own API key."}</p>
+                                        <h3 className="text-base font-semibold mt-4">{T.termsOverview || 'Overview'}</h3>
+                                        <p>{T.termsPrivacyDesc || "Your task data stays in your browser's storage. Backups you export are your responsibility to store safely. We do not host or collect your data."}</p>
+                                        <h3 className="text-base font-semibold mt-4">{T.termsPrivacy || 'Privacy'}</h3>
+                                        <p>{T.termsPrivacyDesc || "Your task data stays in your browser's storage. Backups you export are your responsibility to store safely. We do not host or collect your data."}</p>
+                                        <h3 className="text-base font-semibold mt-4">{T.termsAi || 'AI Features'}</h3>
+                                        <p>{T.termsAiDesc || "AI features require your API key. Requests are sent to the provider you configured (e.g., Google AI) only when you use those features."}</p>
+                                        <h3 className="text-base font-semibold mt-4">{T.termsWarranty || 'No Warranty'}</h3>
+                                        <p>{T.termsWarrantyDesc || "The software is provided 'as is' without warranties of any kind. Use at your own risk."}</p>
+                                        <h3 className="text-base font-semibold mt-4">{T.termsLiability || 'Limitation of Liability'}</h3>
+                                        <p>{T.termsLiabilityDesc || "In no event shall the authors be liable for any claim, damages, or other liability arising from the use of the software."}</p>
+                                        <h3 className="text-base font-semibold mt-4">{T.termsChanges || 'Changes to Terms'}</h3>
+                                        <p>{T.termsChangesDesc || "We may update these terms from time to time. Continued use of the app after changes constitutes acceptance."}</p>
                                     </div>
                                 </CardContent>
                             </Card>
