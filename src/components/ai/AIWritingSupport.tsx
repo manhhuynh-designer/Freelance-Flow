@@ -17,8 +17,89 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TiptapUnderline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
-import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import { i18n } from '@/lib/i18n';
 import '@/styles/tiptap-content.css';
+
+// Add typing animation styles
+const typingStyles = `
+  .typing-animation {
+    white-space: pre-wrap;
+    font-family: inherit;
+    line-height: 1.6;
+    color: inherit;
+    min-height: 1.5em;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    background: transparent;
+  }
+  
+  .typing-animation .prose {
+    max-width: none;
+    color: inherit;
+  }
+  
+  .typing-animation .prose h1,
+  .typing-animation .prose h2,
+  .typing-animation .prose h3 {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+  }
+  
+  .typing-animation .prose p {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+  }
+  
+  .typing-animation .prose ul,
+  .typing-animation .prose ol {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+  }
+  
+  .typing-cursor {
+    display: inline-block;
+    background-color: currentColor;
+    width: 2px;
+    height: 1.2em;
+    margin-left: 1px;
+    animation: blink 0.8s infinite;
+    vertical-align: baseline;
+  }
+  
+  .typing-cursor-absolute {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: inline-block;
+    background-color: currentColor;
+    width: 2px;
+    height: 1.2em;
+    animation: blink 0.8s infinite;
+  }
+  
+  .typing-cursor.hidden {
+    display: none;
+  }
+  
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+  
+  .typing-animation.dark .typing-cursor {
+    background-color: #fff;
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = typingStyles;
+  if (!document.head.querySelector('style[data-typing-animation]')) {
+    styleElement.setAttribute('data-typing-animation', 'true');
+    document.head.appendChild(styleElement);
+  }
+}
 
 type WritingAction = 'write' | 'edit' | 'reply' | 'summarize' | 'translate';
 type WritingTone = 'formal' | 'casual' | 'professional' | 'friendly';
@@ -48,12 +129,7 @@ interface HistoryItem {
   currentVersionId?: string;
 }
 
-// Constants moved outside to prevent re-creation on each render
-const T = { title: 'AI Writing Assistant', inputContext: 'Nội dung gốc (*)', promptLabel: 'Yêu cầu thêm (Tùy chọn)', result: 'Kết quả', generate: "Tạo", generating: 'Đang tạo...', edit: "Sửa", view: "Xem", copy: "Copy", presets: "Presets", history: "History", actionLabel: 'Hành động', toneLabel: 'Văn phong', lengthLabel: 'Độ dài', outputLanguageLabel: 'Ngôn ngữ' };
-const actions = {write:"Viết mới", edit:"Sửa", reply: "Trả lời", summarize: "Tóm tắt", translate: "Dịch"};
-const tones = {professional:"Chuyên nghiệp", casual:"Thân mật", friendly: "Thân thiện", formal: "Trang trọng"};
-const lengths = {short:"Ngắn", medium:"Vừa", long:"Dài"};
-const languages = {vi:"Tiếng Việt", en:"English"};
+// Labels are provided by i18n (T) from app settings
 
 // ControlPanel moved outside as a separate component to prevent re-creation
 interface ControlPanelProps {
@@ -66,6 +142,7 @@ interface ControlPanelProps {
   onPromptChange: (value: string) => void;
   onSettingsChange: (settings: WritingSettings) => void;
   onGenerate: () => void;
+  T: any;
 }
 
 const ControlPanel = memo<ControlPanelProps>(({ 
@@ -77,82 +154,101 @@ const ControlPanel = memo<ControlPanelProps>(({
   onBaseTextChange, 
   onPromptChange, 
   onSettingsChange, 
-  onGenerate
+  onGenerate,
+  T
 }) => (
   <div className="space-y-4">
     <div className="space-y-2">
-      <Label htmlFor={`base-text-${inDialog}`}>{T.inputContext}</Label>
+      <Label htmlFor={`base-text-${inDialog}`}>{T.inputContextLabel || 'Base content (*)'}</Label>
       <Textarea 
         id={`base-text-${inDialog}`} 
         value={baseText} 
         onChange={(e) => onBaseTextChange(e.target.value)}
         disabled={isLoading} 
         className={inDialog ? "min-h-[150px]" : "min-h-[100px]"} 
-        placeholder="Nhập nội dung gốc để AI xử lý..."
+        placeholder={T.baseTextPlaceholder || 'Enter the base content for AI to process...'}
       />
       
       <div>
-        <Label htmlFor={`prompt-${inDialog}`}>{T.promptLabel}</Label>
+        <Label htmlFor={`prompt-${inDialog}`}>{T.promptLabel || 'Additional request (Optional)'}</Label>
         <Textarea 
           id={`prompt-${inDialog}`} 
           value={prompt} 
           onChange={(e) => onPromptChange(e.target.value)}
           disabled={isLoading} 
           className="min-h-[80px]" 
-          placeholder="Nhập yêu cầu thêm cho AI..." 
+          placeholder={T.promptPlaceholder || 'Enter additional instructions for AI...'} 
         />
       </div>
 
       <div>
-        <Label>{T.actionLabel}</Label>
+        <Label>{T.actionLabel || 'Action'}</Label>
         <Select 
           disabled={isLoading} 
           value={settings.action} 
           onValueChange={(v) => onSettingsChange({...settings, action: v as WritingAction})}
         >
           <SelectTrigger><SelectValue/></SelectTrigger>
-          <SelectContent>{Object.entries(actions).map(([k,v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+          <SelectContent>{[
+            ['write', T.aiWrite || 'Write'],
+            ['edit', T.aiEdit || 'Edit'],
+            ['reply', T.aiReply || 'Reply'],
+            ['summarize', T.aiSummarize || 'Summarize'],
+            ['translate', T.aiTranslate || 'Translate']
+          ].map(([k,v]) => <SelectItem key={k as string} value={k as string}>{v as string}</SelectItem>)}</SelectContent>
         </Select>
       </div>
 
       <div>
-        <Label>{T.toneLabel}</Label>
+        <Label>{T.toneLabel || 'Tone'}</Label>
         <Select 
           disabled={isLoading} 
           value={settings.tone} 
           onValueChange={(v) => onSettingsChange({...settings, tone: v as WritingTone})}
         >
           <SelectTrigger><SelectValue/></SelectTrigger>
-          <SelectContent>{Object.entries(tones).map(([k,v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+          <SelectContent>{[
+            ['professional', T.toneProfessional || 'Professional'],
+            ['casual', T.toneCasual || 'Casual'],
+            ['friendly', T.toneFriendly || 'Friendly'],
+            ['formal', T.toneFormal || 'Formal']
+          ].map(([k,v]) => <SelectItem key={k as string} value={k as string}>{v as string}</SelectItem>)}</SelectContent>
         </Select>
       </div>
 
       <div>
-        <Label>{T.lengthLabel}</Label>
+        <Label>{T.lengthLabel || 'Length'}</Label>
         <Select 
           disabled={isLoading} 
           value={settings.length} 
           onValueChange={(v) => onSettingsChange({...settings, length: v as OutputLength})}
         >
           <SelectTrigger><SelectValue/></SelectTrigger>
-          <SelectContent>{Object.entries(lengths).map(([k,v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+          <SelectContent>{[
+            ['short', T.lengthShort || 'Short'],
+            ['medium', T.lengthMedium || 'Medium'],
+            ['long', T.lengthLong || 'Long']
+          ].map(([k,v]) => <SelectItem key={k as string} value={k as string}>{v as string}</SelectItem>)}</SelectContent>
         </Select>
       </div>
 
       <div>
-        <Label>{T.outputLanguageLabel}</Label>
+        <Label>{T.outputLanguageLabel || 'Language'}</Label>
         <Select 
           disabled={isLoading} 
           value={settings.outputLanguage} 
           onValueChange={(v) => onSettingsChange({...settings, outputLanguage: v as OutputLanguage})}
         >
           <SelectTrigger><SelectValue/></SelectTrigger>
-          <SelectContent>{Object.entries(languages).map(([k,v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+          <SelectContent>{[
+            ['vi', T.languageVietnamese || 'Vietnamese'],
+            ['en', T.languageEnglish || 'English']
+          ].map(([k,v]) => <SelectItem key={k as string} value={k as string}>{v as string}</SelectItem>)}</SelectContent>
         </Select>
       </div>
     </div>
     <Button onClick={onGenerate} disabled={isLoading || !baseText.trim()} size="lg" className="w-full !mt-5">
-      <Wand2 className="mr-2 h-4 w-4"/> {isLoading ? T.generating : T.generate}
+      <Wand2 className="mr-2 h-4 w-4"/> {isLoading ? (T.generating || 'Generating...') : (T.generate || 'Generate')}
     </Button>
   </div>
 ));
@@ -160,6 +256,7 @@ const ControlPanel = memo<ControlPanelProps>(({
 export function AIWritingSupport() {
   const { appData } = useDashboard();
   const { toast } = useToast();
+  const T = i18n[appData?.appSettings?.language || 'en'];
   
   const [prompt, setPrompt] = useState('Viết email marketing giới thiệu sản phẩm mới.');
   const [baseText, setBaseText] = useState('Sản phẩm XYZ với công nghệ vượt trội.');
@@ -178,6 +275,12 @@ export function AIWritingSupport() {
   const [contextVersions, setContextVersions] = useState<ContextVersion[]>([]);
   const [currentVersionId, setCurrentVersionId] = useState<string | null>(null);
   const [isVersionDialogOpen, setIsVersionDialogOpen] = useState(false);
+
+  // Typing animation state
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingText, setTypingText] = useState('');
+  const [fullText, setFullText] = useState('');
+  const [showCursor, setShowCursor] = useState(true);
 
   const hasApiKey = !!appData?.appSettings?.googleApiKey;
   const outputEditor = useEditor({ 
@@ -279,7 +382,79 @@ export function AIWritingSupport() {
       setHistory(prev => [newHistoryItem, ...prev.slice(0, 49)]);
     }
   };
+  // Function to render markdown during typing animation
+  const renderTypingContent = (text: string, showCursor: boolean) => {
+    if (!text) return { __html: '' };
+    
+    // Process text as markdown but keep it simple for typing animation
+    const processedText = isLikelyMarkdown(text) ? convertMarkdownToHTML(text) : text.replace(/\n/g, '<br>');
+    const finalText = processedText + (showCursor ? '<span class="typing-cursor animate-pulse">|</span>' : '');
+    
+    return { __html: finalText };
+  };
+
   const deleteHistoryItem = (id: string) => setHistory(prev => prev.filter(h => h.id !== id));
+  
+  // Typing animation function
+  const startTypingAnimation = (text: string) => {
+    setIsTyping(true);
+    setTypingText('');
+    setFullText(text);
+    setShowCursor(true);
+    
+    // Keep original text for typing display (including markdown)
+    const textToType = text;
+    
+    let currentIndex = 0;
+    
+    const typeNextChar = () => {
+      if (currentIndex < textToType.length) {
+        setTypingText(textToType.substring(0, currentIndex + 1));
+        currentIndex++;
+        
+        // Variable typing speed for more natural feel
+        const char = textToType[currentIndex - 1];
+        let delay = 16; // Base speed (increased from 25ms to ~16ms for 1.5x speed)
+        
+        // Slower for punctuation
+        if ('.!?'.includes(char)) {
+          delay = 200; // Long pause after sentences (reduced from 300ms)
+        } else if (',;:'.includes(char)) {
+          delay = 100; // Medium pause after commas (reduced from 150ms)
+        } else if (char === ' ') {
+          delay = 33; // Slight pause for spaces (reduced from 50ms)
+        } else if (char === '\n') {
+          delay = 133; // Pause for line breaks (reduced from 200ms)
+        }
+        
+        setTimeout(typeNextChar, delay);
+      } else {
+        // Hide cursor immediately when typing is done
+        setShowCursor(false);
+        setIsTyping(false);
+        
+        // Set final content to editor after typing completes
+        setTimeout(() => {
+          const processedContent = processAIOutput(text);
+          setOutputText(processedContent);
+        }, 100); // Reduced delay from 500ms to 100ms for faster transition
+      }
+    };
+    
+    typeNextChar();
+  };
+
+  // Function to stop typing animation
+  const stopTypingAnimation = () => {
+    setIsTyping(false);
+    setTypingText('');
+    setShowCursor(false);
+    if (fullText) {
+      const processedContent = processAIOutput(fullText);
+      setOutputText(processedContent);
+      setFullText('');
+    }
+  };
   
   // Helper functions for content processing
   const isLikelyHTML = (content: string): boolean => {
@@ -428,8 +603,8 @@ export function AIWritingSupport() {
       });
       console.log("Result from writingAssistantAction:", result); // Log toàn bộ kết quả
       if (result.success && result.result) {
-        const processedContent = processAIOutput(result.result.mainContent);
-        setOutputText(processedContent);
+        // Start typing animation instead of setting text directly
+        startTypingAnimation(result.result.mainContent);
         
         // Update current version with new output if exists
         if (currentVersionId && result.result) {
@@ -460,6 +635,11 @@ export function AIWritingSupport() {
     
     // Only load output if explicitly requested (for history viewing)
     if (loadOutput) {
+      // Stop any ongoing typing animation
+      setIsTyping(false);
+      setTypingText('');
+      setShowCursor(false);
+      
       const processedContent = processAIOutput(item.outputText);
       setOutputText(processedContent); 
     }
@@ -547,6 +727,12 @@ export function AIWritingSupport() {
     if (version.outputText) {
       const processedContent = processAIOutput(version.outputText);
       console.log('Setting output text to:', processedContent);
+      
+      // Stop any ongoing typing animation
+      setIsTyping(false);
+      setTypingText('');
+      setShowCursor(false);
+      
       setOutputText(processedContent);
       
       // Force update the editor content with a slight delay to ensure state is updated
@@ -582,7 +768,7 @@ export function AIWritingSupport() {
       <div className="lg:col-span-1 space-y-6">
           <Card>
               <CardHeader className="flex flex-row items-center justify-between py-3">
-                <CardTitle className="text-lg">Controls</CardTitle>
+                <CardTitle className="text-lg">{T.controls || 'Controls'}</CardTitle>
                 <Button variant="ghost" size="icon" onClick={() => setIsControlDialogOpen(true)}>
                   <Expand className="w-4 h-4"/>
                 </Button>
@@ -596,18 +782,19 @@ export function AIWritingSupport() {
                   onBaseTextChange={setBaseText}
                   onPromptChange={setPrompt}
                   onSettingsChange={setSettings}
-                  onGenerate={handleGenerateText}
+      onGenerate={handleGenerateText}
+      T={T}
                 />
               </CardContent>
           </Card>
           <Card>
-            <Tabs defaultValue="presets"><TabsList className="grid w-full grid-cols-2"><TabsTrigger value="presets">Presets</TabsTrigger><TabsTrigger value="history">History</TabsTrigger></TabsList>
+    <Tabs defaultValue="presets"><TabsList className="grid w-full grid-cols-2"><TabsTrigger value="presets">{T.presetsLabel || 'Presets'}</TabsTrigger><TabsTrigger value="history">{T.historyLabel || 'History'}</TabsTrigger></TabsList>
                 <TabsContent value="presets" className="m-0">
-                    <div className="border-t p-2"><Button onClick={handleOpenSavePresetDialog} className="w-full" size="sm" variant="outline"><Save className="w-4 h-4 mr-2"/>Save Current</Button></div>
-                    <CardContent className="p-2 max-h-[250px] overflow-y-auto">{presets.length>0 ? presets.map(p=><div key={p.id} className="flex group items-center text-sm"><Button variant="link" onClick={()=>loadPreset(p)} className="flex-1 justify-start h-auto font-normal truncate p-1">{p.name}</Button><Button variant="ghost" size="icon" className="w-7 h-7 shrink-0 opacity-0 group-hover:opacity-100" onClick={()=>deletePreset(p.id)}><Trash2 className="w-4 h-4"/></Button></div>):<p className="text-center p-4">No presets.</p>}</CardContent>
+        <div className="border-t p-2"><Button onClick={handleOpenSavePresetDialog} className="w-full" size="sm" variant="outline"><Save className="w-4 h-4 mr-2"/>{T.saveCurrent || 'Save Current'}</Button></div>
+                    <CardContent className="p-2 max-h-[250px] overflow-y-auto">{presets.length>0 ? presets.map(p=><div key={p.id} className="flex group items-center text-sm"><Button variant="link" onClick={()=>loadPreset(p)} className="flex-1 justify-start h-auto font-normal truncate p-1">{p.name}</Button><Button variant="ghost" size="icon" className="w-7 h-7 shrink-0 opacity-0 group-hover:opacity-100" onClick={()=>deletePreset(p.id)}><Trash2 className="w-4 h-4"/></Button></div>):<p className="text-center p-4">{T.noPresets || 'No presets.'}</p>}</CardContent>
                 </TabsContent>
                 <TabsContent value="history" className="m-0">
-                    <CardContent className="p-2 max-h-[280px] overflow-y-auto">{history.length>0?history.map(h=><div key={h.id} className="flex group items-center border-b p-1 text-sm"><div className="flex-1 overflow-hidden cursor-pointer" onClick={()=>loadHistoryItem(h, true)}><p className="font-semibold truncate">{h.title}</p><p className="text-xs text-muted-foreground">{new Date(h.timestamp).toLocaleString()}</p></div><Button variant="ghost" size="icon" className="w-8 h-8 shrink-0 opacity-0 group-hover:opacity-100" onClick={(e)=>{e.stopPropagation();deleteHistoryItem(h.id)}}><Trash2 className="w-4 h-4"/></Button></div>):<p className="text-center p-4">No history.</p>}</CardContent>
+                    <CardContent className="p-2 max-h-[280px] overflow-y-auto">{history.length>0?history.map(h=><div key={h.id} className="flex group items-center border-b p-1 text-sm"><div className="flex-1 overflow-hidden cursor-pointer" onClick={()=>loadHistoryItem(h, true)}><p className="font-semibold truncate">{h.title}</p><p className="text-xs text-muted-foreground">{new Date(h.timestamp).toLocaleString()}</p></div><Button variant="ghost" size="icon" className="w-8 h-8 shrink-0 opacity-0 group-hover:opacity-100" onClick={(e)=>{e.stopPropagation();deleteHistoryItem(h.id)}}><Trash2 className="w-4 h-4"/></Button></div>):<p className="text-center p-4">{T.noHistory || 'No history.'}</p>}</CardContent>
                 </TabsContent>
             </Tabs>
           </Card>
@@ -615,7 +802,7 @@ export function AIWritingSupport() {
       <div className="lg:col-span-2 h-full">
           <Card className="h-full flex flex-col">
               <CardHeader className="flex flex-row justify-between items-center py-3">
-                  <CardTitle className="text-lg">{T.result}</CardTitle>
+                  <CardTitle className="text-lg">{T.resultLabel || 'Result'}</CardTitle>
                   <div className="flex gap-2">
                       {Array.isArray(contextVersions) && contextVersions.length > 0 && (
                         <Button
@@ -625,16 +812,16 @@ export function AIWritingSupport() {
                           className="h-8 text-xs"
                         >
                           <History className="mr-1 h-3 w-3"/>
-                          Versions ({contextVersions.length})
+                          {T.versions || 'Versions'} ({contextVersions.length})
                         </Button>
                       )}
                       <Button variant="outline" size="sm" disabled={!outputText} onClick={moveResultToContext}>
                         <Upload className="mr-2 w-4 h-4"/>
-                        Dùng làm Context
+                        {T.useAsContext || 'Use as Context'}
                       </Button>
                       <Button variant="ghost" size="sm" disabled={!outputText} onClick={()=>{const c = outputEditor?.getHTML() || outputText; if(c) navigator.clipboard.writeText(c)}}>
                         <Copy className="mr-2 w-4 h-4"/>
-                        {T.copy}
+                        {T.copy || 'Copy'}
                       </Button>
                   </div>
               </CardHeader>
@@ -642,6 +829,23 @@ export function AIWritingSupport() {
                   {isLoading ? (
                     <div className="flex h-full items-center justify-center">
                       <Loader2 className="w-8 h-8 animate-spin"/>
+                    </div>
+                  ) : isTyping ? (
+                    <div className="p-2 rounded-md outline-none focus:outline-none border-0 ring-0 tiptap-content">
+                      <div className="flex justify-between items-start mb-2">
+                        <div 
+                          className="typing-animation flex-1 prose prose-sm max-w-none dark:prose-invert"
+                          dangerouslySetInnerHTML={renderTypingContent(typingText, showCursor)}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={stopTypingAnimation}
+                          className="ml-2 text-xs"
+                        >
+                          {T.skip || 'Skip'}
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <div className="p-2 rounded-md outline-none focus:outline-none border-0 ring-0 tiptap-content">
@@ -661,7 +865,7 @@ export function AIWritingSupport() {
     <Dialog open={isControlDialogOpen} onOpenChange={setIsControlDialogOpen}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Edit Controls (Expanded)</DialogTitle>
+          <DialogTitle>{T.editControlsExpanded || 'Edit Controls (Expanded)'}</DialogTitle>
         </DialogHeader>
         <div className="max-h-[70vh] overflow-y-auto p-4">
           <ControlPanel 
@@ -674,41 +878,42 @@ export function AIWritingSupport() {
             onPromptChange={setPrompt}
             onSettingsChange={setSettings}
             onGenerate={handleGenerateText}
+            T={T}
           />
         </div>
         <DialogFooter>
-          <Button onClick={() => setIsControlDialogOpen(false)}>Done</Button>
+          <Button onClick={() => setIsControlDialogOpen(false)}>{T.done || 'Done'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
     <Dialog open={isPresetDialogOpen} onOpenChange={setIsPresetDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Save Preset</DialogTitle>
+          <DialogTitle>{T.savePreset || 'Save Preset'}</DialogTitle>
         </DialogHeader>
         <div className="py-4">
-          <Label htmlFor="preset-name">Preset Name</Label>
+          <Label htmlFor="preset-name">{T.presetName || 'Preset Name'}</Label>
           <Input 
             id="preset-name" 
             value={presetName} 
             onChange={(e) => setPresetName(e.target.value)}
-            placeholder="Nhập tên preset..."
+            placeholder={T.presetNamePlaceholder || 'Enter preset name...'}
           />
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setIsPresetDialogOpen(false)}>Cancel</Button>
-          <Button onClick={confirmSavePreset} disabled={!presetName.trim()}>Save</Button>
+          <Button variant="outline" onClick={() => setIsPresetDialogOpen(false)}>{T.cancel || 'Cancel'}</Button>
+          <Button onClick={confirmSavePreset} disabled={!presetName.trim()}>{T.save || 'Save'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
     <Dialog open={isVersionDialogOpen} onOpenChange={setIsVersionDialogOpen}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Context Versions</DialogTitle>
+          <DialogTitle>{T.contextVersions || 'Context Versions'}</DialogTitle>
         </DialogHeader>
         <div className="max-h-[400px] overflow-y-auto space-y-2">
           {!Array.isArray(contextVersions) || contextVersions.length === 0 ? (
-            <p className="text-center text-muted-foreground py-4">No versions available</p>
+            <p className="text-center text-muted-foreground py-4">{T.noVersionsAvailable || 'No versions available'}</p>
           ) : (
             contextVersions.map((version) => (
               <div key={version.id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -716,21 +921,21 @@ export function AIWritingSupport() {
                   <div className="flex items-center gap-2">
                     <p className="font-medium truncate">{version.label}</p>
                     {version.id === currentVersionId && (
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Current</span>
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{T.current || 'Current'}</span>
                     )}
                     {version.outputText && (
-                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Has Result</span>
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">{T.hasResult || 'Has Result'}</span>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {new Date(version.timestamp).toLocaleString()}
                   </p>
                   <p className="text-sm text-muted-foreground truncate mt-1">
-                    Context: {version.text.substring(0, 60)}...
+                    {T.contextLabel || 'Context'}: {version.text.substring(0, 60)}...
                   </p>
                   {version.outputText && (
                     <p className="text-xs text-green-700 truncate mt-1">
-                      Result: {version.outputText.replace(/<[^>]*>/g, '').substring(0, 60)}...
+                      {T.resultLabel || 'Result'}: {version.outputText.replace(/<[^>]*>/g, '').substring(0, 60)}...
                     </p>
                   )}
                 </div>
@@ -741,7 +946,7 @@ export function AIWritingSupport() {
                       size="sm"
                       onClick={() => restoreVersion(version.id)}
                     >
-                      Restore
+                      {T.restore || 'Restore'}
                     </Button>
                   )}
                   <Button
@@ -757,7 +962,7 @@ export function AIWritingSupport() {
           )}
         </div>
         <DialogFooter>
-          <Button onClick={() => setIsVersionDialogOpen(false)}>Close</Button>
+          <Button onClick={() => setIsVersionDialogOpen(false)}>{T.close || 'Close'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
