@@ -482,6 +482,34 @@ export function useAppData() {
     
     toast({ title: T.taskStatusUpdated, description: T.taskStatusUpdatedDesc });
   };
+
+  const updateQuote = (quoteId: string, updates: Partial<Quote>) => {
+    setAppData(prev => ({
+      ...prev,
+      quotes: prev.quotes.map(quote => 
+        quote.id === quoteId ? { ...quote, ...updates } : quote
+      )
+    }));
+    
+    toast({ 
+      title: T.quoteUpdated || 'Quote Updated', 
+      description: T.quoteUpdatedDesc || 'Quote information has been updated successfully.' 
+    });
+  };
+
+  const updateCollaboratorQuote = (quoteId: string, updates: Partial<CollaboratorQuote>) => {
+    setAppData(prev => ({
+      ...prev,
+      collaboratorQuotes: prev.collaboratorQuotes.map(quote => 
+        quote.id === quoteId ? { ...quote, ...updates } : quote
+      )
+    }));
+    
+    toast({ 
+      title: T.collaboratorQuoteUpdated || 'Collaborator Quote Updated', 
+      description: T.collaboratorQuoteUpdatedDesc || 'Collaborator quote information has been updated successfully.' 
+    });
+  };
   
   const handleAiCreateTask = (newTaskData: any) => {
     console.log('🚀 handleAiCreateTask called with:', newTaskData);
@@ -949,7 +977,7 @@ export function useAppData() {
     
     T,
     handleViewTask, handleCloseTaskDetails, handleEditTaskClick, addEvent, updateEvent, deleteEvent, handleEventSubmit, handleAddTask, 
-    handleEditTask, handleTaskStatusChange, handleDeleteTask, handleRestoreTask, handlePermanentDeleteTask, handleEmptyTrash, handleAddClientAndSelect,
+    handleEditTask, handleTaskStatusChange, updateQuote, updateCollaboratorQuote, handleDeleteTask, handleRestoreTask, handlePermanentDeleteTask, handleEmptyTrash, handleAddClientAndSelect,
     handleEditClient, handleDeleteClient, handleAddCollaborator, handleEditCollaborator, handleDeleteCollaborator, handleAddCategory, 
     handleEditCategory, handleDeleteCategory, handleClearAllData, handleExport, handleInstallClick, handleAiCreateTask, handleAiEditTask,
     handleFileUpload,

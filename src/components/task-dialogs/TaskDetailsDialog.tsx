@@ -40,6 +40,7 @@ import { getContrastingTextColor } from "@/lib/colors";
 import { i18n } from "@/lib/i18n";
 import { FileText, Pencil, Link as LinkIcon, Folder, Copy, Trash2, Building2, Calendar, Briefcase } from "lucide-react";
 import { RichTextViewer } from "@/components/ui/RichTextViewer";
+import { QuotePaymentManager } from "@/components/quote-payment-manager";
 
 export interface TaskDetailsDialogProps {
   task: Task;
@@ -54,6 +55,8 @@ export interface TaskDetailsDialogProps {
   onClose?: () => void;
   onEdit?: () => void;
   onDelete?: (taskId: string) => void;
+  onUpdateQuote?: (quoteId: string, updates: Partial<Quote>) => void;
+  onUpdateCollaboratorQuote?: (quoteId: string, updates: Partial<Quote>) => void;
 }
 
 // Link Preview Component
@@ -305,8 +308,10 @@ export function TaskDetailsDialog({
   onClose,
   onEdit,
   onDelete,
+  onUpdateQuote,
+  onUpdateCollaboratorQuote,
 }: TaskDetailsDialogProps) {
-  const [selectedNav, setSelectedNav] = useState<'timeline' | 'price' | 'collaborator' | 'analytics'>('timeline');
+  const [selectedNav, setSelectedNav] = useState<'timeline' | 'price' | 'collaborator' | 'payment'>('timeline');
   const [showAllBriefLinks, setShowAllBriefLinks] = useState(false);
   const [showAllDriveLinks, setShowAllDriveLinks] = useState(false);
   const { toast } = useToast();
@@ -798,6 +803,15 @@ export function TaskDetailsDialog({
             type="button"
             disabled={!taskCollaboratorQuotes || taskCollaboratorQuotes.length === 0}
           >{T.collaboratorCosts ?? 'Collaborator Quote'}</button>
+          <button
+            className={cn(
+              "px-4 py-2 rounded-t text-sm font-medium transition border-b-2",
+              selectedNav === 'payment' ? 'border-primary text-primary bg-muted' : 'border-transparent text-muted-foreground hover:text-primary'
+            )}
+            onClick={() => setSelectedNav('payment')}
+            type="button"
+            disabled={!quote && (!taskCollaboratorQuotes || taskCollaboratorQuotes.length === 0)}
+          >{T.paymentSummary ?? 'Payments'}</button>
         </nav>
 
         {/* --- MAIN CONTENT: Scrollable, flush left --- */}
@@ -919,20 +933,41 @@ export function TaskDetailsDialog({
               {quote && quote.sections && quote.sections.length > 0 ? (
                 <>
                   {renderQuoteTable(T.priceQuote, quote)}
-                  <div className="flex justify-end pt-4 mt-4 border-t">
-                    <div className="text-sm space-y-2 w-full max-w-xs">
-                      {calculationResults.map(calc => (
-                        <div key={calc.id} className="flex justify-between">
-                          <span className="font-medium">{calc.name} ({calc.calculation}):</span>
-                          <span>{typeof calc.result === 'number' ? calc.result.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US') : calc.result}</span>
+                  <div className="pt-4 mt-4 border-t">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      <div className="rounded-md border p-3">
+                        <div className="text-xs text-muted-foreground">{T.grandTotal || 'Grand Total'}</div>
+                        <div className="text-lg font-semibold">
+                          {totalQuote.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}
                         </div>
-                      ))}
-                      <div className="flex justify-between mt-2 pt-2 border-t">
-                        <span className="font-semibold">{T.grandTotal}:</span>
-                        <span className="font-semibold">{totalQuote.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
                       </div>
-                      <Separator/>
+                      <div className="rounded-md border p-3">
+                        <div className="text-xs text-muted-foreground">{T.totalCollaboratorCosts || 'Collaborator Total'}</div>
+                        <div className="text-lg font-semibold">
+                          {totalCollabQuote.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}
+                        </div>
+                      </div>
+                      <div className="rounded-md border p-3">
+                        <div className="text-xs text-muted-foreground">{(T as any).netTotal || 'Net Total'}</div>
+                        <div className="text-lg font-semibold">
+                          {(totalQuote - totalCollabQuote).toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}
+                        </div>
+                      </div>
                     </div>
+
+                    {calculationResults.length > 0 && (
+                      <div className="mt-4">
+                        <div className="text-xs text-muted-foreground mb-2">{(T as any).sumByColumn || 'Calculations'}</div>
+                        <div className="text-sm space-y-2">
+                          {calculationResults.map(calc => (
+                            <div key={calc.id} className="flex justify-between">
+                              <span className="font-medium">{calc.name} ({calc.calculation}):</span>
+                              <span>{typeof calc.result === 'number' ? calc.result.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US') : calc.result}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </>
               ) : (
@@ -984,6 +1019,18 @@ export function TaskDetailsDialog({
               ) : (
                 <div className="text-muted-foreground text-center py-8">{T.noCollaboratorQuoteData ?? 'No collaborator quote data available.'}</div>
               )}
+            </div>
+          )}
+          {/* Payment Status Section */}
+          {selectedNav === 'payment' && (
+            <div className="space-y-4">
+              <QuotePaymentManager
+                quote={quote}
+                settings={settings}
+                onUpdateQuote={onUpdateQuote}
+                totalFromPrice={totalQuote}
+                taskStatus={task.status}
+              />
             </div>
           )}
         </div>

@@ -1,0 +1,6 @@
+.progress-bar[data-progress] {
+  width: calc(var(--progress, 0) * 1%);
+}
+
+.progress-bar[data-progress="0"] { width: 0%; }
+.progress-bar[data-progress="100"] { width: 100%; }

@@ -29,6 +29,18 @@ export type QuoteItem = {
   customFields?: Record<string, any>;
 };
 
+// Track each payment entry on a quote
+export type PaymentEntry = {
+  id: string;
+  status: 'paid' | 'scheduled'; // chỉ 2 trạng thái theo yêu cầu
+  date?: string; // ISO date for paid/scheduled
+  method?: 'cash' | 'bank_transfer' | 'credit_card' | 'paypal' | 'other';
+  notes?: string;
+  amount?: number; // số tiền của lần thanh toán này (nếu nhập theo tiền)
+  amountType?: 'absolute' | 'percent'; // loại nhập liệu
+  percent?: number; // nếu nhập theo %, lưu phần trăm ở đây
+};
+
 export type QuoteSection = {
   id: string;
   name: string;
@@ -43,6 +55,10 @@ export type Quote = {
   // Bổ sung theo Spec
   status: 'draft' | 'sent' | 'accepted' | 'invoiced' | 'paid' | 'rejected';
   paidDate?: string;
+  paymentMethod?: 'cash' | 'bank_transfer' | 'credit_card' | 'paypal' | 'other';
+  paymentNotes?: string;
+  amountPaid?: number; // Tổng tiền đã nhận cho task (đơn vị theo currency)
+  payments?: PaymentEntry[]; // Danh sách các lần thanh toán
 };
 
 export type QuoteTemplate = {
@@ -61,6 +77,9 @@ export type CollaboratorQuote = {
   // Bổ sung theo Spec
   paymentStatus: 'pending' | 'paid';
   paidDate?: string;
+  paymentMethod?: 'cash' | 'bank_transfer' | 'credit_card' | 'paypal' | 'other';
+  paymentNotes?: string;
+  amountPaid?: number; // Amount actually paid (can be partial)
 };
 
 // Type mới cho chi phí chung
@@ -70,6 +89,19 @@ export type GeneralExpense = {
   amount: number; 
   date: string; // ISO String
   category: 'marketing' | 'software' | 'office' | 'other';
+};
+
+// Type cho chi phí cố định
+export type FixedCost = {
+  id: string;
+  name: string;
+  amount: number;
+  frequency: 'once' | 'weekly' | 'monthly' | 'yearly';
+  startDate: string; // ISO String - ngày bắt đầu áp dụng
+  endDate?: string; // ISO String - ngày kết thúc (optional, nếu không có thì áp dụng vô thời hạn)
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type Task = {
@@ -260,4 +292,5 @@ export type AppData = {
   appSettings: AppSettings;
   filterPresets?: FilterPreset[]; // Add filter presets to export data
   expenses?: GeneralExpense[]; // <-- Bổ sung theo Spec
+  fixedCosts?: FixedCost[]; // Chi phí cố định
 };

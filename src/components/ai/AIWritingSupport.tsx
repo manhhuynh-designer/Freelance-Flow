@@ -17,6 +17,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TiptapUnderline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { i18n } from '@/lib/i18n';
 import '@/styles/tiptap-content.css';
 
@@ -791,10 +792,10 @@ export function AIWritingSupport() {
     <Tabs defaultValue="presets"><TabsList className="grid w-full grid-cols-2"><TabsTrigger value="presets">{T.presetsLabel || 'Presets'}</TabsTrigger><TabsTrigger value="history">{T.historyLabel || 'History'}</TabsTrigger></TabsList>
                 <TabsContent value="presets" className="m-0">
         <div className="border-t p-2"><Button onClick={handleOpenSavePresetDialog} className="w-full" size="sm" variant="outline"><Save className="w-4 h-4 mr-2"/>{T.saveCurrent || 'Save Current'}</Button></div>
-                    <CardContent className="p-2 max-h-[250px] overflow-y-auto">{presets.length>0 ? presets.map(p=><div key={p.id} className="flex group items-center text-sm"><Button variant="link" onClick={()=>loadPreset(p)} className="flex-1 justify-start h-auto font-normal truncate p-1">{p.name}</Button><Button variant="ghost" size="icon" className="w-7 h-7 shrink-0 opacity-0 group-hover:opacity-100" onClick={()=>deletePreset(p.id)}><Trash2 className="w-4 h-4"/></Button></div>):<p className="text-center p-4">{T.noPresets || 'No presets.'}</p>}</CardContent>
+                    <CardContent className="p-2 max-h-[250px] overflow-y-auto">{presets.length>0 ? presets.map(p=><div key={p.id} className="flex group items-center text-sm"><Button variant="link" onClick={()=>loadPreset(p)} className="flex-1 justify-start h-auto font-normal truncate p-1">{p.name}</Button><Button variant="ghost" size="icon" className="w-7 h-7 shrink-0 opacity-0 group-hover:opacity-100" onClick={()=>deletePreset(p.id)}><Trash2 className="w-4 h-4"/></Button></div>):<p className="text-center p-4">No presets.</p>}</CardContent>
                 </TabsContent>
                 <TabsContent value="history" className="m-0">
-                    <CardContent className="p-2 max-h-[280px] overflow-y-auto">{history.length>0?history.map(h=><div key={h.id} className="flex group items-center border-b p-1 text-sm"><div className="flex-1 overflow-hidden cursor-pointer" onClick={()=>loadHistoryItem(h, true)}><p className="font-semibold truncate">{h.title}</p><p className="text-xs text-muted-foreground">{new Date(h.timestamp).toLocaleString()}</p></div><Button variant="ghost" size="icon" className="w-8 h-8 shrink-0 opacity-0 group-hover:opacity-100" onClick={(e)=>{e.stopPropagation();deleteHistoryItem(h.id)}}><Trash2 className="w-4 h-4"/></Button></div>):<p className="text-center p-4">{T.noHistory || 'No history.'}</p>}</CardContent>
+                    <CardContent className="p-2 max-h-[280px] overflow-y-auto">{history.length>0?history.map(h=><div key={h.id} className="flex group items-center border-b p-1 text-sm"><div className="flex-1 overflow-hidden cursor-pointer" onClick={()=>loadHistoryItem(h, true)}><p className="font-semibold truncate">{h.title}</p><p className="text-xs text-muted-foreground">{new Date(h.timestamp).toLocaleString()}</p></div><Button variant="ghost" size="icon" className="w-8 h-8 shrink-0 opacity-0 group-hover:opacity-100" onClick={(e)=>{e.stopPropagation();deleteHistoryItem(h.id)}}><Trash2 className="w-4 h-4"/></Button></div>):<p className="text-center p-4">No history.</p>}</CardContent>
                 </TabsContent>
             </Tabs>
           </Card>

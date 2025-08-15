@@ -39,6 +39,7 @@ export const quotes: Quote[] = [
       ]
     }],
     total: 3000000,
+    status: 'sent'
   },
   {
     id: 'quote-2',
@@ -50,6 +51,7 @@ export const quotes: Quote[] = [
       ]
     }],
     total: 1000000,
+    status: 'accepted'
   },
   {
     id: 'quote-3',
@@ -62,6 +64,19 @@ export const quotes: Quote[] = [
       ]
     }],
     total: 1300000,
+    status: 'paid',
+    amountPaid: 650000, // 50% paid
+    payments: [
+      {
+        id: 'payment-1',
+        status: 'paid',
+        date: '2024-08-10',
+        method: 'bank_transfer',
+        notes: 'First payment - 50%',
+        amountType: 'percent',
+        percent: 50
+      }
+    ]
   },
   {
     id: 'quote-4',
@@ -73,6 +88,18 @@ export const quotes: Quote[] = [
       ]
     }],
     total: 1200000,
+    status: 'draft',
+    payments: [
+      {
+        id: 'payment-2',
+        status: 'scheduled',
+        date: '2024-08-25',
+        method: 'bank_transfer',
+        notes: 'Future payment - full amount',
+        amountType: 'percent',
+        percent: 100
+      }
+    ]
   },
 ];
 

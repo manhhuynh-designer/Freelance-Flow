@@ -1,0 +1,17 @@
+.payment-progress-bar {
+  --progress-width: 0%;
+  --handle-position: -8px;
+  --indicator-position: -20px;
+}
+
+.payment-progress-fill {
+  width: var(--progress-width);
+}
+
+.payment-progress-handle {
+  left: var(--handle-position);
+}
+
+.payment-progress-indicator {
+  left: var(--indicator-position);
+}

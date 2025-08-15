@@ -73,6 +73,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
       appData, handleViewTask, handleEditTask, handleAddTask, handleTaskStatusChange,
       handleDeleteTask, handleRestoreTask, handlePermanentDeleteTask,
       handleAddClientAndSelect, handleEmptyTrash, updateTask, updateEvent,
+      updateQuote, updateCollaboratorQuote,
       T, showInstallPrompt, installPromptEvent, handleInstallClick, 
       setShowInstallPrompt, viewingTaskDetails, viewingTaskId, handleCloseTaskDetails, 
       handleEditTaskClick, updateTaskEisenhowerQuadrant, reorderTasksInQuadrant,
@@ -430,6 +431,8 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
           settings={appData.appSettings}
           onEdit={() => effectiveHandleEditTaskClick(viewingTaskDetails.task)}
           onDelete={handleDeleteTask}
+          onUpdateQuote={updateQuote}
+          onUpdateCollaboratorQuote={updateCollaboratorQuote}
         />
       )}
 
