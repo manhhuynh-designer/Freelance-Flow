@@ -2,9 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from '@/contexts/dashboard-context';
-import { DateRange } from 'react-day-picker';
-import { Button } from '@/components/ui/button';
-import { TimeRangePicker } from './prediction/TimeRangePicker';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 
 // Step 2: Import new helper functions
@@ -14,12 +12,13 @@ import {
   calculateTaskDetails,
   calculateAdditionalFinancials,
   calculateAdditionalTaskDetails,
-  getAIBusinessAnalysis 
+  getAIBusinessAnalysis,
+  calculateMonthlyFinancials // Import the new function
 } from '@/ai/analytics/business-intelligence-helpers';
 
 // Step 3: Import new card components
 import { FinancialSummaryCard } from './business/FinancialSummaryCard';
-import { RevenueBreakdownCard } from './business/RevenueBreakdownCard';
+import { FinancialInsightsCard } from './business/FinancialInsightsCard'; // Import the new component
 import { AIBusinessAnalysisCard } from './business/AIBusinessAnalysisCard';
 import { TaskDetailsDialog } from '@/components/task-dialogs/TaskDetailsDialog';
 import { EditTaskForm } from '@/components/edit-task-form';
@@ -28,9 +27,9 @@ export function BusinessDashboard() {
   const { appData, isDataLoaded, updateTask, handleDeleteTask: deleteTask, updateQuote, updateCollaboratorQuote, handleEditTask: editTask, handleAddClientAndSelect } = useDashboard();
   
   // State lifted up to the main dashboard component
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [summary, setSummary] = useState<any>(null);
   const [breakdown, setBreakdown] = useState<any>(null);
+  const [monthlyData, setMonthlyData] = useState<any[] | null>(null); // State for monthly data
   const [analysis, setAnalysis] = useState<any>(null);
   const [taskDetails, setTaskDetails] = useState<any>(null);
   const [additionalFinancials, setAdditionalFinancials] = useState<any>(null);
@@ -40,23 +39,35 @@ export function BusinessDashboard() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const selectedQuote = selectedTaskId ? appData?.quotes?.find(q => q.id === (appData?.tasks?.find(t => t.id === selectedTaskId)?.quoteId)) : null;
+  const selectedCollaboratorQuotes = selectedTaskId ? appData?.tasks?.find(t => t.id === selectedTaskId)?.collaboratorQuotes?.map(link => appData?.collaboratorQuotes?.find(cq => cq.id === link.quoteId)).filter(Boolean) as any[] : [];
 
-  // Effect to perform calculations when data or date range changes
+
+  // Effect to perform calculations when data changes
   useEffect(() => {
-    if (isDataLoaded && appData) {
-      // Perform local, real-time calculations
-      const summaryResult = calculateFinancialSummary(appData, { from: dateRange?.from, to: dateRange?.to });
-      const breakdownResult = calculateRevenueBreakdown(appData, { from: dateRange?.from, to: dateRange?.to });
-      const taskDetailsResult = calculateTaskDetails(appData, { from: dateRange?.from, to: dateRange?.to });
-      const additionalResult = calculateAdditionalFinancials(appData, { from: dateRange?.from, to: dateRange?.to });
-      const additionalTaskDetailsResult = calculateAdditionalTaskDetails(appData, { from: dateRange?.from, to: dateRange?.to });
-      setSummary(summaryResult);
-      setBreakdown(breakdownResult);
-      setTaskDetails(taskDetailsResult);
-      setAdditionalFinancials(additionalResult);
-      setAdditionalTaskDetails(additionalTaskDetailsResult);
-    }
-  }, [appData, isDataLoaded, dateRange]);
+    if (!appData) return;
+
+    // Perform local, real-time calculations for ALL TIME by default
+    const summaryResult = calculateFinancialSummary(appData, {});
+    const breakdownResult = calculateRevenueBreakdown(appData, {});
+    const monthlyResult = calculateMonthlyFinancials(appData, {});
+    const taskDetailsResult = calculateTaskDetails(appData, {});
+    const additionalResult = calculateAdditionalFinancials(appData, {});
+    const additionalTaskDetailsResult = calculateAdditionalTaskDetails(appData, {});
+    
+    console.log('--- Dashboard Analytics Debug ---');
+  console.log('Date Range Used: ALL TIME');
+    console.log('Breakdown Result:', breakdownResult);
+    console.log('Monthly Result:', monthlyResult);
+    console.log('---------------------------------');
+
+    setSummary(summaryResult);
+    setBreakdown(breakdownResult);
+    setMonthlyData(monthlyResult);
+    setTaskDetails(taskDetailsResult);
+    setAdditionalFinancials(additionalResult);
+    setAdditionalTaskDetails(additionalTaskDetailsResult);
+  }, [appData]);
 
   const handleAiAnalysis = async () => {
     if (!summary || !breakdown) return;
@@ -88,7 +99,6 @@ export function BusinessDashboard() {
   };
 
   const handleEditTask = () => {
-    setIsTaskDialogOpen(false);
     setIsEditDialogOpen(true);
   };
 
@@ -142,16 +152,12 @@ export function BusinessDashboard() {
     }
 
     setIsEditDialogOpen(false);
-    setIsTaskDialogOpen(true); // Return to task details view
+    // Keep task dialog open to show updated details
   };
 
   // Get selected task and related data for TaskDetailsDialog
   const selectedTask = selectedTaskId ? appData?.tasks?.find(t => t.id === selectedTaskId) : null;
   const selectedClient = selectedTask ? appData?.clients?.find(c => c.id === selectedTask.clientId) : null;
-  const selectedQuote = selectedTask ? appData?.quotes?.find(q => q.id === selectedTask.quoteId) : null;
-  const selectedCollaboratorQuotes = selectedTask?.collaboratorQuotes 
-    ? appData?.collaboratorQuotes?.filter(cq => selectedTask.collaboratorQuotes?.some(link => link.quoteId === cq.id)) 
-    : [];
   
   if (!isDataLoaded) {
       return (
@@ -164,9 +170,8 @@ export function BusinessDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+  <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Business Dashboard</h2>
-        <TimeRangePicker date={dateRange} setDate={setDateRange} />
       </div>
       
       {/* 2-Column Layout */}
@@ -180,10 +185,14 @@ export function BusinessDashboard() {
             taskDetails={taskDetails}
             additionalFinancials={additionalFinancials}
             additionalTaskDetails={additionalTaskDetails}
-            dateRange={dateRange || {}}
             onTaskClick={handleTaskClick}
           />
-          <RevenueBreakdownCard breakdown={breakdown} />
+          <FinancialInsightsCard 
+            breakdown={breakdown} 
+            monthlyData={monthlyData}
+            currency={appData?.appSettings?.currency || 'USD'}
+            locale={appData?.appSettings?.language === 'vi' ? 'vi-VN' : 'en-US'}
+          />
         </div>
         
         {/* Right Column (AI Analysis) */}
@@ -198,7 +207,7 @@ export function BusinessDashboard() {
       </div>
 
       {/* TaskDetailsDialog for clicked tasks */}
-      {selectedTask && (
+      {selectedTask && !isEditDialogOpen && (
         <TaskDetailsDialog
           task={selectedTask}
           client={selectedClient || undefined}
@@ -222,37 +231,29 @@ export function BusinessDashboard() {
 
       {/* EditTaskForm dialog for editing tasks */}
       {selectedTask && isEditDialogOpen && (
-        <div className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-background border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto relative z-[61]">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">Edit Task</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setIsEditDialogOpen(false);
-                  }}
-                >
-                  ✕
-                </Button>
-              </div>
-              <EditTaskForm
-                setOpen={setIsEditDialogOpen}
-                onSubmit={handleTaskFormSubmit}
-                taskToEdit={selectedTask}
-                quote={selectedQuote || undefined}
-                collaboratorQuotes={selectedCollaboratorQuotes as any[]}
-                clients={appData?.clients || []}
-                collaborators={appData?.collaborators || []}
-                categories={appData?.categories || []}
-                onAddClient={handleAddClientAndSelect}
-                quoteTemplates={appData?.quoteTemplates || []}
-                settings={appData?.appSettings || { language: 'en', currency: 'USD', statusColors: {}, statusSettings: [] }}
-              />
-            </div>
-          </div>
-        </div>
+        <Dialog 
+          open={isEditDialogOpen} 
+          onOpenChange={setIsEditDialogOpen}
+        >
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Task</DialogTitle>
+            </DialogHeader>
+            <EditTaskForm
+              setOpen={setIsEditDialogOpen}
+              onSubmit={handleTaskFormSubmit}
+              taskToEdit={selectedTask}
+              quote={selectedQuote || undefined}
+              collaboratorQuotes={selectedCollaboratorQuotes as any[]}
+              clients={appData?.clients || []}
+              collaborators={appData?.collaborators || []}
+              categories={appData?.categories || []}
+              onAddClient={handleAddClientAndSelect}
+              quoteTemplates={appData?.quoteTemplates || []}
+              settings={appData?.appSettings || { language: 'en', currency: 'USD', statusColors: {}, statusSettings: [] }}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

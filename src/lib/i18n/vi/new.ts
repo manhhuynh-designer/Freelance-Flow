@@ -507,4 +507,10 @@ dailyBreakdown: 'Phân rã theo ngày'
 				noDataAvailable: 'Không có dữ liệu',
 				onlyCompletedTasksCountForRevenue: 'Chỉ tính doanh thu từ công việc đã hoàn thành và thanh toán',
 				onlyPaidCostsIncluded: 'Chỉ bao gồm chi phí cộng tác viên và chi tiêu đã thanh toán',
+// Financial Insights Card
+				financialInsights: 'Phân tích Tài chính',
+				visualAnalysisOfPerformance: 'Phân tích trực quan về hiệu suất tài chính của bạn',
+				monthlyPerformance: 'Hàng tháng',
+				profitTrend: 'Xu hướng Lợi nhuận',
+				topClients: 'Top Khách hàng',
 		};

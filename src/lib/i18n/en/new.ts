@@ -506,4 +506,10 @@ dailyBreakdown: 'Daily Breakdown',
 			lostRevenue: 'Lost Revenue',
 			scheduledPayments: 'Scheduled payments',
 			onHoldTasks: 'On-hold tasks',
+// Financial Insights Card
+			financialInsights: 'Financial Insights',
+			visualAnalysisOfPerformance: 'Visual analysis of your financial performance',
+			monthlyPerformance: 'Monthly',
+			profitTrend: 'Profit Trend',
+			topClients: 'Top Clients',
 		};

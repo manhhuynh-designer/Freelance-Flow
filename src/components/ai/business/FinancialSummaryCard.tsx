@@ -23,7 +23,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { 
-  DollarSign, 
+  DollarSign,
   TrendingDown, 
   TrendingUp, 
   Eye, 
@@ -38,6 +38,12 @@ import { i18n } from '@/lib/i18n';
 import { useToast } from '@/hooks/use-toast';
 import type { FixedCost } from '@/lib/types';
 import { format } from 'date-fns';
+import { 
+  calculateFinancialSummary,
+  calculateTaskDetails,
+  calculateAdditionalFinancials,
+  calculateAdditionalTaskDetails
+} from '@/ai/analytics/business-intelligence-helpers';
 
 interface TaskDetail {
   id: string;
@@ -68,16 +74,22 @@ interface FinancialSummaryCardProps {
     futureRevenueItems: TaskDetail[];
     lostRevenueItems: TaskDetail[];
   };
-  dateRange?: { from?: Date; to?: Date };
   onTaskClick?: (taskId: string) => void;
 }
+type Period = 'all' | 'week' | 'month' | 'year';
 
-export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDetails, additionalFinancials, additionalTaskDetails, dateRange, onTaskClick }: FinancialSummaryCardProps) {
+export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDetails, additionalFinancials, additionalTaskDetails, onTaskClick }: FinancialSummaryCardProps) {
   const { appData, setAppData } = useDashboard();
   const T = i18n[appData?.appSettings?.language || 'en'];
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'revenue' | 'costs' | 'future-revenue' | 'lost-revenue' | 'fixed-costs' | null>(null);
+  const [period, setPeriod] = useState<Period>('all');
+  // Anchors for period selection
+  const now = new Date();
+  const [weekDate, setWeekDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [monthValue, setMonthValue] = useState<string>(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`);
+  const [yearValue, setYearValue] = useState<number>(now.getFullYear());
   
   // Fixed costs management state
   const [editingCost, setEditingCost] = useState<FixedCost | null>(null);
@@ -92,66 +104,121 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
 
   const fixedCosts = appData?.fixedCosts || [];
 
-  // Calculate fixed costs for the selected date range
+  // Calculate fixed costs for the selected period
   const totalFixedCosts = useMemo(() => {
     if (!appData?.fixedCosts || appData.fixedCosts.length === 0) return 0;
 
-    // If no date range is selected, calculate for current month
-    let fromDate: Date, toDate: Date;
-    
-    if (dateRange?.from && dateRange?.to) {
-      fromDate = new Date(dateRange.from);
-      toDate = new Date(dateRange.to);
+    let fromDate: Date | undefined;
+    let toDate: Date | undefined;
+    if (period === 'all') {
+      fromDate = undefined; toDate = undefined;
+    } else if (period === 'week') {
+      const anchor = new Date(weekDate);
+      const start = new Date(anchor);
+      const day = start.getDay();
+      const diff = (day + 6) % 7; // Monday
+      start.setDate(start.getDate() - diff);
+      start.setHours(0,0,0,0);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      end.setHours(23,59,59,999);
+      fromDate = start; toDate = end;
+    } else if (period === 'month') {
+      const [y, m] = monthValue.split('-').map(Number);
+      fromDate = new Date(y, (m||1)-1, 1);
+      toDate = new Date(y, (m||1), 0);
     } else {
-      // Default to current month if no date range selected
-      const now = new Date();
-      fromDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      fromDate = new Date(yearValue, 0, 1);
+      toDate = new Date(yearValue, 11, 31);
     }
 
-    // Calculate exact number of days in the selected range (inclusive)
-    const rangeDays = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const rangeDays = fromDate && toDate ? (Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000*60*60*24)) + 1) : undefined;
 
     return appData.fixedCosts.reduce((total, cost) => {
       if (!cost.isActive) return total;
-
       const startDate = new Date(cost.startDate);
       const endDate = cost.endDate ? new Date(cost.endDate) : null;
 
-      // Check if cost applies to the selected range
-      if (startDate > toDate || (endDate && endDate < fromDate)) {
-        return total;
-      }
-
-      // Calculate daily rate based on frequency
-      let dailyRate = 0;
-      
-      switch (cost.frequency) {
-        case 'once':
-          // One-time cost applies if start date is in range
-          if (startDate >= fromDate && startDate <= toDate) {
-            return total + cost.amount;
+      // All-time: approximate across active period
+      if (!fromDate || !toDate) {
+        switch (cost.frequency) {
+          case 'once': return total + cost.amount;
+          case 'weekly': {
+            const until = endDate && endDate < now ? endDate : now;
+            const days = Math.max(0, Math.ceil((until.getTime() - startDate.getTime()) / (1000*60*60*24)) + 1);
+            return total + cost.amount * (days/7);
           }
-          return total;
-        case 'weekly':
-          // Weekly cost = amount per week / 7 days
-          dailyRate = cost.amount / 7;
-          break;
-        case 'monthly':
-          // Monthly cost = amount per month / 30.44 days (average)
-          dailyRate = cost.amount / 30.44;
-          break;
-        case 'yearly':
-          // Yearly cost = amount per year / 365.25 days (average)
-          dailyRate = cost.amount / 365.25;
-          break;
+          case 'monthly': {
+            const until = endDate && endDate < now ? endDate : now;
+            const months = (until.getFullYear() - startDate.getFullYear()) * 12 + (until.getMonth() - startDate.getMonth()) + 1;
+            return total + cost.amount * Math.max(0, months);
+          }
+          case 'yearly': {
+            const until = endDate && endDate < now ? endDate : now;
+            const years = (until.getFullYear() - startDate.getFullYear()) + 1;
+            return total + cost.amount * Math.max(0, years);
+          }
+        }
       }
 
-      // Calculate total cost for the selected range: daily rate × number of days
-      const costForRange = dailyRate * rangeDays;
+      // Bounded period overlap check
+      if ((fromDate && startDate > toDate!) || (endDate && fromDate && endDate < fromDate)) return total;
+
+      let dailyRate = 0;
+      switch (cost.frequency) {
+        case 'weekly': dailyRate = cost.amount / 7; break;
+        case 'monthly': dailyRate = cost.amount / 30.44; break;
+        case 'yearly': dailyRate = cost.amount / 365.25; break;
+        case 'once':
+          if (fromDate && toDate && startDate >= fromDate && startDate <= toDate) return total + cost.amount;
+          return total;
+      }
+      const costForRange = rangeDays ? dailyRate * rangeDays : 0;
       return total + costForRange;
     }, 0);
-  }, [appData?.fixedCosts, dateRange]);
+  }, [appData?.fixedCosts, period, weekDate, monthValue, yearValue]);
+
+  // Derive dateRange from selected period and anchors
+  const selectedRange = useMemo(() => {
+    if (period === 'all') return {} as { from?: Date; to?: Date };
+    if (period === 'week') {
+      const anchor = new Date(weekDate);
+      const start = new Date(anchor);
+      const day = start.getDay();
+      const diff = (day + 6) % 7; // Monday
+      start.setDate(start.getDate() - diff);
+      start.setHours(0,0,0,0);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      end.setHours(23,59,59,999);
+      return { from: start, to: end };
+    }
+    if (period === 'month') {
+      const [y, m] = monthValue.split('-').map(Number);
+      const from = new Date(y, (m||1)-1, 1);
+      const to = new Date(y, (m||1), 0);
+      return { from, to };
+    }
+    // year
+    return { from: new Date(yearValue, 0, 1), to: new Date(yearValue, 11, 31) };
+  }, [period, weekDate, monthValue, yearValue]);
+
+  // Compute period-based metrics
+  const viewSummary = useMemo(() => {
+    return appData ? calculateFinancialSummary(appData as any, selectedRange) : summary || { revenue: 0, costs: 0, profit: 0 };
+  }, [appData, selectedRange, summary]);
+
+  const viewAdditionalFinancials = useMemo(() => {
+    return appData ? calculateAdditionalFinancials(appData as any, selectedRange) : additionalFinancials || { futureRevenue: 0, lostRevenue: 0 };
+  }, [appData, selectedRange, additionalFinancials]);
+
+  const viewTaskDetails = useMemo(() => {
+    return appData ? calculateTaskDetails(appData as any, selectedRange) : taskDetails || { revenueItems: [], costItems: [] };
+  }, [appData, selectedRange, taskDetails]);
+
+  const viewAdditionalTaskDetails = useMemo(() => {
+    return appData ? calculateAdditionalTaskDetails(appData as any, selectedRange) : additionalTaskDetails || { futureRevenueItems: [], lostRevenueItems: [] };
+  }, [appData, selectedRange, additionalTaskDetails]);
 
   const frequencyLabels = {
     once: 'One time',
@@ -263,7 +330,7 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
     });
   };
 
-  if (!summary) {
+  if (!summary && !appData) {
     return (
       <Card>
         <CardHeader>
@@ -278,7 +345,7 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
     );
   }
 
-  const { revenue, costs, profit } = summary;
+  const { revenue, costs, profit } = viewSummary;
 
   const resolvedLocale = locale || (currency === 'VND' ? 'vi-VN' : 'en-US');
   const formatCurrency = (value: number) =>
@@ -299,6 +366,76 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 grid-cols-1 lg:grid-cols-3">
+          {/* Elegant Period Selector */}
+          <div className="lg:col-span-3 mb-4">
+            <div className="bg-secondary/30 rounded-lg p-3 border border-border/50">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-foreground">Time Period</span>
+                  <div className="flex rounded-md border border-border overflow-hidden">
+                    {(['all','week','month','year'] as Period[]).map(p => (
+                      <Button 
+                        key={p} 
+                        variant="ghost" 
+                        size="sm" 
+                        className={`h-8 px-3 text-xs rounded-none border-r border-border/30 last:border-r-0 ${
+                          period === p 
+                            ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                            : 'hover:bg-secondary/60'
+                        }`} 
+                        onClick={() => setPeriod(p)}
+                      >
+                        {p === 'all' ? 'All Time' : p.charAt(0).toUpperCase() + p.slice(1)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {period !== 'all' && (
+                  <div className="flex items-center gap-2">
+                    {period === 'week' && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Week of:</span>
+                        <Input 
+                          type="date" 
+                          value={weekDate} 
+                          onChange={(e) => setWeekDate(e.target.value)} 
+                          className="h-8 text-xs w-[140px] bg-background border-border" 
+                        />
+                      </div>
+                    )}
+                    {period === 'month' && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Month:</span>
+                        <Input 
+                          type="month" 
+                          value={monthValue} 
+                          onChange={(e) => setMonthValue(e.target.value)} 
+                          className="h-8 text-xs w-[130px] bg-background border-border" 
+                        />
+                      </div>
+                    )}
+                    {period === 'year' && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Year:</span>
+                        <Select value={String(yearValue)} onValueChange={(v) => setYearValue(Number(v))}>
+                          <SelectTrigger className="h-8 text-xs w-[100px] bg-background border-border">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 15 }).map((_, idx) => {
+                              const y = now.getFullYear() - 10 + idx;
+                              return <SelectItem key={y} value={String(y)}>{y}</SelectItem>;
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         
         <div 
           className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4 border border-green-200 dark:border-green-800 cursor-pointer hover:shadow-lg transition-shadow group"
@@ -377,7 +514,7 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
         </CardContent>
 
       {/* Additional Financial Metrics */}
-      {additionalFinancials && (
+  {viewAdditionalFinancials && (
         <CardContent className="pt-0">
           <div className="grid gap-3 grid-cols-1 lg:grid-cols-3 mt-4 pt-4 border-t">
             <div 
@@ -403,7 +540,7 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
                   <Eye className="w-3 h-3 text-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>
-              <h4 className="text-lg font-bold text-yellow-800 dark:text-yellow-200 break-all">{formatCurrency(additionalFinancials.futureRevenue)}</h4>
+              <h4 className="text-lg font-bold text-yellow-800 dark:text-yellow-200 break-all">{formatCurrency(viewAdditionalFinancials.futureRevenue)}</h4>
               <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">{T.scheduledPayments || 'Scheduled payments'}</p>
             </div>
             
@@ -430,7 +567,7 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
                   <Eye className="w-3 h-3 text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>
-              <h4 className="text-lg font-bold text-orange-800 dark:text-orange-200 break-all">{formatCurrency(additionalFinancials.lostRevenue)}</h4>
+              <h4 className="text-lg font-bold text-orange-800 dark:text-orange-200 break-all">{formatCurrency(viewAdditionalFinancials.lostRevenue)}</h4>
               <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">{T.onHoldTasks || 'On-hold tasks'}</p>
             </div>
 
@@ -756,9 +893,9 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
               </>
             ) : (
               // Existing task details logic
-              (dialogType === 'revenue' && taskDetails) ? (
-                taskDetails.revenueItems.length > 0 ? (
-                  taskDetails.revenueItems.map((item) => (
+              (dialogType === 'revenue' && viewTaskDetails) ? (
+                viewTaskDetails.revenueItems.length > 0 ? (
+                  viewTaskDetails.revenueItems.map((item) => (
                     <div 
                       key={item.id} 
                       className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border cursor-pointer hover:bg-green-100 dark:hover:bg-green-950/30 transition-colors"
@@ -776,9 +913,9 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
                 ) : (
                   <p className="text-center text-muted-foreground py-8">{T.noRevenueTasksFound || 'No revenue tasks found'}</p>
                 )
-              ) : (dialogType === 'costs' && taskDetails) ? (
-                taskDetails.costItems.length > 0 ? (
-                  taskDetails.costItems.map((item) => (
+              ) : (dialogType === 'costs' && viewTaskDetails) ? (
+                viewTaskDetails.costItems.length > 0 ? (
+                  viewTaskDetails.costItems.map((item) => (
                     <div 
                       key={item.id} 
                       className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border cursor-pointer hover:bg-red-100 dark:hover:bg-red-950/30 transition-colors"
@@ -796,9 +933,9 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
                 ) : (
                   <p className="text-center text-muted-foreground py-8">{T.noCostTasksFound || 'No cost tasks found'}</p>
                 )
-              ) : (dialogType === 'future-revenue' && additionalTaskDetails) ? (
-                additionalTaskDetails.futureRevenueItems.length > 0 ? (
-                  additionalTaskDetails.futureRevenueItems.map((item) => (
+              ) : (dialogType === 'future-revenue' && viewAdditionalTaskDetails) ? (
+                viewAdditionalTaskDetails.futureRevenueItems.length > 0 ? (
+                  viewAdditionalTaskDetails.futureRevenueItems.map((item) => (
                     <div 
                       key={item.id} 
                       className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-950/30 transition-colors"
@@ -817,9 +954,9 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
                 ) : (
                   <p className="text-center text-muted-foreground py-8">{'No future revenue tasks found'}</p>
                 )
-              ) : (dialogType === 'lost-revenue' && additionalTaskDetails) ? (
-                additionalTaskDetails.lostRevenueItems.length > 0 ? (
-                  additionalTaskDetails.lostRevenueItems.map((item) => (
+              ) : (dialogType === 'lost-revenue' && viewAdditionalTaskDetails) ? (
+                viewAdditionalTaskDetails.lostRevenueItems.length > 0 ? (
+                  viewAdditionalTaskDetails.lostRevenueItems.map((item) => (
                     <div 
                       key={item.id} 
                       className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/30 transition-colors"
