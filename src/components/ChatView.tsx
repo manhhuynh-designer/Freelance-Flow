@@ -1,26 +1,21 @@
-'use client';
-
-import { useState, useRef, useEffect } from 'react';
+"use client";
+import React, { useState, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { 
-  Bot, 
-  Send, 
-  User, 
-  MessageCircle, 
-  Trash2, 
-  Settings,
+import {
+  Bot,
+  Send,
+  User,
+  MessageCircle,
+  Trash2,
   Loader2,
   Copy,
   CheckCircle,
-  AlertTriangle,
   History,
-  X
+  X,
 } from 'lucide-react';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { i18n } from '@/lib/i18n';
@@ -30,10 +25,12 @@ import { cn } from '@/lib/utils';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { TaskDetailsDialog } from '@/components/task-dialogs/TaskDetailsDialog';
 import { EventDetailsDialog } from '@/components/event-dialogs/EventDetailsDialog';
-import { CreateTaskForm } from '@/components/create-task-form-new';
+import { CreateTaskForm, CreateTaskFormRef } from '@/components/create-task-form-new';
 import { EditTaskForm } from '@/components/edit-task-form';
 import { InteractiveElements } from '@/components/ai/InteractiveElements';
 import type { InteractiveElement } from '@/lib/ai-types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { QuoteColumn } from '@/lib/types';
 
 interface ChatMessage {
   id: string;
@@ -65,7 +62,7 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
     handleEditTaskClick,
     editingTask,
     setEditingTask,
-  handleAddClientAndSelect
+    handleAddClientAndSelect
   } = useDashboard();
   const { toast } = useToast();
   
@@ -89,12 +86,13 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Get translations
-  const T = i18n[appData.appSettings.language];
+  const T = i18n[(appData?.appSettings?.language as 'en' | 'vi') || 'en'] || i18n.en;
 
   // Local storage keys
   const CONVERSATIONS_KEY = 'freelance-flow-conversations';
 
   const ensureStringContent = (content: any): string => {
+    // console.log('ensureStringContent processing:', content, typeof content);
     if (typeof content === 'string') {
       try {
         const parsed = JSON.parse(content);
@@ -119,6 +117,7 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
   useEffect(() => {
     try {
       const storedConversations = localStorage.getItem(CONVERSATIONS_KEY);
+      // console.log('Stored conversations (raw):', storedConversations);
       if (storedConversations) {
         const parsed = JSON.parse(storedConversations);
         const cleanedConversations = parsed.map((conv: any) => {
@@ -139,6 +138,7 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
           conv.createdAt instanceof Date && !isNaN(conv.createdAt.getTime()) &&
           conv.updatedAt instanceof Date && !isNaN(conv.updatedAt.getTime())
         );
+        // console.log('Cleaned conversations:', cleanedConversations);
         setConversations(cleanedConversations);
       }
     } catch (error) {
@@ -157,7 +157,7 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
 
   // Handle task link clicks
   const handleTaskClick = (taskId: string) => {
-    const task = appData?.tasks?.find(t => t.id === taskId);
+    const task = appData?.tasks?.find((t: any) => t.id === taskId);
     if (task) {
       setSelectedTask(task);
     } else {
@@ -171,7 +171,7 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
 
   // Handle event link clicks
   const handleEventClick = (eventId: string) => {
-    const event = appData?.events?.find(e => e.id === eventId);
+    const event = appData?.events?.find((e: any) => e.id === eventId);
     if (event) {
       setSelectedEvent(event);
     } else {
@@ -255,18 +255,24 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
 
   // Update current conversation
   const updateCurrentConversation = (newMessages: ChatMessage[]) => {
+    // Helper to extract a short snippet for conversation title
+    const getSnippetFromMessages = (msgs: ChatMessage[]) => {
+      if (!msgs || msgs.length === 0) return 'New Chat';
+      const first = msgs.find(m => m.content && String(m.content).trim().length > 0) || msgs[0];
+      const txt = String(first.content || '');
+      return txt.length > 30 ? txt.substring(0, 30) + '...' : txt;
+    };
+
     if (!currentConversationId) {
       // Create new conversation if none exists
       const newConversation: ChatConversation = {
         id: `conv-${Date.now()}`,
-        title: newMessages.length > 0 ? 
-          (newMessages[0].content.substring(0, 30) + (newMessages[0].content.length > 30 ? '...' : '')) 
-          : 'New Chat',
+        title: getSnippetFromMessages(newMessages),
         messages: newMessages,
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      
+
       const updatedConversations = [newConversation, ...conversations];
       setConversations(updatedConversations);
       saveConversations(updatedConversations);
@@ -281,9 +287,7 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
           ...conv,
           messages: newMessages,
           updatedAt: now,
-          title: newMessages.length > 0 ? 
-            (newMessages[0].content.substring(0, 30) + (newMessages[0].content.length > 30 ? '...' : '')) 
-            : 'New Chat'
+          title: getSnippetFromMessages(newMessages)
         };
       }
       return conv;
@@ -492,14 +496,14 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
 
   // Handle task/event dialog opening
   const handleOpenTaskDialog = (taskId: string) => {
-    const task = appData?.tasks?.find(t => t.id === taskId);
+    const task = appData?.tasks?.find((t: any) => t.id === taskId);
     if (task) {
       setSelectedTask(task);
     }
   };
 
   const handleOpenEventDialog = (eventId: string) => {
-    const event = appData?.events?.find(e => e.id === eventId);
+    const event = appData?.events?.find((e: any) => e.id === eventId);
     if (event) {
       setSelectedEvent(event);
     }
@@ -535,7 +539,7 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
           break;
         case 'openTask':
           if (element.data?.taskId) {
-            const task = appData?.tasks?.find(t => t.id === element.data.taskId);
+            const task = appData?.tasks?.find((t: any) => t.id === element.data.taskId);
             if (task) {
               setSelectedTask(task);
             } else {
@@ -549,7 +553,7 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
           break;
         case 'openEvent':
           if (element.data?.eventId) {
-            const event = appData?.events?.find(e => e.id === element.data.eventId);
+            const event = appData?.events?.find((e: any) => e.id === element.data.eventId);
             if (event) {
               setSelectedEvent(event);
             } else {
@@ -618,7 +622,9 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
 
   const formatTime = (timestamp: Date) => {
     try {
+      // console.log('Formatting time for:', timestamp);
       if (!timestamp || !(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
+          // console.warn('Invalid timestamp received by formatTime:', timestamp);
           return '';
       }
       return new Intl.DateTimeFormat(appData.appSettings.language, {
@@ -960,12 +966,12 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
     {selectedTask && (
       <TaskDetailsDialog
         task={selectedTask}
-        client={appData?.clients?.find(c => c.id === selectedTask.clientId)}
+        client={appData?.clients?.find((c: any) => c.id === selectedTask.clientId)}
         clients={appData?.clients || []}
         collaborators={appData?.collaborators || []}
         categories={appData?.categories || []}
-        quote={appData?.quotes?.find(q => q.id === selectedTask.quoteId)}
-        collaboratorQuotes={appData?.quotes?.filter(q => 
+        quote={appData?.quotes?.find((q: any) => q.id === selectedTask.quoteId)}
+        collaboratorQuotes={appData?.quotes?.filter((q: any) => 
           selectedTask.collaboratorQuotes?.some((cq: any) => cq.quoteId === q.id)
         )}
         settings={appData?.appSettings}
@@ -1055,8 +1061,8 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
                 setEditingTask(null);
               }}
               taskToEdit={editingTask}
-              quote={appData?.quotes?.find(q => q.id === editingTask.quoteId)}
-              collaboratorQuotes={appData?.quotes?.filter(q => 
+              quote={appData?.quotes?.find((q: any) => q.id === editingTask.quoteId)}
+              collaboratorQuotes={appData?.quotes?.filter((q: any) => 
                 editingTask.collaboratorQuotes?.some((cq: any) => cq.quoteId === q.id)
               )}
               clients={appData?.clients || []}
@@ -1098,8 +1104,7 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
               }}
               quoteTemplates={appData?.quoteTemplates || []}
               settings={appData?.appSettings}
-              onDirtyChange={() => {}}
-              onSubmitStart={() => {}}
+              onDirtyChange={() => { } }
             />
           </div>
         </DialogContent>
