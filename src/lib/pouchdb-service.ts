@@ -1,140 +1,127 @@
-import PouchDB from 'pouchdb-browser';
+import { initialAppData } from '@/lib/data';
 import type { AppData } from '@/lib/types';
+import type PouchDB from 'pouchdb-browser';
 
-// We can use a single database and distinguish between document types using a 'type' field.
-// Or, we can use multiple databases. For simplicity and since the data is all related,
-// a single database with a 'type' property on documents is often a good starting point.
-// However, the existing AppData structure is one large object. We'll store different
-// parts of it as separate documents.
+let db: PouchDB.Database | null = null;
+let dbPromise: Promise<PouchDB.Database> | null = null;
 
-const db = new PouchDB('freelance_flow_data');
+async function getDb(): Promise<PouchDB.Database> {
+  if (db) return db;
+  if (dbPromise) return dbPromise;
+  
+  dbPromise = (async () => {
+    const PouchDBModule = await import('pouchdb-browser');
+    db = new PouchDBModule.default('freelance_flow_data');
+    return db;
+  })();
+  return dbPromise;
+}
 
-export type DocumentID = 
-  | 'app_settings'
-  | 'tasks'
-  | 'clients'
-  | 'collaborators'
-  | 'categories'
-  | 'quotes'
-  | 'collaborator_quotes'
-  | 'quote_templates'
-  | 'notes'
-  | 'events'
-  | 'work_sessions';
+// Use camelCase IDs consistently across the app to match initialAppData keys
+export type DocumentID =
+  | 'appSettings' | 'tasks' | 'clients' | 'collaborators' | 'categories'
+  | 'quotes' | 'collaboratorQuotes' | 'quoteTemplates' | 'notes' | 'events' | 'workSessions'
+  | 'fixedCosts' | 'expenses';
+
+// Keep a utility to hard-reset the DB when explicitly requested by the app (not used automatically).
+async function destroyAndRecreateDb(): Promise<PouchDB.Database> {
+  console.warn("[DEBUG] Destroying existing DB by explicit request...");
+  const PouchDBModule = await import('pouchdb-browser');
+  const oldDb = new PouchDBModule.default('freelance_flow_data');
+  await oldDb.destroy();
+  console.log("[DEBUG] DB Destroyed. Recreating...");
+  db = new PouchDBModule.default('freelance_flow_data');
+  dbPromise = Promise.resolve(db);
+  return db;
+}
+
 
 export const PouchDBService = {
-  // Get a single document by its ID
   async getDocument<T>(id: DocumentID): Promise<(T & { _id: string; _rev: string }) | null> {
-    try {
-      const doc = await db.get(id);
-      return doc as T & { _id: string; _rev: string };
-    } catch (err: any) {
-      if (err.name === 'not_found') {
-        return null;
-      }
-      console.error(`Error getting document '${id}':`, err);
-      throw err;
-    }
+    const db = await getDb();
+    try { return await db.get(id) as any; } catch (e) { return null; }
   },
 
-  // Update or insert a document
   async setDocument(id: DocumentID, data: any): Promise<void> {
+    const db = await getDb();
     try {
       const doc = await this.getDocument(id);
-      await db.put({
-        _id: id,
-        _rev: doc ? doc._rev : undefined,
-        ...data,
-      });
+      if (doc && (doc as any)._rev) {
+        await db.put({ _id: id, _rev: (doc as any)._rev, data });
+      } else {
+        await db.put({ _id: id, data });
+      }
     } catch (err) {
-      console.error(`Error setting document '${id}':`, err);
+      console.error(`[PouchDB] setDocument failed for '${id}':`, err);
       throw err;
     }
   },
 
-  // Load the entire AppData state, initializing if it doesn't exist
-  async loadAppData(initialData: AppData): Promise<AppData> {
-    console.log("Attempting to load data from PouchDB...");
-    
-    const settingsDoc = await this.getDocument<AppData['appSettings']>('app_settings');
-    const tasksDoc = await this.getDocument<{ data: AppData['tasks'] }>('tasks');
-    const clientsDoc = await this.getDocument<{ data: AppData['clients'] }>('clients');
-    const collaboratorsDoc = await this.getDocument<{ data: AppData['collaborators'] }>('collaborators');
-    const categoriesDoc = await this.getDocument<{ data: AppData['categories'] }>('categories');
-    const quotesDoc = await this.getDocument<{ data: AppData['quotes'] }>('quotes');
-    const collabQuotesDoc = await this.getDocument<{ data: AppData['collaboratorQuotes'] }>('collaborator_quotes');
-    const templatesDoc = await this.getDocument<{ data: AppData['quoteTemplates'] }>('quote_templates');
-    const notesDoc = await this.getDocument<{ data: AppData['notes'] }>('notes');
-    const eventsDoc = await this.getDocument<{ data: AppData['events'] }>('events');
-    const workSessionsDoc = await this.getDocument<{ data: AppData['workSessions'] }>('work_sessions');
-    
-    // If settings don't exist, we assume it's a fresh database
-    if (!settingsDoc) {
-      console.log("No data found in PouchDB. Initializing with provided data.");
-      await this.setDocument('app_settings', initialData.appSettings);
-      await this.setDocument('tasks', { data: initialData.tasks });
-      await this.setDocument('clients', { data: initialData.clients });
-      await this.setDocument('collaborators', { data: initialData.collaborators });
-      await this.setDocument('categories', { data: initialData.categories });
-      await this.setDocument('quotes', { data: initialData.quotes });
-      await this.setDocument('collaborator_quotes', { data: initialData.collaboratorQuotes });
-      await this.setDocument('quote_templates', { data: initialData.quoteTemplates });
-      await this.setDocument('notes', { data: initialData.notes });
-      await this.setDocument('events', { data: initialData.events });
-      await this.setDocument('work_sessions', { data: initialData.workSessions });
-      return initialData;
-    }
+  async loadAppData(): Promise<AppData> {
+      console.log("[DEBUG] loadAppData starting...");
+      const database = await getDb();
 
-    console.log("Data loaded successfully from PouchDB.");
-    return {
-      appSettings: settingsDoc,
-      tasks: tasksDoc?.data ?? [],
-      clients: clientsDoc?.data ?? [],
-      collaborators: collaboratorsDoc?.data ?? [],
-      categories: categoriesDoc?.data ?? [],
-      quotes: quotesDoc?.data ?? [],
-      collaboratorQuotes: collabQuotesDoc?.data ?? [],
-      quoteTemplates: templatesDoc?.data ?? [],
-      notes: notesDoc?.data ?? [],
-      events: eventsDoc?.data ?? [],
-      workSessions: workSessionsDoc?.data ?? [],
-    };
-  },
+      // Known document IDs (camelCase) for stability
+      const ids: DocumentID[] = [
+        'appSettings', 'tasks', 'clients', 'collaborators', 'categories',
+        'quotes', 'collaboratorQuotes', 'quoteTemplates', 'notes', 'events', 'workSessions',
+        'fixedCosts', 'expenses'
+      ];
 
-  // Migrate data from localStorage if it exists and PouchDB is empty
-  async migrateFromLocalStorage(): Promise<boolean> {
-    const settingsDoc = await this.getDocument('app_settings');
-    const storageKey = 'freelance-flow-data';
-    const storedDataString = localStorage.getItem(storageKey);
-
-    if (!settingsDoc && storedDataString) {
-      console.log("Found localStorage data and empty PouchDB. Migrating...");
+      // Migration: copy data from legacy snake_case IDs to new camelCase IDs if needed
       try {
-        const localData: AppData = JSON.parse(storedDataString);
-        await this.loadAppData(localData); // Use loadAppData to populate
-        
-        // Optionally, rename old localStorage key to prevent re-migration
-        localStorage.removeItem(storageKey);
-        localStorage.setItem(`${storageKey}_migrated`, new Date().toISOString());
-
-        console.log("Migration successful!");
-        return true;
+        const legacyMap: Record<string, DocumentID> = {
+          app_settings: 'appSettings',
+          collaborator_quotes: 'collaboratorQuotes',
+          quote_templates: 'quoteTemplates',
+          work_sessions: 'workSessions',
+        };
+        for (const [oldId, newId] of Object.entries(legacyMap)) {
+          let oldDoc: any = null;
+          try { oldDoc = await database.get(oldId); } catch {}
+          const newDoc = await this.getDocument(newId);
+          if (oldDoc && !newDoc) {
+            console.log(`[DEBUG] Migrating legacy doc '${oldId}' -> '${newId}'`);
+            await database.put({ _id: newId, data: oldDoc.data });
+          }
+        }
       } catch (err) {
-        console.error("Migration from localStorage failed:", err);
-        return false;
+        console.error('[ERROR] Legacy migration failed:', err);
       }
-    }
-    return false; // No migration needed
-  },
 
-  async getTasks(): Promise<AppData['tasks']> {
-    const doc = await this.getDocument<{ data: AppData['tasks'] }>('tasks');
-    return doc?.data ?? [];
-  },
+      // Ensure each top-level document exists; never destroy the DB automatically.
+      try {
+        for (const id of ids) {
+          const existing = await this.getDocument(id);
+          if (!existing) {
+            const docData = (initialAppData as any)[id] ?? (Array.isArray((initialAppData as any)[id]) ? [] : (id === 'appSettings' ? (initialAppData as any).appSettings : []));
+            console.log(`[DEBUG] Missing doc '${id}'. Initializing with defaults...`);
+            await database.put({ _id: id, data: docData });
+          }
+        }
+      } catch (err) {
+        console.error("[ERROR] Ensuring default documents failed:", err);
+      }
 
-  async saveTasks(tasks: AppData['tasks']): Promise<void> {
-    await this.setDocument('tasks', { data: tasks });
+      // Fetch all documents explicitly by ID to avoid key-order bugs
+  const [appSettingsDoc, tasksDoc, clientsDoc, collaboratorsDoc, categoriesDoc, quotesDoc, collaboratorQuotesDoc, quoteTemplatesDoc, notesDoc, eventsDoc, workSessionsDoc, fixedCostsDoc, expensesDoc] = await Promise.all(ids.map(id => this.getDocument(id)));
+
+      const loadedData: AppData = {
+          appSettings: (appSettingsDoc as any)?.data ?? initialAppData.appSettings,
+          tasks: (tasksDoc as any)?.data ?? [],
+          clients: (clientsDoc as any)?.data ?? [],
+          collaborators: (collaboratorsDoc as any)?.data ?? [],
+          categories: (categoriesDoc as any)?.data ?? [],
+          quotes: (quotesDoc as any)?.data ?? [],
+          collaboratorQuotes: (collaboratorQuotesDoc as any)?.data ?? [],
+          quoteTemplates: (quoteTemplatesDoc as any)?.data ?? [],
+          notes: (notesDoc as any)?.data ?? [],
+          events: (eventsDoc as any)?.data ?? [],
+          workSessions: (workSessionsDoc as any)?.data ?? [],
+          fixedCosts: (fixedCostsDoc as any)?.data ?? [],
+          expenses: (expensesDoc as any)?.data ?? [],
+      };
+      console.log("[DEBUG] loadAppData finished. Task count:", loadedData.tasks.length);
+      return loadedData;
   }
-
-  // We will add more specific methods (e.g., saveSingleTask, getClientById) later as we refactor.
 };

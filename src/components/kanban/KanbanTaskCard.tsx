@@ -51,6 +51,7 @@ interface KanbanTaskCardProps {
   collaboratorQuotes: Quote[];
   collaborators: Collaborator[];
   appSettings: AppSettings;
+  handleTaskStatusChange?: (taskId: string, status: Task['status'], subStatusId?: string) => void;
   handleDeleteTask: (taskId: string) => void;
   handleEditTask: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
   handleAddClientAndSelect: (data: Omit<Client, 'id'>) => Client;
@@ -68,7 +69,8 @@ export function KanbanTaskCard({
     handleDeleteTask,
     handleEditTask,
     handleAddClientAndSelect,
-    quoteTemplates
+  quoteTemplates,
+  handleTaskStatusChange
 }: KanbanTaskCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
   
@@ -179,6 +181,7 @@ export function KanbanTaskCard({
           onClose={() => setIsDetailsOpen(false)}
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}
+          onChangeStatus={(taskId, statusId) => handleTaskStatusChange?.(taskId, statusId as any)}
         />
       </Dialog>
 

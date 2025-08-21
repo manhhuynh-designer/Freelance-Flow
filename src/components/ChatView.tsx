@@ -65,7 +65,7 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
     handleEditTaskClick,
     editingTask,
     setEditingTask,
-    handleAddClientAndSelect
+  handleAddClientAndSelect
   } = useDashboard();
   const { toast } = useToast();
   
@@ -992,7 +992,7 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
               description: error.message || 'Failed to open task editor. Please try again.'
             });
           }
-        }}
+  }}
         onDelete={(taskId: string) => {
           // Handle delete task with proper error handling
           try {

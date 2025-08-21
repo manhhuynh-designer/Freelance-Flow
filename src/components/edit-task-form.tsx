@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
-import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format, addDays, startOfMonth } from "date-fns";
@@ -37,17 +37,24 @@ import type { Task, Client, Collaborator, Category, Quote, QuoteSection, QuoteCo
 import type { SuggestQuoteOutput } from "@/lib/ai-types";
 import { QuoteManager } from "./quote-manager";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
+import { Expand, Shrink } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Task name must be at least 2 characters."),
   description: z.string().optional(),
-  briefLink: z.array(z.string().refine(
-    (val) => val.trim() === "" || z.string().url().safeParse(val).success,
-    { message: "Please enter a valid URL or leave empty." }
-  )).optional().default([]),
+  briefLink: z.array(z.string().url({ message: "Please enter a valid URL." }).or(z.literal(""))).optional().default([]),
   driveLink: z.array(z.string().refine(
-    (val) => val.trim() === "" || z.string().url().safeParse(val).success,
-    { message: "Please enter a valid URL or leave empty." }
+    (val) => {
+      if (val.trim() === "") return true; // Allow empty string
+      // Accept http(s) and file:// links
+      try {
+        const url = new URL(val);
+        return url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'file:';
+      } catch {
+        return false;
+      }
+    },
+    { message: "Please enter a valid URL or local file link (file://)." }
   )).optional().default([]),
   clientId: z.string().min(1, "Please select a client."),
   collaboratorIds: z.array(z.string()).optional().default([]), // Changed to array
@@ -64,7 +71,7 @@ const formSchema = z.object({
     items: z.array(
         z.object({
             id: z.string().optional(),
-            description: z.string().optional().default(""),
+            description: z.string().optional().default(""), // Adjusted validation for item description
             unitPrice: z.coerce.number().min(0, "Price cannot be negative.").default(0),
             customFields: z.record(z.any()).optional(),
         })
@@ -80,7 +87,7 @@ const formSchema = z.object({
           items: z.array(
             z.object({
               id: z.string().optional(),
-              description: z.string().optional().default(""),
+              description: z.string().optional().default(""), // Adjusted validation for item description
               unitPrice: z.coerce.number().min(0, "Price cannot be negative.").default(0),
               customFields: z.record(z.any()).optional(),
             })
@@ -100,7 +107,7 @@ type EditTaskFormProps = {
   quote?: Quote;
   collaboratorQuotes?: Quote[];
   clients: Client[];
-  collaborators: Collaborator[];
+  collaborators: Collaborator[]; 
   categories: Category[];
   onAddClient: (data: Omit<Client, 'id'>) => Client;
   quoteTemplates: QuoteTemplate[];
@@ -111,7 +118,27 @@ type EditTaskFormProps = {
   onRegisterDirtyCheck?: (fn: () => boolean) => void;
 };
 
-import { Expand, Shrink } from "lucide-react";
+// Date parsing utility
+const safeParseDate = (date: any, fallback: Date | null = null): Date | undefined => {
+  if (!date) return fallback ?? undefined;
+  
+  // Handle if it's already a valid Date object
+  if (date instanceof Date && !isNaN(date.getTime())) {
+    return date;
+  }
+  
+  // Handle string dates (ISO strings, timestamps, etc.)
+  if (typeof date === 'string' || typeof date === 'number') {
+    const parsed = new Date(date);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  
+  return fallback ?? undefined;
+};
+
+
 export function EditTaskForm({
   setOpen,
   onSubmit: onFormSubmit,
@@ -119,7 +146,7 @@ export function EditTaskForm({
   quote,
   collaboratorQuotes,
   clients,
-  collaborators,
+  collaborators, 
   categories,
   onAddClient,
   quoteTemplates,
@@ -132,12 +159,45 @@ export function EditTaskForm({
   const T = {
     ...i18n[settings.language],
     addLink: ((i18n[settings.language] as any)?.addLink || "Thêm link"),
+    copiedFromQuote: ((i18n[settings.language] as any)?.copiedFromQuote || "Đã sao chép báo giá"),
+    copiedFromQuoteDesc: ((i18n[settings.language] as any)?.copiedFromQuoteDesc || "Đã sao chép dữ liệu từ báo giá chính sang báo giá của collaborator."),
+    suggestionApplied: ((i18n[settings.language] as any)?.suggestionApplied || "Đề xuất đã được áp dụng"),
+    suggestionAppliedDesc: ((i18n[settings.language] as any)?.suggestionAppliedDesc || "Đã áp dụng {count} mục vào báo giá."),
+    cancel: ((i18n[settings.language] as any)?.cancel || "Hủy"),
+    add: ((i18n[settings.language] as any)?.add || "Thêm"),
+    taskName: ((i18n[settings.language] as any)?.taskName || "Tên task"),
+    description: ((i18n[settings.language] as any)?.description || "Mô tả"),
+    client: ((i18n[settings.language] as any)?.client || "Client"),
+    selectClient: ((i18n[settings.language] as any)?.selectClient || "Chọn client"),
+    addClient: ((i18n[settings.language] as any)?.addClient || "Thêm client"),
+    clientNameRequired: ((i18n[settings.language] as any)?.clientNameRequired || "Tên client là bắt buộc"),
+    category: ((i18n[settings.language] as any)?.category || "Thể loại"),
+    selectCategory: ((i18n[settings.language] as any)?.selectCategory || "Chọn thể loại"),
+    dates: ((i18n[settings.language] as any)?.dates || "Ngày tháng"),
+    pickDateRange: ((i18n[settings.language] as any)?.pickDateRange || "Chọn khoảng ngày"),
+    status: ((i18n[settings.language] as any)?.status || "Trạng thái"),
+    selectStatus: ((i18n[settings.language] as any)?.selectStatus || "Chọn trạng thái"),
+    subStatuses: ((i18n[settings.language] as any)?.subStatuses || "Trạng thái con"),
+    selectSubStatus: ((i18n[settings.language] as any)?.selectSubStatus || "Chọn trạng thái con"),
+    none: ((i18n[settings.language] as any)?.none || "Không có"),
+    priceQuote: ((i18n[settings.language] as any)?.priceQuote || "Báo giá"),
+    collaboratorCosts: ((i18n[settings.language] as any)?.collaboratorCosts || "Chi phí collaborator"),
+    collaborator: ((i18n[settings.language] as any)?.collaborator || "Collaborator"),
+    selectCollaborator: ((i18n[settings.language] as any)?.selectCollaborator || "Chọn collaborator"),
+    unitPrice: ((i18n[settings.language] as any)?.unitPrice || "Đơn giá"),
+    untitledSection: ((i18n[settings.language] as any)?.untitledSection || "Phần không có tiêu đề"),
+    save: ((i18n[settings.language] as any)?.save || "Lưu"),
+    editTask: ((i18n[settings.language] as any)?.editTask || "Chỉnh sửa task"),
+    collaborators: ((i18n[settings.language] as any)?.collaborators || "Collaborators"), 
+    noCollaboratorsFound: ((i18n[settings.language] as any)?.noCollaboratorsFound || "Chưa có collaborator nào"),
+    addCollaborator: ((i18n[settings.language] as any)?.addCollaborator || "Thêm Collaborator"),
+    addFirstCollaborator: ((i18n[settings.language] as any)?.addFirstCollaborator || "Thêm Collaborator đầu tiên"),
   };
   const { toast } = useToast();
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
   const [newClientName, setNewClientName] = useState("");
-  const [isCollaboratorSectionOpen, setIsCollaboratorSectionOpen] = useState(!!collaboratorQuotes && collaboratorQuotes.length > 0);
-  
+  const [isCollaboratorSectionOpen, setIsCollaboratorSectionOpen] = useState(!!collaboratorQuotes && collaborators.length > 0 && collaboratorQuotes.length > 0); // Open if there are existing collab quotes
+
   const defaultColumns: QuoteColumn[] = useMemo(() => [
     { id: 'description', name: T.description, type: 'text' },
     { id: 'unitPrice', name: `${T.unitPrice} (${settings.currency})`, type: 'number', calculation: { type: 'sum' } },
@@ -179,11 +239,28 @@ export function EditTaskForm({
   };
 
   const getInitialCollaboratorQuotes = () => {
-    if (collaboratorQuotes && collaboratorQuotes.length > 0 && taskToEdit?.collaboratorIds) {
-      return collaboratorQuotes.map((quote, index) => ({
-        collaboratorId: taskToEdit.collaboratorIds?.[index] || '',
-        sections: quote.sections || []
-      }));
+    if (collaboratorQuotes && collaboratorQuotes.length > 0 && taskToEdit?.collaboratorQuotes) {
+      // Filter out invalid/undefined quotes and ensure IDs are set for each item within sections
+      return (collaboratorQuotes
+        .map(cq => {
+          // Find the actual collaborator ID using task.collaboratorQuotes for mapping
+          const matchingTaskCollabQuote = taskToEdit?.collaboratorQuotes?.find(tcq => tcq.quoteId === cq.id);
+          const actualCollaboratorId = matchingTaskCollabQuote?.collaboratorId || '';
+
+          return {
+            collaboratorId: actualCollaboratorId, // Use the resolved ID
+            sections: cq.sections?.map(s => ({
+              ...s,
+              id: s.id || `section-${Date.now()}-${Math.random()}`,
+              items: s.items?.map(item => ({
+                ...item,
+                id: item.id || `item-${Date.now()}-${Math.random()}`,
+                customFields: item.customFields || {},
+              })) || [],
+            })) || [],
+          };
+        })
+      );
     }
     return [];
   };
@@ -193,20 +270,20 @@ export function EditTaskForm({
     defaultValues: {
       name: taskToEdit?.name || "",
       description: taskToEdit?.description || "",
-      briefLink: Array.isArray(taskToEdit?.briefLink) 
-        ? (taskToEdit.briefLink.length > 0 ? taskToEdit.briefLink : [""]) 
-        : (taskToEdit?.briefLink ? [taskToEdit.briefLink] : [""]),
-      driveLink: Array.isArray(taskToEdit?.driveLink) 
-        ? (taskToEdit.driveLink.length > 0 ? taskToEdit.driveLink : [""]) 
-        : (taskToEdit?.driveLink ? [taskToEdit.driveLink] : [""]),
+      briefLink: Array.isArray(taskToEdit?.briefLink) && taskToEdit.briefLink.length > 0
+        ? taskToEdit.briefLink
+        : [""],
+      driveLink: Array.isArray(taskToEdit?.driveLink) && taskToEdit.driveLink.length > 0
+        ? taskToEdit.driveLink
+        : [""],
       clientId: taskToEdit?.clientId || "",
       collaboratorIds: taskToEdit?.collaboratorIds || [],
       categoryId: taskToEdit?.categoryId || "",
       status: taskToEdit?.status || "todo",
       subStatusId: taskToEdit?.subStatusId || "",
       dates: { 
-        from: taskToEdit ? new Date(taskToEdit.startDate) : (defaultDate || new Date()), 
-        to: taskToEdit ? new Date(taskToEdit.deadline) : (defaultDate || new Date())
+        from: safeParseDate(taskToEdit?.startDate, defaultDate), 
+        to: safeParseDate(taskToEdit?.deadline, defaultDate)
       },
       sections: getInitialSections(),
       collaboratorQuotes: getInitialCollaboratorQuotes(),
@@ -244,11 +321,11 @@ export function EditTaskForm({
   // Note: external submit registration is set up after onSubmit/onError are defined below
 
   const handleCopyFromQuote = useCallback((targetCollaboratorIndex: number) => {
-    if (!quote?.sections || quote.sections.length === 0) {
+    if (!quote || !quote.sections || quote.sections.length === 0) {
       toast({
-        title: "Lỗi",
-        description: "Không có dữ liệu báo giá để sao chép.",
-        variant: "destructive",
+        title: T.copiedFromQuote,
+        description: T.copiedFromQuoteDesc + " (Không có dữ liệu báo giá gốc để sao chép).", 
+        variant: "destructive", 
       });
       return;
     }
@@ -257,8 +334,8 @@ export function EditTaskForm({
     form.setValue(`collaboratorQuotes.${targetCollaboratorIndex}.sections`, currentSections);
     
     toast({
-      title: "Thành công",
-      description: T.copiedFromQuote || "Đã sao chép dữ liệu từ báo giá chính.",
+      title: T.copiedFromQuote,
+      description: T.copiedFromQuoteDesc,
     });
   }, [quote, form, toast, T]);
 
@@ -282,35 +359,49 @@ export function EditTaskForm({
     const filteredBriefLinks = values.briefLink?.filter(link => link.trim() !== "") || [];
     const filteredDriveLinks = values.driveLink?.filter(link => link.trim() !== "") || [];
 
-    const filteredValues = {
+    // Convert dates from form format to task format
+    const filteredValues: any = {
       ...values,
       briefLink: filteredBriefLinks,
       driveLink: filteredDriveLinks,
+      startDate: values.dates.from,
+      deadline: values.dates.to,
     };
+
+    // Remove the dates object since backend expects individual fields
+    delete filteredValues.dates;
 
     console.log('Final filtered values being submitted:', filteredValues);
     onFormSubmit(filteredValues, columns, collaboratorColumns, taskToEdit.id);
-    // Dispatch a global event to signal save (for opening details dialog at higher level)
     if (typeof window !== 'undefined') {
       try {
         window.dispatchEvent(new CustomEvent('task:saved', { detail: { taskId: taskToEdit.id } }));
       } catch {}
     }
-  }, [onFormSubmit, columns, collaboratorColumns, taskToEdit, toast, T]);
+  }, [onFormSubmit, columns, collaboratorColumns, taskToEdit, toast]); 
 
-  const onError = useCallback((errors: any) => {
+  const onError = useCallback((errors: FieldErrors<TaskFormValues>) => { 
     console.error('Form validation errors:', errors);
     
-    // Extract error messages from the errors object
     const errorMessages: string[] = [];
-    const flattenErrors = (obj: any, path = '') => {
+    const flattenErrors = (obj: FieldErrors | any, path = '') => { 
       for (const key in obj) {
         if (obj.hasOwnProperty(key)) {
           const currentPath = path ? `${path}.${key}` : key;
-          if (obj[key]?.message) {
-            errorMessages.push(`${currentPath}: ${obj[key].message}`);
-          } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-            flattenErrors(obj[key], currentPath);
+          if (obj[key] && typeof obj[key].message === 'string') {
+              errorMessages.push(`${currentPath}: ${obj[key].message}`);
+          } else if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key])) { 
+              flattenErrors(obj[key], currentPath);
+          } else if (Array.isArray(obj[key])) { 
+            obj[key].forEach((item: any, index: number) => {
+              if (item && typeof item.message === 'string') {
+                errorMessages.push(`${currentPath}[${index}]: ${item.message}`);
+              } else if (typeof item === 'object' && item !== null) {
+                flattenErrors(item, `${currentPath}[${index}]`);
+              } else {
+                errorMessages.push(`${currentPath}[${index}]: ${String(item)}`);
+              }
+            });
           }
         }
       }
@@ -320,7 +411,10 @@ export function EditTaskForm({
     
     const errorDescription = errorMessages.length > 0 
       ? errorMessages.join('; ') 
-      : "Có lỗi xảy ra khi xác thực form. Vui lòng kiểm tra lại.";
+      : (Object.keys(errors).length > 0 
+          ? "Có lỗi xảy ra khi xác thực form. Một số trường có thể không hợp lệ. Vui lòng kiểm tra lại."
+          : "Có lỗi xảy ra khi xác thực form. Không có mô tả chi tiết." 
+        );
     
     toast({
       title: "Lỗi xác thực",
@@ -329,7 +423,6 @@ export function EditTaskForm({
     });
   }, [toast]);
 
-  // Allow parent to trigger submit programmatically (after handlers exist)
   React.useEffect(() => {
     if (!onRegisterExternalSubmit) return;
     const submit = () => form.handleSubmit(onSubmit, onError)();
@@ -339,8 +432,8 @@ export function EditTaskForm({
   const handleAddClient = useCallback(() => {
     if (newClientName.trim() === "") {
       toast({
-        title: "Lỗi",
-        description: "Tên client không được để trống.",
+        title: T.addClient, 
+        description: T.clientNameRequired, 
         variant: "destructive",
       });
       return;
@@ -352,20 +445,40 @@ export function EditTaskForm({
     setIsAddClientOpen(false);
     
     toast({
-      title: "Thành công",
-      description: "Đã thêm client mới thành công.",
+      title: T.add, 
+      description: `${T.addClient} ${newClient.name} thành công`, 
     });
   }, [newClientName, onAddClient, form, toast, T]);
 
   if (!taskToEdit) {
     return null;
   }
+  
+  const categoryId = useWatch({ control: form.control, name: 'categoryId' }); 
+  const categoryName = useMemo(() =>
+    (categories || []).find(c => c.id === categoryId)?.name || '',
+    [categories, categoryId]
+  );
 
-  // Trả lại form thuần, không bọc dialog/toggle
+  const handleApplySuggestion = useCallback((items: SuggestQuoteOutput['suggestedItems']) => {
+    const newItems = items.map((item: { description: string; unitPrice: number }) => ({
+        description: item.description,
+        unitPrice: item.unitPrice,
+        id: `item-sugg-${Date.now()}-${Math.random()}`,
+        customFields: {},
+    }));
+    form.setValue('sections', [{ id: 'section-ai-1', name: T.untitledSection, items: newItems }]);
+    setColumns(defaultColumns);
+    toast({
+        title: T.suggestionApplied,
+        description: T.suggestionAppliedDesc?.replace('{count}', String(items.length))
+    });
+  }, [defaultColumns, form, setColumns, T, toast]);
+
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
-          {/* Main task details */}
           <div className="space-y-4">
             <FormField
               control={form.control}
@@ -399,119 +512,114 @@ export function EditTaskForm({
               )}
             />
             
-            {/* Brief Link dynamic fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="briefLink"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{T.briefLink || "Brief Link"}</FormLabel>
-                    <div className="space-y-2">
-                      {field.value && field.value.length > 0 && field.value.map((link: string, idx: number) => (
-                        <div key={idx} className="flex gap-2 items-center">
-                          <Input
-                            value={link}
-                            placeholder="https://..."
-                            className="flex-1 min-w-[120px]"
-                            onChange={e => {
-                              const newLinks = [...field.value];
-                              newLinks[idx] = e.target.value;
-                              field.onChange(newLinks);
-                            }}
-                          />
-                          {idx > 0 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                if (field.value.length > 1) {
-                                  const updated = [...field.value];
-                                  updated.splice(idx, 1);
-                                  field.onChange(updated);
-                                } else {
-                                  field.onChange([""]);
-                                }
+                render={({ field }) => {
+                  const links = field.value || [""];
+                  return (
+                    <FormItem>
+                      <FormLabel>{T.briefLink || "Brief Link"}</FormLabel>
+                      <div className="space-y-2">
+                        {links.map((link: string, idx: number) => (
+                          <div key={idx} className="flex gap-2 items-center">
+                            <Input
+                              value={link}
+                              placeholder="https://..."
+                              className="flex-1 min-w-[120px]"
+                              onChange={e => {
+                                const newLinks = [...links];
+                                newLinks[idx] = e.target.value;
+                                field.onChange(newLinks);
                               }}
-                              disabled={field.value.length === 1 && !field.value[idx]}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {idx === field.value.length - 1 && field.value.length < 5 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => field.onChange([...field.value, ""])}
-                              title={T.addLink || "Thêm link"}
-                            >
-                              <Plus className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                            />
+                            {links.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  const updated = [...links];
+                                  updated.splice(idx, 1);
+                                  field.onChange(updated.length === 0 ? [""] : updated);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                            {idx === links.length - 1 && links.length < 5 && ( 
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => field.onChange([...links, ""])}
+                                title={T.addLink || "Thêm link"}
+                              >
+                                <Plus className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
               <FormField
                 control={form.control}
                 name="driveLink"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{T.driveLink || "Drive Link"}</FormLabel>
-                    <div className="space-y-2">
-                      {field.value && field.value.length > 0 && field.value.map((link: string, idx: number) => (
-                        <div key={idx} className="flex gap-2 items-center">
-                          <Input
-                            value={link}
-                            placeholder="https://..."
-                            className="flex-1 min-w-[120px]"
-                            onChange={e => {
-                              const newLinks = [...field.value];
-                              newLinks[idx] = e.target.value;
-                              field.onChange(newLinks);
-                            }}
-                          />
-                          {idx > 0 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                if (field.value.length > 1) {
-                                  const updated = [...field.value];
-                                  updated.splice(idx, 1);
-                                  field.onChange(updated);
-                                } else {
-                                  field.onChange([""]);
-                                }
+                render={({ field }) => {
+                  const links = field.value || [""];
+                  return (
+                    <FormItem>
+                      <FormLabel>{T.driveLink || "Drive Link"}</FormLabel>
+                      <div className="space-y-2">
+                        {links.map((link: string, idx: number) => (
+                          <div key={idx} className="flex gap-2 items-center">
+                            <Input
+                              value={link}
+                              placeholder="https://..."
+                              className="flex-1 min-w-[120px]"
+                              onChange={e => {
+                                const newLinks = [...links];
+                                newLinks[idx] = e.target.value;
+                                field.onChange(newLinks);
                               }}
-                              disabled={field.value.length === 1 && !field.value[idx]}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {idx === field.value.length - 1 && field.value.length < 5 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => field.onChange([...field.value, ""])}
-                              title={T.addLink || "Thêm link"}
-                            >
-                              <Plus className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                            />
+                            {links.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  const updated = [...links];
+                                  updated.splice(idx, 1);
+                                  field.onChange(updated.length === 0 ? [""] : updated);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                            {idx === links.length - 1 && links.length < 5 && ( 
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => field.onChange([...links, ""])}
+                                title={T.addLink || "Thêm link"}
+                              >
+                                <Plus className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
             
@@ -693,20 +801,8 @@ export function EditTaskForm({
             quoteTemplates={quoteTemplates}
             settings={settings}
             taskDescription={watchedDescription || ''}
-            taskCategory={(categories || []).find(c => c.id === watchedCategoryId)?.name || ''}
-            onApplySuggestion={(items) => {
-              const newItems = items.map(item => ({
-                description: item.description,
-                unitPrice: item.unitPrice,
-                id: `item-sugg-${Date.now()}-${Math.random()}`,
-                customFields: {},
-              }));
-              form.setValue('sections', [{ id: 'section-ai-1', name: T.untitledSection, items: newItems }]);
-              setColumns(defaultColumns);
-              toast({ title: T.suggestionApplied, description: T.suggestionAppliedDesc?.replace('{count}', String(items.length)) });
-            }}
-            onCopyFromQuote={undefined}
-            showCopyFromQuote={false}
+            taskCategory={categoryName}
+            onApplySuggestion={handleApplySuggestion}
           />
 
           {/* Collaborator Section */}
@@ -725,7 +821,7 @@ export function EditTaskForm({
                 {/* Multiple Collaborators Manager */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <h4 className="text-sm font-medium">{T.collaborator || "Collaborators"}</h4>
+                    <h4 className="text-sm font-medium">{T.collaborators}</h4>
                     <Button 
                       type="button" 
                       variant="outline" 
@@ -767,7 +863,6 @@ export function EditTaskForm({
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="__none__">{T.none}</SelectItem>
                                     {(collaborators || []).map((collaborator) => (
                                       <SelectItem key={collaborator.id} value={collaborator.id}>
                                         {collaborator.name}

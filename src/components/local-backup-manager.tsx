@@ -23,18 +23,31 @@ export function LocalBackupManager() {
   const [localSettings, setLocalSettings] = useState<any>(null);
   const [isSelectingFolder, setIsSelectingFolder] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasHandle, setHasHandle] = useState<boolean>(false);
+  const [permissionState, setPermissionState] = useState<'granted'|'prompt'|'denied'|'unknown'>('unknown');
+  const [folderName, setFolderName] = useState<string | undefined>(undefined);
 
-  const T = dashboardContext?.appSettings?.language ? i18n[dashboardContext.appSettings.language] : i18n.en;
-  const currentLanguage = dashboardContext?.appSettings?.language || 'en';
+  const currentLanguage = (dashboardContext?.appSettings?.language as 'en' | 'vi') || 'en';
+  const T = i18n[currentLanguage] || i18n.en;
 
   useEffect(() => {
-    loadLocalSettings();
-    LocalBackupService.restoreSettings();
+    (async () => {
+      await LocalBackupService.restoreSettings();
+      await loadLocalSettings();
+      await refreshFsState();
+    })();
   }, []);
 
-  const loadLocalSettings = () => {
+  const loadLocalSettings = async () => {
     const settings = LocalBackupService.getSettings();
     setLocalSettings(settings);
+  };
+
+  const refreshFsState = async () => {
+    setHasHandle(LocalBackupService.hasDirectoryHandle());
+    setFolderName(LocalBackupService.getFolderName());
+    const state = await LocalBackupService.getPermissionState('readwrite');
+    setPermissionState(state);
   };
 
   const handleSelectFolder = async () => {
@@ -60,15 +73,26 @@ export function LocalBackupManager() {
             ? "Thư mục sao lưu đã được thiết lập thành công. Tự động lưu hiện đã được bật."
             : "Backup folder has been set up successfully. Auto-save is now enabled.",
         });
-        loadLocalSettings();
+  await loadLocalSettings();
+  await refreshFsState();
       } else {
-        toast({
-          variant: 'destructive',
-          title: currentLanguage === 'vi' ? "Chọn thất bại" : "Selection Failed",
-          description: currentLanguage === 'vi' 
-            ? "Không thể chọn thư mục sao lưu. Vui lòng thử lại."
-            : "Could not select backup folder. Please try again.",
-        });
+        // If cancelled, don't show a destructive toast
+        if (LocalBackupService.wasLastSelectionAborted()) {
+          toast({
+            title: currentLanguage === 'vi' ? 'Đã hủy' : 'Cancelled',
+            description: currentLanguage === 'vi' 
+              ? 'Bạn đã hủy chọn thư mục. Không có thay đổi nào được thực hiện.'
+              : 'You cancelled folder selection. No changes made.',
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: currentLanguage === 'vi' ? "Chọn thất bại" : "Selection Failed",
+            description: currentLanguage === 'vi' 
+              ? "Không thể chọn thư mục sao lưu. Vui lòng thử lại."
+              : "Could not select backup folder. Please try again.",
+          });
+        }
       }
     } catch (error) {
       console.error('Error selecting folder:', error);
@@ -79,7 +103,7 @@ export function LocalBackupManager() {
           ? "Không thể chọn thư mục sao lưu. Vui lòng thử lại."
           : "Could not select backup folder. Please try again.",
       });
-    } finally {
+  } finally {
       setIsSelectingFolder(false);
     }
   };
@@ -97,7 +121,8 @@ export function LocalBackupManager() {
             ? "Sao lưu thủ công đã được lưu vào thư mục đã chọn."
             : "Manual backup has been saved to the selected folder.",
         });
-        loadLocalSettings();
+  await loadLocalSettings();
+  await refreshFsState();
       } else {
         toast({
           variant: 'destructive',
@@ -118,6 +143,28 @@ export function LocalBackupManager() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleReconnect = async () => {
+    const ok = await LocalBackupService.reauthorize();
+    if (ok) {
+      await loadLocalSettings();
+      await refreshFsState();
+      toast({
+        title: currentLanguage === 'vi' ? 'Đã kết nối lại' : 'Reconnected',
+        description: currentLanguage === 'vi' 
+          ? 'Đã cấp lại quyền truy cập thư mục. Tự động lưu đã bật.'
+          : 'Folder permission granted. Auto-save enabled.',
+      });
+    } else {
+      toast({
+        variant: 'destructive',
+        title: currentLanguage === 'vi' ? 'Không thể kết nối lại' : 'Reconnect failed',
+        description: currentLanguage === 'vi' 
+          ? 'Vui lòng cấp quyền truy cập thư mục khi được hỏi.'
+          : 'Please grant folder access when prompted.',
+      });
     }
   };
 
@@ -177,7 +224,8 @@ export function LocalBackupManager() {
   };
 
   const isSupported = LocalBackupService.isFileSystemAccessSupported();
-  const hasAutoSave = localSettings?.autoSaveEnabled;
+  // Consider autosave ON only if settings says enabled and permission is actually granted on the handle
+  const hasAutoSave = Boolean(localSettings?.autoSaveEnabled) && permissionState === 'granted' && hasHandle;
   const shouldSuggestDownload = LocalBackupService.shouldSuggestDownload();
 
   return (
@@ -233,6 +281,9 @@ export function LocalBackupManager() {
                   <FolderOpen className="w-4 h-4" />
                 </div>
                 <div>
+                  <p className="text-sm font-medium">
+                    {currentLanguage === 'vi' ? 'Thư mục:' : 'Folder:'} {folderName || (currentLanguage === 'vi' ? 'Chưa chọn' : 'Not selected')}
+                  </p>
                   {localSettings?.lastAutoSave && (
                     <p className="text-xs text-muted-foreground">
                       {currentLanguage === 'vi' ? "Lần tự động lưu cuối" : "Last auto save"}: {formatDate(localSettings.lastAutoSave)}
@@ -241,15 +292,15 @@ export function LocalBackupManager() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {localSettings?.folderHandle && (
+                {hasHandle && (
                   <Badge variant="secondary">
                     {hasAutoSave 
                       ? (currentLanguage === 'vi' ? "Tự động bật" : "Auto Enabled") 
-                      : (currentLanguage === 'vi' ? "Đã bật" : "Enabled")
+                      : (currentLanguage === 'vi' ? (permissionState === 'granted' ? 'Đã bật' : 'Cần cấp quyền lại') : (permissionState === 'granted' ? 'Enabled' : 'Reauthorization needed'))
                     }
                   </Badge>
                 )}
-                {localSettings?.folderHandle ? (
+                {hasHandle ? (
                   <>
                     <Button 
                       variant="outline" 
@@ -262,6 +313,15 @@ export function LocalBackupManager() {
                         : (currentLanguage === 'vi' ? "Lưu ngay" : "Save Now")
                       }
                     </Button>
+                    {!hasAutoSave && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleReconnect}
+                      >
+                        {currentLanguage === 'vi' ? 'Kết nối lại' : 'Reconnect'}
+                      </Button>
+                    )}
                     <Button 
                       variant="outline" 
                       size="sm"

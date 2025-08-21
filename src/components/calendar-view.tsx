@@ -146,6 +146,7 @@ export function CalendarView({
           collaboratorQuotes={selectedTask.collaboratorQuotes?.map(cq => collaboratorQuotes.find(q => q.id === cq.quoteId)).filter(Boolean) as Quote[] ?? []}
           settings={settings} isOpen={isTaskDetailsOpen} onClose={() => setIsTaskDetailsOpen(false)}
           onEdit={handleEditFromDetails} onDelete={handleTaskDelete}
+          onChangeStatus={(taskId, statusId) => updateTask({ id: taskId, status: statusId as any })}
         />
       )}
 

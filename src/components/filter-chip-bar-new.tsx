@@ -85,6 +85,23 @@ export function FilterChipBar({
     return false;
   });
 
+  // Normalize incoming collections to arrays to avoid runtime errors when data is objects or undefined
+  const safeCategories = Array.isArray(allCategories)
+    ? allCategories
+    : (allCategories && typeof allCategories === 'object')
+      ? Object.values(allCategories as any)
+      : [];
+  const safeCollaborators = Array.isArray(collaborators)
+    ? collaborators
+    : (collaborators && typeof collaborators === 'object')
+      ? Object.values(collaborators as any)
+      : [];
+  const safeClients = Array.isArray(clients)
+    ? clients
+    : (clients && typeof clients === 'object')
+      ? Object.values(clients as any)
+      : [];
+
   // Save expanded state to localStorage when it changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -97,15 +114,15 @@ export function FilterChipBar({
   };
 
   const getCategoryName = (categoryId: string) => {
-    return allCategories.find((c: any) => c.id === categoryId)?.name || categoryId;
+  return safeCategories.find((c: any) => c.id === categoryId)?.name || categoryId;
   };
 
   const getCollaboratorName = (collaboratorId: string) => {
-    return collaborators.find((c: any) => c.id === collaboratorId)?.name || collaboratorId;
+  return safeCollaborators.find((c: any) => c.id === collaboratorId)?.name || collaboratorId;
   };
 
   const getClientName = (clientId: string) => {
-    return clients.find((c: any) => c.id === clientId)?.name || clientId;
+  return safeClients.find((c: any) => c.id === clientId)?.name || clientId;
   };
 
   const formatDateRange = (range: DateRange | undefined) => {
@@ -160,7 +177,7 @@ export function FilterChipBar({
               </TooltipProvider>
             </div>
 
-          {selectedCategory && (
+          {selectedCategory && selectedCategory !== 'all' && (
             <Badge variant="secondary" className="gap-1">
               Category: {getCategoryName(selectedCategory)}
               <Button
@@ -173,7 +190,7 @@ export function FilterChipBar({
               </Button>
             </Badge>
           )}
-          {selectedCollaborator && (
+          {selectedCollaborator && selectedCollaborator !== 'all' && (
             <Badge variant="secondary" className="gap-1">
               Collaborator: {getCollaboratorName(selectedCollaborator)}
               <Button
@@ -186,7 +203,7 @@ export function FilterChipBar({
               </Button>
             </Badge>
           )}
-          {selectedClient && (
+          {selectedClient && selectedClient !== 'all' && (
             <Badge variant="secondary" className="gap-1">
               Client: {getClientName(selectedClient)}
               <Button
@@ -315,7 +332,7 @@ export function FilterChipBar({
                    <SelectItem value="all">
                      {T.allClients || 'All clients'}
                    </SelectItem>
-                   {clients.map((client: any) => (
+                   {safeClients.map((client: any) => (
                      <SelectItem key={client.id} value={client.id}>
                        {client.name}
                      </SelectItem>
@@ -335,7 +352,7 @@ export function FilterChipBar({
                    <SelectItem value="all">
                      {T.allCollaborators || 'All collaborators'}
                    </SelectItem>
-                   {collaborators.map((collaborator: any) => (
+                   {safeCollaborators.map((collaborator: any) => (
                      <SelectItem key={collaborator.id} value={collaborator.id}>
                        {collaborator.name}
                      </SelectItem>
@@ -359,7 +376,7 @@ export function FilterChipBar({
                    <SelectItem value="all">
                      {T.allCategories || 'All categories'}
                    </SelectItem>
-                   {allCategories.map((category: any) => (
+                   {safeCategories.map((category: any) => (
                      <SelectItem key={category.id} value={category.id}>
                        {category.name}
                      </SelectItem>

@@ -36,7 +36,7 @@ export function KanbanView({
     ...restOfDrilledProps 
 }: KanbanViewProps) {
   const searchParams = useSearchParams();
-  const T = i18n[appSettings.language];
+  const T = i18n[appSettings.language as 'en' | 'vi'] || i18n.en;
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [activeColumn, setActiveColumn] = useState<any>(null);
 
@@ -46,9 +46,13 @@ export function KanbanView({
   []);
   
   const selectedStatuses = useMemo(() => {
+    // When no filter applied, show all columns
     if (statusFilter === null) return defaultStatuses;
+    // Explicitly hide all columns
     if (statusFilter === 'none') return [];
-    return statusFilter.split(',');
+    // Treat query param as list of statuses to hide; show the rest
+    const hidden = new Set(statusFilter.split(','));
+    return defaultStatuses.filter(s => !hidden.has(s));
   }, [statusFilter, defaultStatuses]);
 
   const sensors = useSensors(
@@ -60,10 +64,19 @@ export function KanbanView({
   );
 
   const columns = useMemo(() => {
-    const { statusSettings, kanbanColumnVisibility = {}, kanbanColumnOrder = [] } = appSettings;
+    const { kanbanColumnVisibility = {}, kanbanColumnOrder = [] } = appSettings;
+    // Provide safe default statuses if not configured yet
+    const TL = i18n[appSettings.language as 'en' | 'vi'] || i18n.en;
+    const safeStatusSettings = (appSettings.statusSettings && Array.isArray(appSettings.statusSettings) ? appSettings.statusSettings : [
+      { id: 'todo', label: TL.statuses.todo, subStatuses: [] },
+      { id: 'inprogress', label: TL.statuses.inprogress, subStatuses: [] },
+      { id: 'done', label: TL.statuses.done, subStatuses: [] },
+      { id: 'onhold', label: TL.statuses.onhold, subStatuses: [] },
+      { id: 'archived', label: TL.statuses.archived, subStatuses: [] },
+    ]);
     const allColumns: { id: string; label: string; statusId: string }[] = [];
 
-    statusSettings.forEach(status => {
+    safeStatusSettings.forEach(status => {
       if (selectedStatuses.includes(status.id)) {
         allColumns.push({ id: status.id, label: status.label, statusId: status.id });
       }
@@ -180,7 +193,7 @@ export function KanbanView({
                 id={col.id}
                 title={col.label}
                 tasks={tasksByStatus.get(col.id) || []}
-                color={appSettings.statusColors[col.statusId as keyof typeof appSettings.statusColors]}
+                color={appSettings.statusColors?.[col.statusId as keyof typeof appSettings.statusColors] || '#999'}
                 appSettings={appSettings}
                 {...restOfDrilledProps}
               />
@@ -194,7 +207,7 @@ export function KanbanView({
               id={activeColumn.id}
               title={activeColumn.label}
               tasks={tasksByStatus.get(activeColumn.id) || []}
-              color={appSettings.statusColors[activeColumn.statusId as keyof typeof appSettings.statusColors]}
+              color={appSettings.statusColors?.[activeColumn.statusId as keyof typeof appSettings.statusColors] || '#999'}
               appSettings={appSettings}
               {...restOfDrilledProps}
             />

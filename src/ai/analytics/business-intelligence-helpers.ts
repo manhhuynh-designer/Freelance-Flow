@@ -301,7 +301,8 @@ export function calculateRevenueBreakdown(appData: AppData, dateRange: { from?: 
       if (Array.isArray(payments) && payments.length > 0) {
         amount = payments.reduce((s, p) => {
           if (!p || p.status !== 'paid') return s;
-          const pd = p.date || (q as any).paidDate || t.deadline;
+          // Enhanced fallback chain for payment date
+          const pd = p.date || (q as any).paidDate || t.deadline || t.endDate || t.startDate;
           if (!inRange(pd)) return s;
           const inc = p.amountType === 'percent'
             ? ((q.total || 0) * Math.max(0, Math.min(100, p.percent ?? 0)) / 100)
@@ -309,11 +310,16 @@ export function calculateRevenueBreakdown(appData: AppData, dateRange: { from?: 
           return s + (inc || 0);
         }, 0);
       } else if (typeof (q as any).amountPaid === 'number') {
-        const pd = (q as any).paidDate || t.deadline;
+        // Enhanced fallback for direct amountPaid
+        const pd = (q as any).paidDate || t.deadline || t.endDate || t.startDate;
         amount = inRange(pd) ? ((q as any).amountPaid || 0) : 0;
+      } else if (q.total && q.total > 0) {
+        // Fallback: use quote total if no payment info but task is done
+        const pd = t.endDate || t.deadline || t.startDate;
+        amount = inRange(pd) ? (q.total || 0) : 0;
       }
     }
-    // Only include if amount determined by a payment falling in range
+    // Only include if amount determined by a payment/completion falling in range
     if (amount > 0) {
       const key = t.clientId || 'unknown';
       totalsByClient.set(key, (totalsByClient.get(key) || 0) + amount);
@@ -702,17 +708,17 @@ export function calculateMonthlyFinancials(appData: AppData, dateRange: { from?:
     }
   };
 
-  // 1. Process Revenue (from 'done' tasks with 'paid' payments)
+  // 1. Process Revenue (align with Financial Summary: include PAID payments from any non-archived task)
   tasksAll.forEach(t => {
-    if (t.status !== 'done') return;
     const q = t.quoteId ? quoteById.get(t.quoteId) : undefined;
     if (!q) return;
 
     const payments = (q as any).payments as any[] | undefined;
-    if (Array.isArray(payments)) {
+    if (Array.isArray(payments) && payments.length > 0) {
       payments.forEach(p => {
         if (p && p.status === 'paid') {
-          const paymentDate = toDate(p.date || (q as any).paidDate || t.deadline);
+          // Fallback chain: payment date -> quote paid date -> task deadline -> task end date -> task start date
+          const paymentDate = toDate(p.date || (q as any).paidDate || t.deadline || t.endDate || t.startDate);
           if (paymentDate && (useAllTime || (dateRange.from && dateRange.to && paymentDate >= dateRange.from && paymentDate <= dateRange.to))) {
             const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
             ensureMonth(monthKey);
@@ -724,18 +730,19 @@ export function calculateMonthlyFinancials(appData: AppData, dateRange: { from?:
           }
         }
       });
-    } else if (typeof (q as any).amountPaid === 'number' && (q as any).paidDate) {
-         const paymentDate = toDate((q as any).paidDate || t.deadline);
-         if (paymentDate && (useAllTime || (dateRange.from && dateRange.to && paymentDate >= dateRange.from && paymentDate <= dateRange.to))) {
-            const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
-            ensureMonth(monthKey);
-            monthlyMap.get(monthKey)!.revenue += (q as any).amountPaid;
-         }
+    } else if (typeof (q as any).amountPaid === 'number') {
+      // Handle quotes with direct amountPaid (fallback even if no paidDate)
+      const paymentDate = toDate((q as any).paidDate || t.deadline || t.endDate || t.startDate);
+      if (paymentDate && (useAllTime || (dateRange.from && dateRange.to && paymentDate >= dateRange.from && paymentDate <= dateRange.to))) {
+        const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
+        ensureMonth(monthKey);
+        monthlyMap.get(monthKey)!.revenue += (q as any).amountPaid;
+      }
     }
   });
 
   // 2. Process Costs (Collaborator, General, Fixed)
-  // 2a. Collaborator Costs (from 'done'/'inprogress' tasks with 'paid' payments)
+  // 2a. Collaborator Costs (align with Financial Summary: only PAID collaborator payments)
    tasksAll.forEach(t => {
     if (t.status !== 'done' && t.status !== 'inprogress') return;
     const links = t.collaboratorQuotes || [];
@@ -744,28 +751,30 @@ export function calculateMonthlyFinancials(appData: AppData, dateRange: { from?:
       if (!cq) return;
 
       const payments = (cq as any).payments as any[] | undefined;
-  if (Array.isArray(payments)) {
+      if (Array.isArray(payments) && payments.length > 0) {
         payments.forEach(p => {
-           if (p && p.status === 'paid') {
-              const paymentDate = toDate(p.date || (cq as any).paidDate || t.deadline);
-       if (paymentDate && (useAllTime || (dateRange.from && dateRange.to && paymentDate >= dateRange.from && paymentDate <= dateRange.to))) {
-                const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
-                ensureMonth(monthKey);
-                 const total = cq.total || 0;
-                const amount = p.amountType === 'percent'
-                  ? (total * (p.percent ?? 0) / 100)
-                  : (p.amount || 0);
-                monthlyMap.get(monthKey)!.costs += amount;
-              }
-           }
+          if (p && p.status === 'paid') {
+            // Fallback chain for collaborator payments
+            const paymentDate = toDate(p.date || (cq as any).paidDate || t.deadline || t.endDate || t.startDate);
+            if (paymentDate && (useAllTime || (dateRange.from && dateRange.to && paymentDate >= dateRange.from && paymentDate <= dateRange.to))) {
+              const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
+              ensureMonth(monthKey);
+              const total = (cq.total ?? 0);
+              const amount = p.amountType === 'percent'
+                ? (total * (p.percent ?? 0) / 100)
+                : (p.amount || 0);
+              monthlyMap.get(monthKey)!.costs += amount;
+            }
+          }
         });
-  } else if (typeof (cq as any).amountPaid === 'number' && (cq as any).paidDate) {
-     const paymentDate = toDate((cq as any).paidDate || t.deadline);
-     if (paymentDate && (useAllTime || (dateRange.from && dateRange.to && paymentDate >= dateRange.from && paymentDate <= dateRange.to))) {
-            const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
-            ensureMonth(monthKey);
-            monthlyMap.get(monthKey)!.costs += (cq as any).amountPaid;
-         }
+      } else if (typeof (cq as any).amountPaid === 'number') {
+        // Handle collaborator quotes with direct amountPaid
+        const paymentDate = toDate((cq as any).paidDate || t.deadline || t.endDate || t.startDate);
+        if (paymentDate && (useAllTime || (dateRange.from && dateRange.to && paymentDate >= dateRange.from && paymentDate <= dateRange.to))) {
+          const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
+          ensureMonth(monthKey);
+          monthlyMap.get(monthKey)!.costs += (cq as any).amountPaid;
+        }
       }
     });
   });

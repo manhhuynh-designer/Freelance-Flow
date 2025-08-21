@@ -63,7 +63,7 @@ const GanttTaskRow: React.FC<GanttTaskRowProps> = ({
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 
-  const T = i18n[language];
+  const T = i18n[language as 'en' | 'vi'] || i18n.en;
   const client = clients.find(c => c.id === task.clientId);
   const category = categories.find(c => c.id === task.categoryId);
   const quote = quotes.find(q => q.id === task.quoteId);
@@ -205,7 +205,7 @@ export const GanttUnified: React.FC<{
   handleAddClientAndSelect,
 }) => {
   const dayColumnRef = useRef<HTMLDivElement>(null);
-  const T = i18n[language];
+  const T = i18n[language as 'en' | 'vi'] || i18n.en;
   
   const timelineStart = parseDateSafely(displayDate);
   const monthHeaderGroups: MonthHeaderGroup[] = [];
@@ -315,18 +315,18 @@ export const GanttUnified: React.FC<{
             ganttStyles['gantt-controls__btn'],
             viewMode === 'day' && ganttStyles['gantt-controls__btn--active']
           )}
-        >{T.Day}</button>
+  >{T.Day || 'Day'}</button>
         <button
           onClick={() => onViewModeChange('month')}
           className={cn(
             ganttStyles['gantt-controls__btn'],
             viewMode === 'month' && ganttStyles['gantt-controls__btn--active']
           )}
-        >{T.Month}</button>
+  >{T.Month || 'Month'}</button>
         <button
           onClick={handleGoToToday}
           className={ganttStyles['gantt-controls__btn']}
-        >{T.todayButton}</button>
+  >{T.todayButton || 'Today'}</button>
         <div className={ganttStyles['gantt-controls__date']}>
           <button onClick={() => handleNavigate('prev')} className={ganttStyles['gantt-controls__nav-btn']}>‹</button>
           <span className={ganttStyles['gantt-controls__date-label']}>{formattedDate}</span>
@@ -339,7 +339,7 @@ export const GanttUnified: React.FC<{
         {/* Row 1: Headers */}
         <div className={ganttStyles['gantt-header-tasklist']}>
              <div className={ganttStyles['gantt-header-tasklist__title-container']}>
-                {T.taskNameHeader}
+                {T.taskNameHeader || 'Tasks'}
              </div>
         </div>
         <div className={ganttStyles['gantt-header-timeline']}>

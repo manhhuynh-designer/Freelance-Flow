@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, forwardRef, useImperativeHandle } from "react";
+import React, { useState, useMemo, useEffect, forwardRef, useImperativeHandle, useCallback } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -12,8 +12,10 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
@@ -85,11 +87,15 @@ export type TaskFormValues = z.infer<typeof formSchema>;
 
 export interface CreateTaskFormRef {
   handleSaveDraft: () => void;
+  setInitialValues: (
+    values: Partial<TaskFormValues>,
+    options?: { columns?: QuoteColumn[]; collaboratorColumns?: QuoteColumn[] }
+  ) => void;
 }
 
 type CreateTaskFormProps = {
   setOpen: (open: boolean) => void;
-  onSubmit: (values: TaskFormValues, quoteColumns: QuoteColumn[], collaboratorQuoteColumns: QuoteColumn[]) => void;
+  onSubmit: (values: TaskFormValues, quoteColumns: QuoteColumn[], collaboratorQuoteColumns: QuoteColumn[]) => string | void;
   clients: Client[];
   collaborators: Collaborator[];
   categories: Category[];
@@ -98,7 +104,7 @@ type CreateTaskFormProps = {
   settings: AppSettings;
   defaultDate?: Date;
   onDirtyChange?: (isDirty: boolean) => void;
-  onSubmitSuccess?: () => void;
+  onSubmitSuccess?: (newTaskId?: string) => void;
 };
 
 export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>(({ 
@@ -119,6 +125,11 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
     ...i18n[settings.language],
     addLink: ((i18n[settings.language] as any)?.addLink || "Thêm link"),
     untitledTask: ((i18n[settings.language] as any)?.untitledTask || "Untitled Task"),
+    // Client creation keys
+    addClient: ((i18n[settings.language] as any)?.addClient || "Thêm client"),
+    clientNameRequired: ((i18n[settings.language] as any)?.clientNameRequired || "Tên client là bắt buộc"),
+    cancel: ((i18n[settings.language] as any)?.cancel || "Hủy"),
+    add: ((i18n[settings.language] as any)?.add || "Thêm"),
   // Unsaved changes dialog keys (shared with TaskEditDialog)
   unsavedConfirmTitle: ((i18n[settings.language] as any)?.unsavedConfirmTitle || "Unsaved changes"),
   unsavedConfirmDescription: ((i18n[settings.language] as any)?.unsavedConfirmDescription || "You have unsaved changes. What would you like to do?"),
@@ -135,6 +146,8 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
   }), [settings.language]);
   
   const [isCollaboratorSectionOpen, setIsCollaboratorSectionOpen] = useState(false);
+  const [isAddClientOpen, setIsAddClientOpen] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
   
   const defaultColumns: QuoteColumn[] = React.useMemo(() => [
     { id: 'description', name: T.description, type: 'text' },
@@ -183,38 +196,49 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
   });
   
   const handleFormSubmit = (data: TaskFormValues) => {
-    const cleanedData: TaskFormValues = {
+    // Convert dates from form format to task format
+    const cleanedData: any = {
       ...data,
-      briefLink: (data.briefLink || []).filter(link => link && link.trim() !== ''),
-      driveLink: (data.driveLink || []).filter(link => link && link.trim() !== ''),
-      collaboratorIds: data.collaboratorQuotes?.map(q => q.collaboratorId || "").filter(id => id) || []
+      briefLink: (data.briefLink || []).filter((link: string) => link && link.trim() !== ''),
+      driveLink: (data.driveLink || []).filter((link: string) => link && link.trim() !== ''),
+      collaboratorIds: data.collaboratorQuotes?.map((q: any) => q.collaboratorId || "").filter((id: string) => id) || [],
+      startDate: data.dates.from,
+      deadline: data.dates.to,
     };
     
-    onFormSubmit(cleanedData, columns, collaboratorColumns);
+    // Remove the dates object since backend expects individual fields
+    delete cleanedData.dates;
+    
+  const newId = onFormSubmit(cleanedData, columns, collaboratorColumns);
     
     // Reset form and dirty state
     form.reset();
     onDirtyChange?.(false);
     
     // Notify success - parent will handle closing
-    onSubmitSuccess?.();
+  onSubmitSuccess?.(typeof newId === 'string' ? newId : undefined);
   };
 
   useImperativeHandle(ref, () => ({
     handleSaveDraft() {
       const values = getValues();
-      const draftData = {
+      const draftData: any = {
         ...values,
         name: `[Draft] ${values.name || T.untitledTask}`,
         status: 'archived' as const,
+        startDate: values.dates.from,
+        deadline: values.dates.to,
       };
       
+      // Remove the dates object since backend expects individual fields
+      delete draftData.dates;
+      
       // Call the main submit handler which will handle reset and close
-      const cleanedData: TaskFormValues = {
+      const cleanedData: any = {
         ...draftData,
-        briefLink: (draftData.briefLink || []).filter(link => link && link.trim() !== ''),
-        driveLink: (draftData.driveLink || []).filter(link => link && link.trim() !== ''),
-        collaboratorIds: draftData.collaboratorQuotes?.map(q => q.collaboratorId || "").filter(id => id) || []
+        briefLink: (draftData.briefLink || []).filter((link: string) => link && link.trim() !== ''),
+        driveLink: (draftData.driveLink || []).filter((link: string) => link && link.trim() !== ''),
+        collaboratorIds: draftData.collaboratorQuotes?.map((q: any) => q.collaboratorId || "").filter((id: string) => id) || []
       };
       
       onFormSubmit(cleanedData, columns, collaboratorColumns);
@@ -225,6 +249,24 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
       
       // Notify success - parent will handle closing
       onSubmitSuccess?.();
+    },
+    setInitialValues(values: Partial<TaskFormValues>, options?: { columns?: QuoteColumn[]; collaboratorColumns?: QuoteColumn[] }) {
+      try {
+        if (options?.columns && Array.isArray(options.columns)) {
+          setColumns(options.columns);
+        }
+        if (options?.collaboratorColumns && Array.isArray(options.collaboratorColumns)) {
+          setCollaboratorColumns(options.collaboratorColumns);
+        }
+        const current = getValues();
+        form.reset({
+          ...current,
+          ...values,
+        });
+        onDirtyChange?.(true);
+      } catch (e) {
+        console.error('Failed to set initial values:', e);
+      }
     }
   }));
   
@@ -273,6 +315,27 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
       });
     }
   };
+
+  const handleAddClient = useCallback(() => {
+    if (newClientName.trim() === "") {
+      toast({
+        title: T.addClient, 
+        description: T.clientNameRequired, 
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newClient = onAddClient({ name: newClientName.trim() });
+    setValue("clientId", newClient.id);
+    setNewClientName("");
+    setIsAddClientOpen(false);
+    
+    toast({
+      title: T.add, 
+      description: `${T.addClient} ${newClient.name} thành công`, 
+    });
+  }, [newClientName, onAddClient, setValue, toast, T]);
 
   const watchedStatus = useWatch({ control, name: "status"});
   const availableSubStatuses = useMemo(() => {
@@ -397,18 +460,51 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Client</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select client" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {(clients || []).map((client) => (
-                          <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select client" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {(clients || []).map((client) => (
+                            <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>
+                        <DialogTrigger asChild>
+                          <Button type="button" variant="outline" size="sm">
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>{T.addClient}</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="newClientName">{T.clientNameRequired || "Tên client"}</Label>
+                              <Input
+                                id="newClientName"
+                                value={newClientName}
+                                onChange={(e) => setNewClientName(e.target.value)}
+                                placeholder="Nhập tên client"
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button type="button" variant="ghost" onClick={() => setIsAddClientOpen(false)}>
+                              {T.cancel}
+                            </Button>
+                            <Button type="button" onClick={handleAddClient}>
+                              {T.add}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

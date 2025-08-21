@@ -57,7 +57,7 @@ export function TaskList({
     quoteTemplates,
     settings,
 }: TaskListProps) {
-  const T = i18n[settings.language];
+  const T = i18n[settings.language as 'en' | 'vi'] || i18n.en;
   const visibleColumns = useMemo(() => (settings.dashboardColumns || []).filter(col => col.visible), [settings.dashboardColumns]);
   
   return (
@@ -113,7 +113,7 @@ export function TaskList({
               ) : (
                 <tr>
                   <td colSpan={visibleColumns.length || 6} className="p-4 align-middle h-24 text-center">
-                    {view === 'active' ? T.noTasksFound : T.trash + ' is empty.'}
+                    {view === 'active' ? (T.noTasksFound || 'No tasks found') : ((T.trash || 'Trash') + ' is empty.')}
                   </td>
                 </tr>
               )}

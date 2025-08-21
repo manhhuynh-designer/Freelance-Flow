@@ -57,7 +57,7 @@ export function EisenhowerQuadrant({
     }
   });
 
-  const T = i18n[settings.language];
+  const T = i18n[settings.language as 'en' | 'vi'] || i18n.en;
   
   return (
     <TooltipProvider>
@@ -87,10 +87,10 @@ export function EisenhowerQuadrant({
         
         <SortableContext items={tasks.map(task => task.id)}>
           <div className={`${styles.dropZone} relative h-full transition-all duration-200 rounded-lg z-10`}>
-            {tasks.length === 0 ? (
+      {tasks.length === 0 ? (
               <div className={`${styles.emptyDropZone} text-muted-foreground text-center py-8 px-4 rounded-lg border-2 border-dashed transition-all duration-200 h-full flex items-center justify-center ${isOver ? 'border-primary bg-primary/10 text-primary' : 'border-muted-foreground/20'}`}>
                 <div className="flex flex-col items-center gap-2">
-                    <p className="text-sm font-medium">{T.eisenhower.dragTaskHere}</p>
+  <p className="text-sm font-medium">{(T as any)?.eisenhower?.dragTaskHere || 'Drag task here'}</p>
                 </div>
               </div>
             ) : (

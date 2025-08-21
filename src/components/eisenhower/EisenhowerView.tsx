@@ -4,6 +4,7 @@ import React from 'react';
 import { DndContext, DragEndEvent, closestCenter, DragOverlay, PointerSensor, useSensor, useSensors, DragStartEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove } from '@dnd-kit/sortable';
 import { Task, AppSettings, Client, Collaborator, Category, Quote, QuoteTemplate } from '@/lib/types';
+import { i18n } from '@/lib/i18n';
 import { EisenhowerQuadrant } from './EisenhowerQuadrant';
 import { CompactTaskCard } from './CompactTaskCard';
 import { UncategorizedTasksList } from './UncategorizedTasksList';
@@ -49,6 +50,9 @@ export function EisenhowerView({
     handleDeleteTask,
 }: EisenhowerViewProps) {
   const { toast } = useToast();
+
+  // Safe i18n fallback
+  const TL = (T && (T as any)) || i18n.en;
 
   const tasks = filteredTasks;
   const uncategorizedTasksSource = sortedTasksForUncategorized;
@@ -129,8 +133,8 @@ export function EisenhowerView({
     const maxTasksPerQuadrant = settings.eisenhowerMaxTasksPerQuadrant || 10;
     if (newQuadrant && (categorizedTasks.categorized.get(newQuadrant) || []).length >= maxTasksPerQuadrant && draggedTask.eisenhowerQuadrant !== newQuadrant) {
       toast({ 
-        title: T.quadrantFull, 
-        description: T.quadrantFullDesc.replace('{count}', maxTasksPerQuadrant.toString()),
+        title: TL.quadrantFull || 'Quadrant full', 
+        description: (TL.quadrantFullDesc || 'This quadrant already has {count} tasks.').replace('{count}', maxTasksPerQuadrant.toString()),
         variant: 'destructive'
       });
       setActiveTask(null);
@@ -195,8 +199,8 @@ export function EisenhowerView({
                     <div className="min-h-0 h-full">
                       <EisenhowerQuadrant
                         id={quadrantType}
-                        title={T.quadrants[quadrantType].title}
-                        description={T.quadrants[quadrantType].description}
+                        title={(TL?.quadrants?.[quadrantType]?.title) || quadrantType.toUpperCase()}
+                        description={(TL?.quadrants?.[quadrantType]?.description) || ''}
                         tasks={categorizedTasks.categorized.get(quadrantType) || []}
                         onClearQuadrant={handleClearQuadrant}
                         className={getQuadrantColors(quadrantType)}
@@ -220,10 +224,10 @@ export function EisenhowerView({
           <div className="w-full lg:w-80 lg:flex-shrink-0 h-full lg:h-auto ">
             <UncategorizedTasksList
               tasks={categorizedTasks.uncategorized}
-              title={T.uncategorizedTasks.title}
-              emptyMessage={T.uncategorizedTasks.empty}
+              title={(TL?.uncategorizedTasks?.title) || 'Uncategorized Tasks'}
+              emptyMessage={(TL?.uncategorizedTasks?.empty) || 'No uncategorized tasks found.'}
               onClearQuadrant={handleClearQuadrant}
-              T={T}
+              T={TL}
               settings={settings}
               clients={clients}
               collaborators={collaborators}

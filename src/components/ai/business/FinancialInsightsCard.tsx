@@ -26,7 +26,7 @@ interface MonthlyFinancials {
 }
 
 interface FinancialInsightsCardProps {
-  breakdown: BreakdownItem[] | null;
+  breakdown?: BreakdownItem[] | null;
   monthlyData?: MonthlyFinancials[] | null;
   currency?: string;
   locale?: string;
@@ -35,11 +35,16 @@ interface FinancialInsightsCardProps {
 // Custom Y-axis tick to handle long text
 const CustomYAxisTick = (props: any) => {
     const { x, y, payload } = props;
+    const maxLength = 12; // Rút ngắn hơn để tiết kiệm space
+    const displayText = payload.value && payload.value.length > maxLength 
+        ? `${payload.value.substring(0, maxLength)}...` 
+        : payload.value;
+    
     return (
         <g transform={`translate(${x},${y})`}>
-            <text x={0} y={0} dy={4} textAnchor="end" fill="#666" fontSize={12} width={70}>
+            <text x={0} y={0} dy={4} textAnchor="end" fill="#666" fontSize={11}>
                 <title>{payload.value}</title>
-                {payload.value.length > 10 ? `${payload.value.substring(0, 10)}...` : payload.value}
+                {displayText}
             </text>
         </g>
     );
@@ -48,15 +53,20 @@ const CustomYAxisTick = (props: any) => {
 // Custom Tooltip for Charts
 const CustomTooltip = ({ active, payload, label, formatter, nameMap }: any) => {
   if (active && payload && payload.length) {
-    const formattedLabel = label.includes('-') ? format(parseISO(`${label}-02`), 'MMM yyyy') : label;
+  const formattedLabel = label.includes('-') ? format(parseISO(`${label}-02`), 'MM/yyyy') : label;
     return (
       <div className="bg-background border shadow-sm rounded-lg p-2 text-sm z-50">
         <p className="font-bold mb-1">{formattedLabel}</p>
-        {payload.map((entry: any, index: number) => (
-          <p key={`item-${index}`} className="text-foreground" style={{ color: entry.color || entry.fill }}>
-            {`${nameMap ? nameMap[entry.name] : entry.name}: ${formatter(entry.value)}`}
-          </p>
-        ))}
+        {payload.map((entry: any, index: number) => {
+          const displayName = nameMap && nameMap[entry.name] ? nameMap[entry.name] : entry.name;
+          const formattedValue = formatter ? formatter(entry.value || 0) : (entry.value || 0);
+          const color = entry.color || entry.fill || '#666';
+          return (
+            <p key={`item-${index}`} className="text-foreground">
+              {`${displayName}: ${formattedValue}`}
+            </p>
+          );
+        })}
       </div>
     );
   }
@@ -65,27 +75,49 @@ const CustomTooltip = ({ active, payload, label, formatter, nameMap }: any) => {
 
 type Period = 'all' | 'week' | 'month' | 'year';
 
-export function FinancialInsightsCard({ breakdown, monthlyData, currency = 'USD', locale = 'en-US' }: FinancialInsightsCardProps) {
+export function FinancialInsightsCard({ breakdown = null, monthlyData = null, currency = 'USD', locale = 'en-US' }: FinancialInsightsCardProps) {
   const { appData } = useDashboard();
-  const T = i18n[appData?.appSettings?.language || 'en'];
+  const T = i18n[appData?.appSettings?.language as keyof typeof i18n || 'en'];
   const now = new Date();
   const [period, setPeriod] = useState<Period>('all');
   const [weekDate, setWeekDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [monthValue, setMonthValue] = useState<string>(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`);
   const [yearValue, setYearValue] = useState<number>(now.getFullYear());
   
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat(locale, {
+  const formatCurrency = (value: number) => {
+    // Add debug logging
+    console.log('formatCurrency called with:', value, typeof value);
+    
+    if (typeof value !== 'number' || isNaN(value)) {
+      return '0';
+    }
+    
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
+  };
+
+  const formatYAxisValue = (value: any) => {
+    if (typeof value !== 'number' || isNaN(value)) {
+      return '0';
+    }
+    
+    const absValue = Math.abs(value);
+    if (absValue >= 1000000) {
+      return `${(value / 1000000).toFixed(1)}M`;
+    } else if (absValue >= 1000) {
+      return `${(value / 1000).toFixed(0)}k`;
+    }
+    return value.toString();
+  };
 
   const formatDate = (tickItem: string) => {
     try {
       // Handles 'YYYY-MM' format
-      return format(parseISO(`${tickItem}-02`), 'MMM yy');
+      return format(parseISO(`${tickItem}-02`), 'MM/yyyy');
     } catch {
       return tickItem;
     }
@@ -114,31 +146,40 @@ export function FinancialInsightsCard({ breakdown, monthlyData, currency = 'USD'
     return { from: new Date(yearValue, 0, 1), to: new Date(yearValue, 11, 31) };
   }, [period, weekDate, monthValue, yearValue]);
 
-  // Recompute data based on period selection (fallback to props if appData not ready)
+  // Recompute data based on period selection
   const computedBreakdown = useMemo(() => {
+    if (!appData) return [];
     try {
-      return appData ? calculateRevenueBreakdown(appData as any, selectedRange) : (breakdown || []);
+      return calculateRevenueBreakdown(appData as any, selectedRange);
     } catch {
-      return breakdown || [];
+      return [];
     }
-  }, [appData, selectedRange, breakdown]);
+  }, [appData, selectedRange]);
 
   const computedMonthly = useMemo(() => {
+    if (!appData) return [];
     try {
-      return appData ? calculateMonthlyFinancials(appData as any, selectedRange) : (monthlyData || []);
+      return calculateMonthlyFinancials(appData as any, selectedRange);
     } catch {
-      return monthlyData || [];
+      return [];
     }
-  }, [appData, selectedRange, monthlyData]);
+  }, [appData, selectedRange]);
 
   const topClientsData = useMemo(() => computedBreakdown.slice(0, 8), [computedBreakdown]);
   const monthlyChartData = computedMonthly;
+
+  // Debug period selection
+  console.log('=== Period Selection Debug ===');
+  console.log('Current period:', period);
+  console.log('Selected range:', selectedRange);
+  console.log('Monthly chart data:', monthlyChartData);
+  console.log('===============================');
   
   const tooltipNameMap = {
-      revenue: T.revenue,
-      costs: T.costs,
-      profit: T.profit,
-      value: T.revenue
+      revenue: T.revenue || 'Revenue',
+      costs: T.costs || 'Costs',
+      profit: T.profit || 'Profit',
+      value: T.revenue || 'Revenue'
   };
   
   const hasMonthlyData = monthlyChartData.length > 0;
@@ -178,18 +219,17 @@ export function FinancialInsightsCard({ breakdown, monthlyData, currency = 'USD'
   }, [hasMonthlyData, hasClientData]);
 
   return (
-    <Card>
+    <Card className="overflow-visible">
       <CardHeader>
         <CardTitle>{T.financialInsights || 'Financial Insights'}</CardTitle>
-        <CardDescription>{T.visualAnalysisOfPerformance || 'Visual analysis of your financial performance'}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-visible">
         {/* Elegant Period Selector */}
         <div className="mb-4">
           <div className="bg-secondary/30 rounded-lg p-3 border border-border/50">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-foreground">Time Period</span>
+                <span className="text-sm font-medium text-foreground">{T.period}</span>
                 <div className="flex rounded-md border border-border overflow-hidden">
                   {(['all','week','month','year'] as Period[]).map(p => (
                     <Button 
@@ -203,7 +243,7 @@ export function FinancialInsightsCard({ breakdown, monthlyData, currency = 'USD'
                       }`} 
                       onClick={() => setPeriod(p)}
                     >
-                      {p === 'all' ? 'All Time' : p.charAt(0).toUpperCase() + p.slice(1)}
+                      {p === 'all' ? (T.sinceBeginning || T.allTime) : p === 'week' ? T.week : p === 'month' ? T.month : T.year}
                     </Button>
                   ))}
                 </div>
@@ -213,7 +253,7 @@ export function FinancialInsightsCard({ breakdown, monthlyData, currency = 'USD'
                 <div className="flex items-center gap-2">
                   {period === 'week' && (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Week of:</span>
+                      <span className="text-xs text-muted-foreground">{T.weekOf}:</span>
                       <Input 
                         type="date" 
                         value={weekDate} 
@@ -224,18 +264,49 @@ export function FinancialInsightsCard({ breakdown, monthlyData, currency = 'USD'
                   )}
                   {period === 'month' && (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Month:</span>
-                      <Input 
-                        type="month" 
-                        value={monthValue} 
-                        onChange={(e) => setMonthValue(e.target.value)} 
-                        className="h-8 text-xs w-[130px] bg-background border-border" 
-                      />
+                      <span className="text-xs text-muted-foreground">{T.month}:</span>
+                      {/* Year Select for month period */}
+                      <Select
+                        value={monthValue.split('-')[0]}
+                        onValueChange={(newYear) => {
+                          const [, m] = monthValue.split('-');
+                          setMonthValue(`${newYear}-${m || '01'}`);
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs w-[90px] bg-background border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 15 }).map((_, idx) => {
+                            const y = now.getFullYear() - 10 + idx;
+                            return <SelectItem key={y} value={String(y)}>{y}</SelectItem>;
+                          })}
+                        </SelectContent>
+                      </Select>
+                      {/* Month Select */}
+                      <Select
+                        value={monthValue.split('-')[1]}
+                        onValueChange={(newMonth) => {
+                          const [y] = monthValue.split('-');
+                          const mm = String(newMonth).padStart(2, '0');
+                          setMonthValue(`${y || String(now.getFullYear())}-${mm}`);
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs w-[90px] bg-background border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 12 }).map((_, i) => {
+                            const mm = String(i + 1).padStart(2, '0');
+                            return <SelectItem key={mm} value={mm}>{mm}</SelectItem>;
+                          })}
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
                   {period === 'year' && (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Year:</span>
+                      <span className="text-xs text-muted-foreground">{T.year}:</span>
                       <Select value={String(yearValue)} onValueChange={(v) => setYearValue(Number(v))}>
                         <SelectTrigger className="h-8 text-xs w-[100px] bg-background border-border">
                           <SelectValue />
@@ -258,23 +329,23 @@ export function FinancialInsightsCard({ breakdown, monthlyData, currency = 'USD'
         { !hasMonthlyData && !hasClientData ? (
              <NoDataComponent message={T.noDataAvailable} />
         ) : (
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="overflow-visible">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="performance" disabled={!hasMonthlyData}>{T.monthlyPerformance || 'Monthly'}</TabsTrigger>
                 <TabsTrigger value="profit" disabled={!hasMonthlyData}>{T.profitTrend || 'Profit'}</TabsTrigger>
                 <TabsTrigger value="clients" disabled={!hasClientData}>{T.topClients || 'Clients'}</TabsTrigger>
               </TabsList>
 
-              <div className="w-full h-[350px] pt-4">
+              <div className="w-full h-[350px] pt-4 overflow-visible">
                 {/* Tab 1: Monthly Performance (Revenue vs Costs) */}
-                <TabsContent value="performance" className="h-full">
+                <TabsContent value="performance" className="h-full overflow-visible">
                    {hasMonthlyData && activeTab === 'performance' && (
-                    <div className="w-full h-full">
+                    <div className="w-full h-full overflow-visible">
                       <ResponsiveContainer key={`chart-${activeTab}`} width="100%" height="100%">
-                        <BarChart data={monthlyChartData} margin={{ top: 5, right: 20, left: -15, bottom: 5 }}>
+                        <BarChart data={monthlyChartData} margin={{ top: 5, right: 20, left: 45, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="monthYear" tickFormatter={formatDate} fontSize={12} />
-                            <YAxis tickFormatter={(val) => formatCurrency(val).replace(/(\$|€|₫)/, '')} fontSize={12} />
+                            <YAxis tickFormatter={formatYAxisValue} fontSize={12} width={40} />
                             <Tooltip content={<CustomTooltip formatter={formatCurrency} nameMap={tooltipNameMap} />} />
                             <Legend />
                             <Bar dataKey="revenue" fill="#00C49F" name={T.revenue || 'Revenue'} />
@@ -286,14 +357,14 @@ export function FinancialInsightsCard({ breakdown, monthlyData, currency = 'USD'
                 </TabsContent>
                 
                 {/* Tab 2: Net Profit Trend */}
-                <TabsContent value="profit" className="h-full">
+                <TabsContent value="profit" className="h-full overflow-visible">
                    {hasMonthlyData && activeTab === 'profit' && (
-                    <div className="w-full h-full">
+                    <div className="w-full h-full overflow-visible">
                       <ResponsiveContainer key={`chart-${activeTab}`} width="100%" height="100%">
-                        <LineChart data={monthlyChartData} margin={{ top: 5, right: 20, left: -15, bottom: 5 }}>
+                        <LineChart data={monthlyChartData} margin={{ top: 5, right: 20, left: 45, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="monthYear" tickFormatter={formatDate} fontSize={12} />
-                            <YAxis tickFormatter={(val) => formatCurrency(val).replace(/(\$|€|₫)/, '')} fontSize={12}/>
+                            <YAxis tickFormatter={formatYAxisValue} fontSize={12} width={40} />
                             <Tooltip content={<CustomTooltip formatter={formatCurrency} nameMap={tooltipNameMap} />} />
                             <Legend />
                             <Line type="monotone" dataKey="profit" stroke="#0088FE" name={T.profit || 'Profit'} />
@@ -304,14 +375,14 @@ export function FinancialInsightsCard({ breakdown, monthlyData, currency = 'USD'
                 </TabsContent>
 
                 {/* Tab 3: Top Clients by Revenue */}
-                <TabsContent value="clients" className="h-full">
+                <TabsContent value="clients" className="h-full overflow-visible">
                   {hasClientData && activeTab === 'clients' && (
-                    <div className="w-full h-full">
-                      <ResponsiveContainer key={`chart-${activeTab}`} width="100%" height="100%">
-                       <BarChart layout="vertical" data={topClientsData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                    <div className="w-full h-full overflow-visible">
+          <ResponsiveContainer key={`chart-${activeTab}`} width="100%" height="100%">
+           <BarChart layout="vertical" data={topClientsData} margin={{ top: 5, right: 10, left: 60, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis type="number" tickFormatter={(val) => formatCurrency(val).replace(/(\$|€|₫)/, '')} fontSize={12}/>
-                            <YAxis type="category" width={80} dataKey="name" tick={<CustomYAxisTick />} />
+                            <XAxis type="number" tickFormatter={formatYAxisValue} fontSize={12}/>
+             <YAxis type="category" width={70} dataKey="name" tick={<CustomYAxisTick />} />
                             <Tooltip content={<CustomTooltip formatter={formatCurrency} nameMap={tooltipNameMap} />} />
                             <Bar dataKey="value" name={T.revenue || 'Revenue'} fill="#AF19FF" />
                        </BarChart>

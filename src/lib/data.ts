@@ -245,6 +245,8 @@ export const initialAppData: AppData = {
     events: [],
     notes: [],
     workSessions: [], // Initialize empty work sessions
+  expenses: [],
+  fixedCosts: [],
     quotes,
     collaboratorQuotes: [],
     clients: initialClients,

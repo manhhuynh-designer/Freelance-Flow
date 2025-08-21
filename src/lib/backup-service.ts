@@ -1,9 +1,11 @@
 /**
  * Backup Service - Tự động backup dữ liệu người dùng
  * Ngăn chặn mất dữ liệu khi deploy lại app
+ * Updated: Now supports Excel format exports
  */
 
 import type { AppData } from './types';
+import { ExcelBackupService } from './excel-backup-service';
 
 export class BackupService {
   private static readonly BACKUP_KEY = 'freelance-flow-backup';
@@ -30,22 +32,28 @@ export class BackupService {
   }
 
   /**
-   * Tạo backup manual - tương thích với function handleExport() hiện tại
+   * Tạo backup manual - Now supports Excel format
+   * Tương thích với function handleExport() hiện tại
    * Nhưng cũng lưu vào backup history
    */
-  static createManualBackup(data: AppData): { jsonString: string; filename: string } {
-    // Tạo backup trong history như bình thường
+  static async createManualBackup(data: AppData, format: 'json' | 'excel' = 'excel'): Promise<{ jsonString?: string; blob?: Blob; filename: string }> {
+    // Tạo backup trong history như bình thường (always JSON for internal storage)
     this.createBackup(data);
     
     // Cập nhật last backup timestamp (tương thích với hệ thống cũ)
     const now = new Date();
     localStorage.setItem(this.LAST_BACKUP_KEY, now.toISOString());
     
-    // Return data cho download như hàm handleExport() cũ
-    const jsonString = JSON.stringify(data, null, 2);
-    const filename = `freelance-flow-backup-${now.toISOString().split('T')[0]}.json`;
-    
-    return { jsonString, filename };
+    if (format === 'excel') {
+      // Return Excel data cho download
+      const { blob, filename } = await ExcelBackupService.createManualBackup(data);
+      return { blob, filename };
+    } else {
+      // Return JSON data cho download (legacy support)
+      const jsonString = JSON.stringify(data, null, 2);
+      const filename = `freelance-flow-backup-${now.toISOString().split('T')[0]}.json`;
+      return { jsonString, filename };
+    }
   }
 
   /**
@@ -126,21 +134,35 @@ export class BackupService {
   }
 
   /**
-   * Xuất tất cả backup thành file
+   * Xuất tất cả backup thành file Excel
    */
-  static exportAllBackups(): void {
+  static async exportAllBackups(format: 'json' | 'excel' = 'excel'): Promise<void> {
     try {
       const backups = this.getBackups();
-      const jsonString = JSON.stringify(backups, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `freelance-flow-all-backups-${new Date().toISOString().split('T')[0]}.json`;
-      link.href = url;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      
+      if (format === 'excel') {
+        const { blob, filename } = await ExcelBackupService.exportAllBackupsAsExcel(backups);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        // Legacy JSON export
+        const jsonString = JSON.stringify(backups, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `freelance-flow-all-backups-${new Date().toISOString().split('T')[0]}.json`;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
     } catch (error) {
       console.error('Export all backups failed:', error);
     }
@@ -158,6 +180,31 @@ export class BackupService {
       localStorage.setItem(this.BACKUP_KEY, JSON.stringify(recentBackups));
     } catch (error) {
       console.error('Clear old backups failed:', error);
+    }
+  }
+
+  /**
+   * Xóa toàn bộ lịch sử backup và mốc thời gian backup cuối
+   */
+  static clearAllBackups(): void {
+    try {
+      localStorage.removeItem(this.BACKUP_KEY);
+      localStorage.removeItem(this.LAST_BACKUP_KEY);
+    } catch (error) {
+      console.error('Clear all backups failed:', error);
+    }
+  }
+
+  /**
+   * Xóa một bản backup theo timestamp
+   */
+  static deleteBackup(timestamp: number): void {
+    try {
+      const backups = this.getBackups();
+      const next = backups.filter(b => b.timestamp !== timestamp);
+      localStorage.setItem(this.BACKUP_KEY, JSON.stringify(next));
+    } catch (error) {
+      console.error('Delete backup failed:', error);
     }
   }
 }

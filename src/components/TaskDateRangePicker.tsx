@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { DateRange } from "react-day-picker";
-import { format, addDays, endOfWeek, endOfMonth } from "date-fns";
+import { format, addDays, endOfWeek, endOfMonth, isValid } from "date-fns";
 import { CalendarIcon } from "@radix-ui/react-icons";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,17 @@ export function TaskDateRangePicker({ value, onChange, T, className }: TaskDateR
   const [open, setOpen] = React.useState(false);
   const PRESETS = React.useMemo(() => buildPresets(T), [T]);
 
+  // Safely normalize incoming range which may contain strings or invalid dates
+  const toDateSafe = (d: any): Date | undefined => {
+    if (!d) return undefined;
+    const dt = d instanceof Date ? d : new Date(d);
+    return isValid(dt) ? dt : undefined;
+  };
+  const safeFrom = toDateSafe(value?.from);
+  const safeTo = toDateSafe(value?.to);
+  const safeSelected = safeFrom || safeTo ? { from: safeFrom, to: safeTo } : undefined;
+  const defaultMonth = safeFrom || safeTo || undefined;
+
   return (
     <div className={cn("", className)}>
       <Popover open={open} onOpenChange={setOpen}>
@@ -75,10 +86,10 @@ export function TaskDateRangePicker({ value, onChange, T, className }: TaskDateR
               {(T as any)?.rangeLabel || "Range:"}
             </span>
             <span className="text-sm font-normal truncate">
-              {value?.from ? (
-                value.to
-                  ? `${format(value.from, "dd/MM/yyyy")} - ${format(value.to, "dd/MM/yyyy")}`
-                  : format(value.from, "dd/MM/yyyy")
+              {safeFrom ? (
+                safeTo
+                  ? `${format(safeFrom, "dd/MM/yyyy")} - ${format(safeTo, "dd/MM/yyyy")}`
+                  : format(safeFrom, "dd/MM/yyyy")
               ) : ((T as any)?.pickADate || "Pick a date")}
             </span>
           </Button>
@@ -101,8 +112,8 @@ export function TaskDateRangePicker({ value, onChange, T, className }: TaskDateR
             <Calendar
               initialFocus
               mode="range"
-              defaultMonth={value?.from}
-              selected={value}
+              defaultMonth={defaultMonth}
+              selected={safeSelected as any}
               onSelect={(range) => onChange(range)}
               numberOfMonths={2}
               className="border-0 bg-background"

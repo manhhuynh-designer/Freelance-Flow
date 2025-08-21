@@ -22,14 +22,13 @@ import { FinancialInsightsCard } from './business/FinancialInsightsCard'; // Imp
 import { AIBusinessAnalysisCard } from './business/AIBusinessAnalysisCard';
 import { TaskDetailsDialog } from '@/components/task-dialogs/TaskDetailsDialog';
 import { EditTaskForm } from '@/components/edit-task-form';
+import type { Task, Quote, CollaboratorQuote, Client } from '@/lib/types';
 
 export function BusinessDashboard() {
   const { appData, isDataLoaded, updateTask, handleDeleteTask: deleteTask, updateQuote, updateCollaboratorQuote, handleEditTask: editTask, handleAddClientAndSelect } = useDashboard();
   
   // State lifted up to the main dashboard component
   const [summary, setSummary] = useState<any>(null);
-  const [breakdown, setBreakdown] = useState<any>(null);
-  const [monthlyData, setMonthlyData] = useState<any[] | null>(null); // State for monthly data
   const [analysis, setAnalysis] = useState<any>(null);
   const [taskDetails, setTaskDetails] = useState<any>(null);
   const [additionalFinancials, setAdditionalFinancials] = useState<any>(null);
@@ -39,38 +38,32 @@ export function BusinessDashboard() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const selectedQuote = selectedTaskId ? appData?.quotes?.find(q => q.id === (appData?.tasks?.find(t => t.id === selectedTaskId)?.quoteId)) : null;
-  const selectedCollaboratorQuotes = selectedTaskId ? appData?.tasks?.find(t => t.id === selectedTaskId)?.collaboratorQuotes?.map(link => appData?.collaboratorQuotes?.find(cq => cq.id === link.quoteId)).filter(Boolean) as any[] : [];
+  const selectedQuote = selectedTaskId ? appData?.quotes?.find((q: Quote) => q.id === (appData?.tasks?.find((t: Task) => t.id === selectedTaskId)?.quoteId)) : null;
+  const selectedCollaboratorQuotes = selectedTaskId ? appData?.tasks?.find((t: Task) => t.id === selectedTaskId)?.collaboratorQuotes?.map((link: { collaboratorId: string; quoteId: string }) => appData?.collaboratorQuotes?.find((cq: CollaboratorQuote) => cq.id === link.quoteId)).filter(Boolean) as any[] : [];
 
 
   // Effect to perform calculations when data changes
   useEffect(() => {
     if (!appData) return;
 
-    // Perform local, real-time calculations for ALL TIME by default
+    // Perform local, real-time calculations for ALL TIME by default (only for FinancialSummaryCard)
     const summaryResult = calculateFinancialSummary(appData, {});
-    const breakdownResult = calculateRevenueBreakdown(appData, {});
-    const monthlyResult = calculateMonthlyFinancials(appData, {});
     const taskDetailsResult = calculateTaskDetails(appData, {});
     const additionalResult = calculateAdditionalFinancials(appData, {});
     const additionalTaskDetailsResult = calculateAdditionalTaskDetails(appData, {});
     
     console.log('--- Dashboard Analytics Debug ---');
-  console.log('Date Range Used: ALL TIME');
-    console.log('Breakdown Result:', breakdownResult);
-    console.log('Monthly Result:', monthlyResult);
+    console.log('Summary Result:', summaryResult);
     console.log('---------------------------------');
 
     setSummary(summaryResult);
-    setBreakdown(breakdownResult);
-    setMonthlyData(monthlyResult);
     setTaskDetails(taskDetailsResult);
     setAdditionalFinancials(additionalResult);
     setAdditionalTaskDetails(additionalTaskDetailsResult);
   }, [appData]);
 
   const handleAiAnalysis = async () => {
-    if (!summary || !breakdown) return;
+    if (!summary) return;
 
     setIsAiLoading(true);
     setIsAnalysisPanelVisible(true); // Show the right panel
@@ -82,6 +75,8 @@ export function BusinessDashboard() {
         language: appData.appSettings.language || 'en'
       };
 
+      // Calculate breakdown on demand for AI analysis
+      const breakdown = calculateRevenueBreakdown(appData, {});
       const financialContext = { summary, breakdown };
       const aiResult = await getAIBusinessAnalysis(financialContext, settings);
       setAnalysis(aiResult);
@@ -156,8 +151,8 @@ export function BusinessDashboard() {
   };
 
   // Get selected task and related data for TaskDetailsDialog
-  const selectedTask = selectedTaskId ? appData?.tasks?.find(t => t.id === selectedTaskId) : null;
-  const selectedClient = selectedTask ? appData?.clients?.find(c => c.id === selectedTask.clientId) : null;
+  const selectedTask = selectedTaskId ? appData?.tasks?.find((t: Task) => t.id === selectedTaskId) : null;
+  const selectedClient = selectedTask ? appData?.clients?.find((c: Client) => c.id === selectedTask.clientId) : null;
   
   if (!isDataLoaded) {
       return (
@@ -169,15 +164,15 @@ export function BusinessDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-visible">
   <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Business Dashboard</h2>
       </div>
       
       {/* 2-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-visible">
         {/* Left Column (Real-time Analytics) */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 overflow-visible">
           <FinancialSummaryCard 
             summary={summary}
             currency={appData?.appSettings?.currency || 'USD'}
@@ -188,8 +183,6 @@ export function BusinessDashboard() {
             onTaskClick={handleTaskClick}
           />
           <FinancialInsightsCard 
-            breakdown={breakdown} 
-            monthlyData={monthlyData}
             currency={appData?.appSettings?.currency || 'USD'}
             locale={appData?.appSettings?.language === 'vi' ? 'vi-VN' : 'en-US'}
           />

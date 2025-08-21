@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { vi as viLocale, enUS } from 'date-fns/locale';
 import { TaskDetailsDialog } from '@/components/task-dialogs/TaskDetailsDialog';
 import { TaskEditDialog } from '@/components/task-dialogs/TaskEditDialog';
@@ -104,6 +104,18 @@ export function CompactTaskCard({
   const taskClient = clients.find(c => c.id === task.clientId);
 
   if (variant === 'uncategorized') {
+    // Safely compute a deadline label to avoid RangeError from date-fns/format
+    const toDate = (value: unknown): Date | null => {
+      if (!value) return null;
+      if (value instanceof Date) return isValid(value) ? value : null;
+      if (typeof value === 'string' || typeof value === 'number') {
+        const d = new Date(value as any);
+        return isValid(d) ? d : null;
+      }
+      return null;
+    };
+    const deadlineDate = toDate((task as any).deadline);
+    const deadlineLabel = deadlineDate ? format(deadlineDate, 'dd/MM', { locale }) : '--';
     return (
       <>
         <Card 
@@ -147,7 +159,7 @@ export function CompactTaskCard({
                 <div className="flex items-center gap-2">
                   <div className={styles.statusDot} />
                   <span className="text-xs text-muted-foreground font-medium">
-                    {format(new Date(task.deadline), 'dd/MM', { locale })}
+                    {deadlineLabel}
                   </span>
                 </div>
               </div>
@@ -207,7 +219,19 @@ export function CompactTaskCard({
               <div className="flex items-center gap-1 mt-1">
                 <div className={styles.statusDotSmall} />
                 <span className="text-xs text-muted-foreground truncate">
-                  {format(new Date(task.deadline), 'dd/MM', { locale })}
+                  {(() => {
+                    const toDate = (value: unknown): Date | null => {
+                      if (!value) return null;
+                      if (value instanceof Date) return isValid(value) ? value : null;
+                      if (typeof value === 'string' || typeof value === 'number') {
+                        const d = new Date(value as any);
+                        return isValid(d) ? d : null;
+                      }
+                      return null;
+                    };
+                    const d = toDate((task as any).deadline);
+                    return d ? format(d, 'dd/MM', { locale }) : '--';
+                  })()}
                 </span>
               </div>
             </div>

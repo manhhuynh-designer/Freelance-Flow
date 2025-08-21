@@ -91,6 +91,20 @@ export const i18n = {
     clipboardEmptyOrInvalid: 'Clipboard is empty or has invalid format',
     itemsAndColumnsImported: '{{itemCount}} items and {{columnCount}} columns have been imported.',
 
+    // Period selector keys
+    period: 'Period',
+  allTime: 'All time',
+  sinceBeginning: 'Since beginning',
+    week: 'Week',
+    month: 'Month',
+    year: 'Year',
+    weekOf: 'Week of',
+
+    // Financial chart keys
+    revenue: 'Revenue',
+    costs: 'Costs',
+    profit: 'Profit',
+
     // EventDialog specific keys
     editEventTitle: 'Edit Event',
     addEventTitle: 'Add New Event',
@@ -317,6 +331,8 @@ viewEventDetailsDesc: 'View event details below.',
     moveToTrash: 'Move to Trash',
     moveToTrashDescription: 'This will move the task to the trash. You can restore it for up to 30 days.',
     confirmMoveToTrash: 'Confirm Move to Trash',
+  // Duplicate Task
+  duplicateTask: 'Duplicate Task',
     
     // Toasts
     taskCreated: 'Task Created',
@@ -699,6 +715,20 @@ viewEventDetailsDesc: 'View event details below.',
     clipboardEmptyOrInvalid: 'Bộ nhớ tạm trống hoặc sai định dạng',
     itemsAndColumnsImported: '{{itemCount}} dòng và {{columnCount}} cột đã được nhập.',
 
+    // Period selector keys
+    period: 'Thời gian',
+  allTime: 'Tất cả',
+  sinceBeginning: 'Từ lúc bắt đầu',
+    week: 'Tuần',
+    month: 'Tháng', 
+    year: 'Năm',
+    weekOf: 'Tuần của',
+
+    // Financial chart keys
+    revenue: 'Doanh thu',
+    costs: 'Chi phí',
+    profit: 'Lợi nhuận',
+
     // EventDialog specific keys
     editEventTitle: 'Chỉnh sửa sự kiện',
     addEventTitle: 'Thêm sự kiện mới',
@@ -930,6 +960,8 @@ requiredField: 'Trường này là bắt buộc',
     moveToTrash: 'Chuyển vào thùng rác',
     moveToTrashDescription: 'Thao tác này sẽ chuyển công việc vào thùng rác. Bạn có thể khôi phục trong vòng 30 ngày.',
     confirmMoveToTrash: 'Xác nhận chuyển vào thùng rác',
+  // Duplicate Task
+  duplicateTask: 'Nhân bản',
 
     // Toasts
     taskCreated: 'Đã tạo công việc',

@@ -38,9 +38,16 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { getContrastingTextColor } from "@/lib/colors";
 import { i18n } from "@/lib/i18n";
-import { FileText, Pencil, Link as LinkIcon, Folder, Copy, Trash2, Building2, Calendar, Briefcase } from "lucide-react";
+import { FileText, Pencil, Link as LinkIcon, Folder, Copy, Trash2, Building2, Calendar, Briefcase, Flag, FlagOff, CopyPlus } from "lucide-react";
 import { RichTextViewer } from "@/components/ui/RichTextViewer";
 import { QuotePaymentManager } from "@/components/quote-payment-manager";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export interface TaskDetailsDialogProps {
   task: Task;
@@ -57,7 +64,30 @@ export interface TaskDetailsDialogProps {
   onDelete?: (taskId: string) => void;
   onUpdateQuote?: (quoteId: string, updates: Partial<Quote>) => void;
   onUpdateCollaboratorQuote?: (quoteId: string, updates: Partial<Quote>) => void;
+  // Optional: parent can handle quick status updates
+  onChangeStatus?: (taskId: string, statusId: string) => void;
 }
+
+// Date parsing utility
+const safeParseDate = (date: any, fallback: Date | null = null): Date | null => {
+  if (!date) return fallback;
+  
+  // Handle if it's already a valid Date object
+  if (date instanceof Date && !isNaN(date.getTime())) {
+    return date;
+  }
+  
+  // Handle string dates (ISO strings, timestamps, etc.)
+  if (typeof date === 'string' || typeof date === 'number') {
+    const parsed = new Date(date);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  
+  return fallback;
+};
+
 
 // Link Preview Component
 function LinkPreview({ url, maxLength = 30, fallback }: { url: string; maxLength?: number; fallback?: string }) {
@@ -310,11 +340,31 @@ export function TaskDetailsDialog({
   onDelete,
   onUpdateQuote,
   onUpdateCollaboratorQuote,
+  onChangeStatus,
 }: TaskDetailsDialogProps) {
   const [selectedNav, setSelectedNav] = useState<'timeline' | 'price' | 'collaborator' | 'payment'>('timeline');
   const [showAllBriefLinks, setShowAllBriefLinks] = useState(false);
   const [showAllDriveLinks, setShowAllDriveLinks] = useState(false);
   const { toast } = useToast();
+  // Local status for immediate UI feedback
+  const [currentStatusId, setCurrentStatusId] = useState<string>(task.status);
+  React.useEffect(() => {
+    setCurrentStatusId(task.status);
+  }, [task.status, isOpen]);
+
+  // Eisenhower flag color (reuse schemes from other views)
+  const eisenhowerFlagColor = useMemo(() => {
+    const scheme = settings?.eisenhowerColorScheme || 'colorScheme1';
+    const schemes: Record<string, Record<'do'|'decide'|'delegate'|'delete', string>> = {
+      colorScheme1: { do: '#ef4444', decide: '#3b82f6', delegate: '#f59e42', delete: '#6b7280' },
+      colorScheme2: { do: '#d8b4fe', decide: '#bbf7d0', delegate: '#fed7aa', delete: '#bfdbfe' },
+      colorScheme3: { do: '#99f6e4', decide: '#fbcfe8', delegate: '#fde68a', delete: '#c7d2fe' },
+    };
+    const q = task.eisenhowerQuadrant as 'do'|'decide'|'delegate'|'delete' | undefined;
+    if (!q) return '#ffffff';
+    const map = schemes[scheme] || schemes.colorScheme1;
+    return map[q] || '#e5e7eb';
+  }, [settings?.eisenhowerColorScheme, task.eisenhowerQuadrant]);
 
   // Reset link expansion state when dialog opens
   React.useEffect(() => {
@@ -336,25 +386,16 @@ export function TaskDetailsDialog({
   }, [settings.language]);
 
   // Resolve status using user custom settings first, fallback to static STATUS_INFO
-  const statusSetting = (settings.statusSettings || []).find(s => s.id === task.status);
-  const status = statusSetting || STATUS_INFO.find(s => s.id === task.status);
+  const statusSetting = (settings.statusSettings || []).find(s => s.id === currentStatusId);
+  const status = statusSetting || STATUS_INFO.find(s => s.id === currentStatusId);
   const StatusIcon = (status as any)?.icon;
   const subStatusLabel = statusSetting?.subStatuses.find(ss => ss.id === task.subStatusId)?.label;
 
 
   // Parse deadline and startDate to Date objects for reliable display and calculation
-  const parsedDeadline = useMemo(() => {
-    if (!task.deadline) return null;
-    const d = typeof task.deadline === 'string' ? new Date(task.deadline) : task.deadline;
-    return d instanceof Date && !isNaN(d.getTime()) ? d : null;
-  }, [task.deadline]);
+  const parsedDeadline = useMemo(() => safeParseDate(task.deadline), [task.deadline]);
   const isValidDeadline = !!parsedDeadline;
-
-  const parsedStartDate = useMemo(() => {
-    if (!task.startDate) return null;
-    const d = typeof task.startDate === 'string' ? new Date(task.startDate) : task.startDate;
-    return d instanceof Date && !isNaN(d.getTime()) ? d : null;
-  }, [task.startDate]);
+  const parsedStartDate = useMemo(() => safeParseDate(task.startDate), [task.startDate]);
   const isValidStartDate = !!parsedStartDate;
   
   const defaultColumns: QuoteColumn[] = [
@@ -381,7 +422,7 @@ export function TaskDetailsDialog({
   }, [task.collaboratorIds, collaborators]);
 
   const assignedCollaborator = useMemo(() => {
-    if (assignedCollaborators.length > 0) return assignedCollaborators[0];
+    if (assignedCollaborators.length > 0) return assignedCollaborators;
     return null;
   }, [assignedCollaborators]);
 
@@ -626,7 +667,36 @@ export function TaskDetailsDialog({
     return "text-deadline-safe";
   };
 
-  const deadlineColorClass = isValidDeadline ? getDeadlineColor(parsedDeadline as Date) : "text-deadline-overdue font-semibold";
+  const deadlineColorClass = isValidDeadline ? getDeadlineColor(parsedDeadline) : "text-deadline-overdue font-semibold";
+
+  // Build full status list (user-defined first, fallback to defaults)
+  const allStatuses: StatusInfo[] = useMemo(() => {
+    return (settings.statusSettings && settings.statusSettings.length > 0)
+      ? settings.statusSettings as unknown as StatusInfo[]
+      : (STATUS_INFO as StatusInfo[]);
+  }, [settings.statusSettings]);
+
+  // Helper to get status color safely (bypass strict index typing)
+  const getStatusColor = useCallback((id: string): string => {
+    const map = settings.statusColors as unknown as Record<string, string> | undefined;
+    return map?.[id] || '#ccc';
+  }, [settings.statusColors]);
+
+  const handleChangeStatus = useCallback((newStatusId: string) => {
+    try {
+      if (newStatusId === currentStatusId) return;
+      const newStatus = allStatuses.find(s => s.id === newStatusId);
+      // optimistic update
+      setCurrentStatusId(newStatusId);
+      onChangeStatus?.(task.id, newStatusId);
+      toast({
+        title: T.statusUpdated || "Status updated",
+        description: `${T.task || "Task"} → ${(newStatus as any)?.label || (T.statuses as any)?.[newStatusId] || newStatusId}`,
+      });
+    } catch (e) {
+      toast({ variant: "destructive", title: T.error || "Error", description: T.updateFailed || "Failed to update status" });
+    }
+  }, [task.id, currentStatusId, allStatuses, onChangeStatus, toast, T]);
 
   const copyQuoteToClipboard = useCallback((quoteToCopy: Quote | undefined) => {
     if (!quoteToCopy) return;
@@ -751,19 +821,76 @@ export function TaskDetailsDialog({
         {/* --- HEADER: Project Info --- */}
         <div className="flex flex-col gap-1 pb-2 border-b mb-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-2xl font-bold leading-tight truncate">{task.name}</span>
-            {StatusIcon && status && (
-              <Badge 
-                style={{ 
-                  backgroundColor: settings.statusColors[task.status],
-                  color: getContrastingTextColor(settings.statusColors[task.status]) 
-                }}
-                className="flex items-center gap-1"
-              >
-                <StatusIcon className="h-3 w-3" />
-                {statusSetting?.label || (status && (T.statuses as any)?.[status.id]) || task.status}
-                {subStatusLabel && <span className="text-xs opacity-80">({subStatusLabel})</span>}
-              </Badge>
+            <div className="flex items-center gap-2">
+              {task.eisenhowerQuadrant ? (
+                <Flag className="h-5 w-5 drop-shadow" color={eisenhowerFlagColor} fill={eisenhowerFlagColor} />
+              ) : (
+                <FlagOff className="h-5 w-5 drop-shadow" color="#e5e7eb" />
+              )}
+              <span className="text-2xl font-bold leading-tight truncate">{task.name}</span>
+            </div>
+            {status && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button type="button" className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                          <Badge
+                            style={{
+                              backgroundColor: getStatusColor(currentStatusId),
+                              color: getContrastingTextColor(getStatusColor(currentStatusId))
+                            }}
+                            className="flex items-center gap-1 cursor-pointer"
+                          >
+                            {StatusIcon ? <StatusIcon className="h-3 w-3" /> : null}
+                            {statusSetting?.label || (status && (T.statuses as any)?.[status.id]) || currentStatusId}
+                            {subStatusLabel && <span className="text-xs opacity-80">({subStatusLabel})</span>}
+                          </Badge>
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="min-w-[14rem]">
+                        <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                          {T.changeStatus || 'Change status'}
+                        </div>
+                        {allStatuses.map((s) => {
+                          const CIcon: any = (s as any).icon;
+                          const bg = getStatusColor(s.id);
+                          const label = (settings.statusSettings || []).find(x => x.id === s.id)?.label
+                            || (T.statuses as any)?.[s.id]
+                            || s.id;
+                          const isActive = currentStatusId === s.id;
+                          return (
+                            <DropdownMenuItem
+                              key={s.id}
+                              onClick={() => handleChangeStatus(s.id)}
+                              className={cn('flex items-center gap-2', isActive && 'opacity-100')}
+                            >
+                              {/* colored dot via SVG fill to avoid inline styles */}
+                              <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+                                <circle cx="8" cy="8" r="6" fill={bg} />
+                              </svg>
+                              {CIcon ? <CIcon className="h-4 w-4 opacity-80" /> : null}
+                              <span className="text-sm">{label}</span>
+                              {isActive && (
+                                <span className="ml-auto text-xs text-muted-foreground">{T.current || 'Current'}</span>
+                              )}
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TooltipTrigger>
+      <TooltipContent>
+                    <div className="flex items-center gap-2">
+                      <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+        <circle cx="8" cy="8" r="6" fill={getStatusColor(currentStatusId)} />
+                      </svg>
+                      <span>{T.changeStatus || 'Change status'}</span>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap text-muted-foreground text-sm">
@@ -831,13 +958,13 @@ export function TaskDetailsDialog({
                     <div>
                       <div className="font-medium">{T.startDate ?? 'Start Date'}</div>
                       <div className="text-muted-foreground">
-                        {isValidStartDate ? format(parsedStartDate as Date, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}
+                        {isValidStartDate ? format(parsedStartDate, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="font-medium">{T.deadline ?? 'Deadline'}</div>
                       <div className={cn("text-muted-foreground", deadlineColorClass)}>
-                        {isValidDeadline ? format(parsedDeadline as Date, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}
+                        {isValidDeadline ? format(parsedDeadline, "MMM dd, yyyy") : (T.invalidDate ?? 'Invalid Date')}
                       </div>
                     </div>
                   </div>
@@ -846,16 +973,16 @@ export function TaskDetailsDialog({
                     <div className="space-y-2">
                       <Progress 
                         value={Math.max(0, Math.min(100, 
-                          (differenceInDays(new Date(), parsedStartDate as Date) / 
-                           differenceInDays(parsedDeadline as Date, parsedStartDate as Date)) * 100
+                          (differenceInDays(new Date(), parsedStartDate) / 
+                           differenceInDays(parsedDeadline, parsedStartDate)) * 100
                         ))} 
                         className="h-2" 
                       />
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>{T.progress ?? 'Progress'}</span>
                         <span>
-                          {Math.max(0, differenceInDays(new Date(), parsedStartDate as Date))} / {" "}
-                          {differenceInDays(parsedDeadline as Date, parsedStartDate as Date)} {T.days ?? 'days'}
+                          {Math.max(0, differenceInDays(new Date(), parsedStartDate))} / {" "}
+                          {differenceInDays(parsedDeadline, parsedStartDate)} {T.days ?? 'days'}
                         </span>
                       </div>
                     </div>
@@ -954,7 +1081,8 @@ export function TaskDetailsDialog({
                         </div>
                       </div>
                     </div>
-
+                  </div
+>
                     {calculationResults.length > 0 && (
                       <div className="mt-4">
                         <div className="text-xs text-muted-foreground mb-2">{(T as any).sumByColumn || 'Calculations'}</div>
@@ -968,7 +1096,6 @@ export function TaskDetailsDialog({
                         </div>
                       </div>
                     )}
-                  </div>
                 </>
               ) : (
                 <div className="text-muted-foreground text-center py-8">{T.noQuoteData ?? 'No quote data available.'}</div>
@@ -1035,8 +1162,9 @@ export function TaskDetailsDialog({
           )}
         </div>
 
-        {/* Actions (Delete/Edit) - always visible below main content */}
+        {/* Actions (Delete/Duplicate/Edit) - always visible below main content */}
         <div className="flex justify-between items-center pt-4 border-t mt-6">
+          <div className="flex items-center gap-2">
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm" className="bg-destructive/10 hover:bg-destructive/20 text-destructive border-2 border-destructive">
@@ -1071,6 +1199,72 @@ export function TaskDetailsDialog({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          {/* Duplicate Task button */}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              try {
+                // Build prefill values for create form from current task
+                const prefill: any = {
+                  name: `${task.name} [Copy]`,
+                  description: task.description || '',
+                  briefLink: Array.isArray(task.briefLink) ? [...task.briefLink] : [],
+                  driveLink: Array.isArray(task.driveLink) ? [...task.driveLink] : [],
+                  clientId: task.clientId,
+                  collaboratorIds: Array.isArray(task.collaboratorIds) ? [...task.collaboratorIds] : [],
+                  categoryId: task.categoryId,
+                  status: task.status,
+                  subStatusId: task.subStatusId || '',
+                  dates: {
+                    from: task.startDate ? new Date(task.startDate as any) : undefined,
+                    to: task.deadline ? new Date(task.deadline as any) : undefined,
+                  },
+                };
+                // Prefill quote and collaborator quote sections if available
+                const baseQuoteColumns = (quote?.columns && quote.columns.length > 0) ? quote.columns : [
+                  { id: 'description', name: T.description, type: 'text' },
+                  { id: 'unitPrice', name: `${T.unitPrice} (${settings.currency})`, type: 'number', calculation: { type: 'sum' as const } },
+                ];
+                const sections = (quote?.sections || []).map(sec => ({
+                  id: sec.id,
+                  name: sec.name,
+                  items: (sec.items || []).map(it => ({ id: undefined, description: it.description, unitPrice: it.unitPrice, customFields: it.customFields || {} }))
+                }));
+                if (sections.length > 0) prefill.sections = sections;
+
+                const collabQuotes = (task.collaboratorQuotes || []).map(cq => {
+                  const q = (collaboratorQuotes || []).find(x => x.id === cq.quoteId);
+                  if (!q) return { collaboratorId: cq.collaboratorId, sections: [] };
+                  return {
+                    collaboratorId: cq.collaboratorId,
+                    sections: (q.sections || []).map(sec => ({
+                      id: sec.id,
+                      name: sec.name,
+                      items: (sec.items || []).map(it => ({ id: undefined, description: it.description, unitPrice: it.unitPrice, customFields: it.customFields || {} }))
+                    }))
+                  };
+                });
+                if (collabQuotes.length > 0) prefill.collaboratorQuotes = collabQuotes;
+
+                // Dispatch event for dashboard header to open create dialog prefilled
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('task:duplicateOpen', { detail: {
+                    values: prefill,
+                    columns: baseQuoteColumns,
+                    collaboratorColumns: baseQuoteColumns,
+                  }}));
+                }
+                // Keep details dialog open; user will switch to create dialog
+              } catch (err) {
+                console.error('Duplicate task failed:', err);
+              }
+            }}
+          >
+            <CopyPlus className="w-4 h-4 mr-2" />
+            {T.duplicateTask || 'Duplicate Task'}
+          </Button>
+          </div>
           <Button
             variant="outline"
             size="sm"

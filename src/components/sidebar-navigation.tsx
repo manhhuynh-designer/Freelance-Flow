@@ -8,11 +8,13 @@ import { i18n } from "@/lib/i18n";
 import { useDashboard } from "@/contexts/dashboard-context";
 
 export function SidebarNavigation() {
-    const { appData } = useDashboard();
+    const { appData, T } = useDashboard();
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    const T = i18n[appData.appSettings.language];
+    if (!appData || !T) {
+        return null; // or a loading skeleton
+    }
 
     return (
         <SidebarMenu>

@@ -37,6 +37,7 @@ import { useDashboard } from '@/contexts/dashboard-context';
 import { i18n } from '@/lib/i18n';
 import { useToast } from '@/hooks/use-toast';
 import type { FixedCost } from '@/lib/types';
+import type { AppData } from '@/lib/types';
 import { format } from 'date-fns';
 import { 
   calculateFinancialSummary,
@@ -80,7 +81,7 @@ type Period = 'all' | 'week' | 'month' | 'year';
 
 export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDetails, additionalFinancials, additionalTaskDetails, onTaskClick }: FinancialSummaryCardProps) {
   const { appData, setAppData } = useDashboard();
-  const T = i18n[appData?.appSettings?.language || 'en'];
+  const T = i18n[appData?.appSettings?.language as keyof typeof i18n || 'en'];
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'revenue' | 'costs' | 'future-revenue' | 'lost-revenue' | 'fixed-costs' | null>(null);
@@ -134,7 +135,7 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
 
     const rangeDays = fromDate && toDate ? (Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000*60*60*24)) + 1) : undefined;
 
-    return appData.fixedCosts.reduce((total, cost) => {
+    return appData.fixedCosts.reduce((total: number, cost: FixedCost) => {
       if (!cost.isActive) return total;
       const startDate = new Date(cost.startDate);
       const endDate = cost.endDate ? new Date(cost.endDate) : null;
@@ -257,8 +258,8 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
   };
 
   const handleDeleteCost = (costId: string) => {
-    const updatedCosts = fixedCosts.filter(cost => cost.id !== costId);
-    setAppData(prev => ({ ...prev, fixedCosts: updatedCosts }));
+    const updatedCosts = fixedCosts.filter((cost: FixedCost) => cost.id !== costId);
+    setAppData((prev: AppData) => ({ ...prev, fixedCosts: updatedCosts }));
     toast({
       title: 'Success',
       description: 'Fixed cost deleted successfully',
@@ -302,14 +303,14 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
 
     let updatedCosts;
     if (editingCost) {
-      updatedCosts = fixedCosts.map(cost => 
+      updatedCosts = fixedCosts.map((cost: FixedCost) => 
         cost.id === editingCost.id ? costData : cost
       );
     } else {
       updatedCosts = [...fixedCosts, costData];
     }
 
-    setAppData(prev => ({ ...prev, fixedCosts: updatedCosts }));
+    setAppData((prev: AppData) => ({ ...prev, fixedCosts: updatedCosts }));
     
     // Reset form but keep dialog open
     setFormData({
@@ -371,7 +372,7 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
             <div className="bg-secondary/30 rounded-lg p-3 border border-border/50">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-foreground">Time Period</span>
+                  <span className="text-sm font-medium text-foreground">{T.period}</span>
                   <div className="flex rounded-md border border-border overflow-hidden">
                     {(['all','week','month','year'] as Period[]).map(p => (
                       <Button 
@@ -385,7 +386,7 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
                         }`} 
                         onClick={() => setPeriod(p)}
                       >
-                        {p === 'all' ? 'All Time' : p.charAt(0).toUpperCase() + p.slice(1)}
+                        {p === 'all' ? (T.sinceBeginning || T.allTime) : p === 'week' ? T.week : p === 'month' ? T.month : T.year}
                       </Button>
                     ))}
                   </div>
@@ -395,7 +396,7 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
                   <div className="flex items-center gap-2">
                     {period === 'week' && (
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Week of:</span>
+                        <span className="text-xs text-muted-foreground">{T.weekOf}:</span>
                         <Input 
                           type="date" 
                           value={weekDate} 
@@ -406,18 +407,49 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
                     )}
                     {period === 'month' && (
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Month:</span>
-                        <Input 
-                          type="month" 
-                          value={monthValue} 
-                          onChange={(e) => setMonthValue(e.target.value)} 
-                          className="h-8 text-xs w-[130px] bg-background border-border" 
-                        />
+                        <span className="text-xs text-muted-foreground">{T.month}:</span>
+                        {/* Year Select for month period */}
+                        <Select
+                          value={monthValue.split('-')[0]}
+                          onValueChange={(newYear) => {
+                            const [, m] = monthValue.split('-');
+                            setMonthValue(`${newYear}-${m || '01'}`);
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs w-[90px] bg-background border-border">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 15 }).map((_, idx) => {
+                              const y = now.getFullYear() - 10 + idx;
+                              return <SelectItem key={y} value={String(y)}>{y}</SelectItem>;
+                            })}
+                          </SelectContent>
+                        </Select>
+                        {/* Month Select */}
+                        <Select
+                          value={monthValue.split('-')[1]}
+                          onValueChange={(newMonth) => {
+                            const [y] = monthValue.split('-');
+                            const mm = String(newMonth).padStart(2, '0');
+                            setMonthValue(`${y || String(now.getFullYear())}-${mm}`);
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs w-[90px] bg-background border-border">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 12 }).map((_, i) => {
+                              const mm = String(i + 1).padStart(2, '0');
+                              return <SelectItem key={mm} value={mm}>{mm}</SelectItem>;
+                            })}
+                          </SelectContent>
+                        </Select>
                       </div>
                     )}
                     {period === 'year' && (
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Year:</span>
+                        <span className="text-xs text-muted-foreground">{T.year}:</span>
                         <Select value={String(yearValue)} onValueChange={(v) => setYearValue(Number(v))}>
                           <SelectTrigger className="h-8 text-xs w-[100px] bg-background border-border">
                             <SelectValue />
@@ -743,7 +775,7 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
                           <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Total Per Day</p>
                           <p className="text-lg font-bold text-blue-800 dark:text-blue-200">
                             {(() => {
-                              const totalDaily = fixedCosts.filter(cost => cost.isActive).reduce((total, cost) => {
+                              const totalDaily = fixedCosts.filter((cost: FixedCost) => cost.isActive).reduce((total: number, cost: FixedCost) => {
                                 let dailyRate = 0;
                                 switch (cost.frequency) {
                                   case 'once':
@@ -769,7 +801,7 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
                           <p className="text-xs text-green-600 dark:text-green-400 mb-1">Total Per Month</p>
                           <p className="text-lg font-bold text-green-800 dark:text-green-200">
                             {(() => {
-                              const totalMonthly = fixedCosts.filter(cost => cost.isActive).reduce((total, cost) => {
+                              const totalMonthly = fixedCosts.filter((cost: FixedCost) => cost.isActive).reduce((total: number, cost: FixedCost) => {
                                 let monthlyRate = 0;
                                 switch (cost.frequency) {
                                   case 'once':
@@ -795,7 +827,7 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
                           <p className="text-xs text-purple-600 dark:text-purple-400 mb-1">Total Per Year</p>
                           <p className="text-lg font-bold text-purple-800 dark:text-purple-200">
                             {(() => {
-                              const totalYearly = fixedCosts.filter(cost => cost.isActive).reduce((total, cost) => {
+                              const totalYearly = fixedCosts.filter((cost: FixedCost) => cost.isActive).reduce((total: number, cost: FixedCost) => {
                                 let yearlyRate = 0;
                                 switch (cost.frequency) {
                                   case 'once':
@@ -841,13 +873,13 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {fixedCosts.map((cost) => (
+                          {fixedCosts.map((cost: FixedCost) => (
                             <TableRow key={cost.id}>
                               <TableCell className="font-medium text-sm">{cost.name}</TableCell>
                               <TableCell className="text-sm">{formatCurrency(cost.amount)}</TableCell>
                               <TableCell>
                                 <Badge variant="outline" className="text-xs">
-                                  {frequencyLabels[cost.frequency]}
+                                  {frequencyLabels[cost.frequency as keyof typeof frequencyLabels]}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-sm">

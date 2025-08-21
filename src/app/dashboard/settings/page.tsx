@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { Slider } from '@/components/ui/slider';
 import { i18n } from "@/lib/i18n";
 import { Separator } from '@/components/ui/separator';
-import type { AppSettings, ThemeSettings, StatusColors, AppData } from '@/lib/types';
+import type { AppSettings, ThemeSettings, StatusColors, AppData, DashboardColumn } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from "@/hooks/use-toast";
 import { GeminiModel, GEMINI_MODELS, ModelFallbackManager } from '@/ai/utils/gemini-models';
@@ -48,7 +48,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { CollaboratorDataService } from '@/lib/collaborator-data-service';
 import { StatusSettings } from '@/components/status-settings';
-import { LocalBackupManager } from '@/components/local-backup-manager';
+import { BackupManager } from '@/components/backup-manager';
 import { getContrastingTextColor } from "@/lib/colors";
 import styles from './SettingsColors.module.css';
 import { WIDGETS } from '@/lib/widgets';
@@ -107,7 +107,7 @@ function SettingsPageContent() {
       );
     }
 
-    const T = i18n[appSettings.language];
+    const T = i18n[appSettings.language as 'en' | 'vi'] || i18n.en;
 
     // Action tracking
     const { actionBuffer } = dashboardContext;
@@ -191,13 +191,15 @@ function SettingsPageContent() {
         );
     }
 
+    const themePrimary = appSettings.theme?.primary ?? predefinedThemes[0].colors.primary;
+    const themeAccent = appSettings.theme?.accent ?? predefinedThemes[0].colors.accent;
     const activeThemeName = predefinedThemes.find(t => 
-        t.colors.primary === appSettings.theme.primary &&
-        t.colors.accent === appSettings.theme.accent
+        t.colors.primary === themePrimary &&
+        t.colors.accent === themeAccent
     )?.name || 'Custom';
     
     const activeStatusPresetName = predefinedStatusColors.find(p => 
-        JSON.stringify(p.colors) === JSON.stringify(appSettings.statusColors)
+        JSON.stringify(p.colors) === JSON.stringify(appSettings.statusColors || predefinedStatusColors[0].colors)
     )?.name || 'Custom';
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -212,7 +214,12 @@ function SettingsPageContent() {
     };
 
     const handleClearData = () => {
-        handleClearAllData();
+        // Decide based on radio selection in Danger Zone
+        const radios = document.getElementsByName('clear-mode');
+        let clearBackups = false;
+        radios.forEach((r: any, idx) => { if (r.checked) clearBackups = idx !== 0; });
+        if (clearBackups) (dashboardContext as any)?.handleClearDataAndBackups?.();
+        else (dashboardContext as any)?.handleClearOnlyData?.();
         toast({ title: T.clearAllData, description: T.clearAllDataDesc });
     }
 
@@ -220,7 +227,7 @@ function SettingsPageContent() {
 
     return (
         <>
-            <div className="p-4 md:p-6">
+            <div className="p-4 md:p-6 max-w-5xl 2xl:max-w-6xl mx-auto w-full">
         <Tabs defaultValue="appearance" className="space-y-6">
                     <TabsList>
                         <TabsTrigger value="appearance">{T.tabAppearance}</TabsTrigger>
@@ -318,7 +325,7 @@ function SettingsPageContent() {
                                 <div className="space-y-3">
                                     <Label>{T.dashboardColumns}</Label>
                                     <div className="grid grid-cols-2 gap-4">
-                                        {(appSettings.dashboardColumns || []).map((column) => {
+                                        {(appSettings.dashboardColumns || []).map((column: DashboardColumn) => {
                                             const labelKey = column.id === 'name' ? 'taskName' : column.id === 'priceQuote' ? 'priceQuote' : column.id;
                                             let columnLabel: string = column.label;
                                             const tValue = T[labelKey as keyof typeof T];
@@ -347,7 +354,7 @@ function SettingsPageContent() {
                                 <div className="space-y-2">
                                     <Label htmlFor="sticky-note-color">{T.stickyNoteBackground}</Label>
                                     <Input
-                                        id="sticky-note-color" type="color" value={appSettings.stickyNoteColor.background}
+                                        id="sticky-note-color" type="color" value={appSettings.stickyNoteColor?.background || '#fef9c3'}
                                         onChange={(e) => handleStickyNoteBgChange(e.target.value)}
                                         className="p-1 h-10 w-14"
                                     />
@@ -579,27 +586,30 @@ function SettingsPageContent() {
                                 <h2 className="text-xl font-semibold">{T.dataManagement || 'Data Management'}</h2>
                                 <p className="text-sm text-muted-foreground">{T.dataManagementDesc || 'Backup, restore and manage your data'}</p>
                             </div>
-                            <LocalBackupManager />
-                            <Card>
-                                <CardHeader><CardTitle className="text-lg">{T.dataRestore || 'Data Restore'}</CardTitle><CardDescription>{T.restoreDesc}</CardDescription></CardHeader>
-                                <CardContent>
-                                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg></div>
-                                            <div><p className="font-medium">{T.selectBackupFile || 'Select backup file'}</p><p className="text-sm text-muted-foreground">{T.supportedFormat || 'Supported format: .json'}</p></div>
-                                        </div>
-                                        <Button variant="outline" onClick={() => fileInputRef.current?.click()}><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>{T.selectFile || 'Select File'}</Button>
-                                    </div>
-                                    <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleFileChange} aria-label="Import backup JSON"/>
-                                </CardContent>
-                            </Card>
-                            <Card className="border-destructive/20">
+                            
+                            {/* Full Backup Manager */}
+                            <BackupManager />
+
+                            {/* Data Restore content is integrated inside BackupManager to match layout */}
+                            
+                                                        <Card className="border-destructive/20">
                                 <CardHeader><CardTitle className="text-lg text-destructive">{T.dangerZone}</CardTitle><CardDescription>{T.dangerZoneDesc}</CardDescription></CardHeader>
                                 <CardContent>
                                     <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 bg-destructive/10 rounded-full flex items-center justify-center"><svg className="w-4 h-4 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></div>
-                                            <div><p className="font-medium">{T.clearAllData}</p><p className="text-sm text-muted-foreground">{T.clearAllDataDesc}</p></div>
+                                                                                                                                    <div>
+                                                                                                                                        <p className="font-medium">{T.clearAllData}</p>
+                                                                                                                                        <p className="text-sm text-muted-foreground">{T.clearAllDataDesc}</p>
+                                                                                                                                        <div className="mt-2 flex items-center gap-4 text-xs">
+                                                                                                                                            <label className="flex items-center gap-2">
+                                                                                                                                                <input type="radio" name="clear-mode" defaultChecked /> {appSettings.language === 'vi' ? 'Chỉ xoá dữ liệu chính' : 'Clear main data only'}
+                                                                                                                                            </label>
+                                                                                                                                            <label className="flex items-center gap-2">
+                                                                                                                                                <input type="radio" name="clear-mode" /> {appSettings.language === 'vi' ? 'Xoá dữ liệu và cả backup' : 'Clear data and backups'}
+                                                                                                                                            </label>
+                                                                                                                                        </div>
+                                                                                                                                    </div>
                                         </div>
                                         <AlertDialog open={isConfirmClearOpen} onOpenChange={setIsConfirmClearOpen}>
                                             <AlertDialogTrigger asChild><Button variant="destructive"><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>{T.clearAllData}</Button></AlertDialogTrigger>

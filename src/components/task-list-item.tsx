@@ -65,8 +65,11 @@ export function TaskListItem({
 
   const assignedCollaborators = useMemo(() => {
     if (!task.collaboratorIds) return [];
+    const safeCollaborators = Array.isArray(collaborators) ? collaborators : [];
     const uniqueIds = [...new Set(task.collaboratorIds)];
-    return uniqueIds.map(id => collaborators.find(c => c.id === id)).filter(Boolean) as Collaborator[];
+    return uniqueIds
+      .map(id => safeCollaborators.find(c => c.id === id))
+      .filter(Boolean) as Collaborator[];
   }, [task.collaboratorIds, collaborators]);
 
   const totalQuote = useMemo(() => {
@@ -89,6 +92,20 @@ export function TaskListItem({
   
   const deadlineColorClass = isValidDeadline ? getDeadlineColor(deadline) : "text-muted-foreground";
   const visibleColumns = useMemo(() => settings.dashboardColumns?.filter(col => col.visible) || [], [settings.dashboardColumns]);
+
+  // Eisenhower color schemes (match Kanban and Dialog)
+  const eisenhowerSchemes = {
+    colorScheme1: { do: '#ef4444', decide: '#3b82f6', delegate: '#f59e42', delete: '#6b7280' },
+    colorScheme2: { do: '#d8b4fe', decide: '#bbf7d0', delegate: '#fed7aa', delete: '#bfdbfe' },
+    colorScheme3: { do: '#99f6e4', decide: '#fbcfe8', delegate: '#fde68a', delete: '#c7d2fe' },
+  } as const;
+  type EisenhowerQuadrant = 'do' | 'decide' | 'delegate' | 'delete';
+  const scheme = settings?.eisenhowerColorScheme || 'colorScheme1';
+  function getFlagColor(quadrant?: EisenhowerQuadrant) {
+    if (!quadrant) return '#e5e7eb';
+    const map = (eisenhowerSchemes as any)[scheme] || (eisenhowerSchemes as any)['colorScheme1'];
+    return map[quadrant] || '#e5e7eb';
+  }
 
   if (view === 'trash') {
     const deletedDate = task.deletedAt ? new Date(task.deletedAt) : new Date();
@@ -132,9 +149,16 @@ export function TaskListItem({
   const renderCellContent = (columnId: string) => {
     switch (columnId) {
         case 'name':
-            const quadrant = task.eisenhowerQuadrant;
-            const flagColor = quadrant ? '#e5e7eb' : '#e5e7eb';
-            return <span className="inline-flex items-center gap-1">{task.name}</span>;
+            return (
+              <span className="inline-flex items-center gap-2">
+                {task.eisenhowerQuadrant ? (
+                  <Flag size={16} color={getFlagColor(task.eisenhowerQuadrant)} fill={getFlagColor(task.eisenhowerQuadrant)} className="drop-shadow" />
+                ) : (
+                  <FlagOff size={16} color="#e5e7eb" className="drop-shadow" />
+                )}
+                {task.name}
+              </span>
+            );
         case 'client': return <span>{client?.name}</span>;
         case 'category': return <span>{category?.name}</span>;
         case 'collaborator': 
@@ -152,12 +176,15 @@ export function TaskListItem({
         case 'deadline': return <span className={deadlineColorClass}>{isValidDeadline ? format(deadline, "MMM dd, yyyy") : '-'}</span>;
         case 'status':
             const StatusIcon = status?.icon;
-            const statusSetting = settings.statusSettings.find(s => s.id === task.status);
-            const subStatusLabel = statusSetting?.subStatuses.find(ss => ss.id === task.subStatusId)?.label;
+            const statusSettings = Array.isArray(settings.statusSettings) ? settings.statusSettings : [];
+            const statusColors = (settings as any).statusColors || {} as Record<string, string>;
+            const currentStatusColor = statusColors[task.status] || '#64748b';
+            const statusSetting = statusSettings.find(s => s.id === task.status);
+            const subStatusLabel = (statusSetting?.subStatuses || []).find(ss => ss.id === task.subStatusId)?.label;
             return StatusIcon && status && (
             <DropdownMenu open={isStatusDropdownOpen} onOpenChange={setIsStatusDropdownOpen}>
               <DropdownMenuTrigger onClick={(e) => e.stopPropagation()} asChild>
-                <Badge className="inline-flex items-center gap-2 cursor-pointer px-3 py-1 border-transparent hover:opacity-80 transition-opacity max-w-full" style={{ backgroundColor: settings.statusColors[task.status], color: getContrastingTextColor(settings.statusColors[task.status]) }}>
+                <Badge className="inline-flex items-center gap-2 cursor-pointer px-3 py-1 border-transparent hover:opacity-80 transition-opacity max-w-full" style={{ backgroundColor: currentStatusColor, color: getContrastingTextColor(currentStatusColor) }}>
                   <StatusIcon className="h-3 w-3 flex-shrink-0" />
                   <span className="font-medium text-xs truncate">{statusSetting?.label || status.name}{subStatusLabel && ` • ${subStatusLabel}`}</span>
                 </Badge>
@@ -165,12 +192,17 @@ export function TaskListItem({
               <DropdownMenuContent onClick={(e) => e.stopPropagation()} className="w-64 status-dropdown-content">
                   <DropdownMenuLabel>{T.status}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {settings.statusSettings.map(s => (
+                  {statusSettings.map(s => (
                     <div key={s.id} className="relative" onMouseEnter={() => s.subStatuses.length > 0 && setHoveredStatusId(s.id)} onMouseLeave={() => setHoveredStatusId(null)}>
                       <DropdownMenuRadioItem value={s.id} onClick={() => onTaskStatusChange(task.id, s.id)} className={cn("flex items-center justify-between group", task.status === s.id && 'font-semibold bg-accent')}>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: settings.statusColors[s.id] }} /><span>{s.label}</span></div>
+                        <div className="flex items-center gap-2">
+                          <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
+                            <circle cx="8" cy="8" r="6" fill={statusColors[s.id] || '#64748b'} />
+                          </svg>
+                          <span>{s.label}</span>
+                        </div>
                       </DropdownMenuRadioItem>
-                      {s.subStatuses.length > 0 && hoveredStatusId === s.id && (
+                      {Array.isArray(s.subStatuses) && s.subStatuses.length > 0 && hoveredStatusId === s.id && (
                         <div className="absolute left-full top-0 ml-1 w-48 bg-popover border rounded-md shadow-lg py-1 z-[100] status-sub-menu">
                           {s.subStatuses.map(sub => (
                             <div key={sub.id} onClick={e => { e.stopPropagation(); onTaskStatusChange(task.id, s.id, sub.id); setIsStatusDropdownOpen(false); }} className={cn("px-2 py-1 text-sm cursor-pointer hover:bg-accent rounded-sm mx-1", task.subStatusId === sub.id && 'font-semibold bg-accent')}>

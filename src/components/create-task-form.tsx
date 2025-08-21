@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
-import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
@@ -22,7 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge"; 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
@@ -40,9 +40,10 @@ import { QuoteManager } from "./quote-manager";
 const formSchema = z.object({
   name: z.string().min(2, "Task name must be at least 2 characters."),
   description: z.string().optional(),
-  briefLink: z.array(z.string().url({ message: "Please enter a valid URL." })).optional().default([]),
+  briefLink: z.array(z.string().url({ message: "Please enter a valid URL." }).or(z.literal(""))).optional().default([]),
   driveLink: z.array(z.string().refine(
     (val) => {
+      if (val.trim() === "") return true; // Allow empty string
       // Accept http(s) and file:// links
       try {
         const url = new URL(val);
@@ -68,7 +69,7 @@ const formSchema = z.object({
     items: z.array(
         z.object({
             id: z.string().optional(),
-            description: z.string().min(1, "Description cannot be empty."),
+            description: z.string().optional().default(""), // Adjusted validation for item description
             unitPrice: z.coerce.number().min(0, "Price cannot be negative.").default(0),
             customFields: z.record(z.any()).optional(),
         })
@@ -84,7 +85,7 @@ const formSchema = z.object({
           items: z.array(
             z.object({
               id: z.string().optional(),
-              description: z.string().min(1, "Description cannot be empty."),
+              description: z.string().optional().default(""), // Adjusted validation for item description
               unitPrice: z.coerce.number().min(0, "Price cannot be negative.").default(0),
               customFields: z.record(z.any()).optional(),
             })
@@ -94,7 +95,7 @@ const formSchema = z.object({
     })
   ).optional().default([]),
 });
-
+ 
 export type TaskFormValues = z.infer<typeof formSchema>;
 
 type CreateTaskFormProps = {
@@ -108,6 +109,7 @@ type CreateTaskFormProps = {
   settings: AppSettings;
   defaultDate?: { from: Date; to: Date };
   task?: Task;
+  isOpen: boolean; // Add isOpen prop to CreateTaskFormProps
 };
 
 export function CreateTaskForm({ 
@@ -120,7 +122,8 @@ export function CreateTaskForm({
   quoteTemplates, 
   settings, 
   defaultDate, 
-  task
+  task,
+  isOpen, // Destructure isOpen
 }: CreateTaskFormProps) {
   const { toast } = useToast();
   const T = {
@@ -131,6 +134,16 @@ export function CreateTaskForm({
     noCollaborators: ((i18n[settings.language] as any)?.noCollaborators || "Chưa có collaborator nào"),
     collaborators: ((i18n[settings.language] as any)?.collaborators || "Collaborators"),
     createTaskDialogTitle: ((i18n[settings.language] as any)?.createTaskDialogTitle || "Tạo task mới"),
+    copiedFromQuote: ((i18n[settings.language] as any)?.copiedFromQuote || "Đã sao chép báo giá"),
+    copiedFromQuoteDesc: ((i18n[settings.language] as any)?.copiedFromQuoteDesc || "Đã sao chép dữ liệu từ báo giá chính sang báo giá của collaborator."),
+    suggestionApplied: ((i18n[settings.language] as any)?.suggestionApplied || "Đề xuất đã được áp dụng"),
+    suggestionAppliedDesc: ((i18n[settings.language] as any)?.suggestionAppliedDesc || "Đã áp dụng {count} mục vào báo giá."),
+    cancel: ((i18n[settings.language] as any)?.cancel || "Hủy"),
+    add: ((i18n[settings.language] as any)?.add || "Thêm"),
+    clientNameRequired: ((i18n[settings.language] as any)?.clientNameRequired || "Tên client là bắt buộc"),
+    unitPrice: ((i18n[settings.language] as any)?.unitPrice || "Đơn giá"),
+    untitledSection: ((i18n[settings.language] as any)?.untitledSection || "Phần không có tiêu đề"),
+    createTask: ((i18n[settings.language] as any)?.createTask || "Tạo task"),
   };
   
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
@@ -138,7 +151,8 @@ export function CreateTaskForm({
   const [isCollaboratorSectionOpen, setIsCollaboratorSectionOpen] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [pendingClose, setPendingClose] = useState(false);
-  
+  const [isFormSuccessfullySubmitted, setIsFormSuccessfullySubmitted] = useState(false); // New state
+
   const defaultColumns: QuoteColumn[] = React.useMemo(() => [
     { id: 'description', name: T.description, type: 'text' },
     { id: 'unitPrice', name: `${T.unitPrice} (${settings.currency})`, type: 'number', calculation: { type: 'sum' } },
@@ -174,10 +188,10 @@ export function CreateTaskForm({
     if (quote && Array.isArray(quote.sections) && quote.sections.length > 0) {
       quoteSections = quote.sections.map(section => ({
         ...section,
-        id: section.id || `section-${Date.now()}-${Math.random()}`,
+        id: `section-${Date.now()}-${Math.random()}`,
         items: (Array.isArray(section.items) ? section.items : []).map(item => ({
           ...item,
-          id: 'id' in item && typeof item.id === 'string' && item.id ? item.id : `item-${Date.now()}-${Math.random()}`,
+          id: `item-${Date.now()}-${Math.random()}`,
           customFields: item.customFields || {}
         }))
       }));
@@ -189,8 +203,8 @@ export function CreateTaskForm({
     defaultValues: task ? {
       name: task.name || "",
       description: task.description || "",
-      briefLink: Array.isArray(task.briefLink) ? task.briefLink : [],
-      driveLink: Array.isArray(task.driveLink) ? task.driveLink : [],
+      briefLink: Array.isArray(task.briefLink) && task.briefLink.length > 0 ? task.briefLink : [""],
+      driveLink: Array.isArray(task.driveLink) && task.driveLink.length > 0 ? task.driveLink : [""],
       clientId: task.clientId || "",
       collaboratorIds: Array.isArray(task.collaboratorIds) ? task.collaboratorIds : [],
       categoryId: task.categoryId || "",
@@ -203,14 +217,14 @@ export function CreateTaskForm({
       sections: quoteSections && quoteSections.length > 0
         ? quoteSections.map(s => ({
             ...s,
-            id: s.id || `section-${Date.now()}-${Math.random()}`,
+            id: `section-${Date.now()}-${Math.random()}`,
             items: (Array.isArray(s.items) ? s.items : []).map(item => ({
               ...item,
-              id: typeof item.id === 'string' && item.id ? item.id : `item-${Date.now()}-${Math.random()}`,
+              id: `item-${Date.now()}-${Math.random()}`,
               customFields: item.customFields || {}
             }))
           }))
-        : [{ id: `section-${Date.now()}`, name: T.untitledSection, items: [{ id: `item-${Date.now()}-${Math.random()}`, description: "", unitPrice: 0, customFields: {} }] }],
+        : [{ id: `section-${Date.now()}`, name: T.untitledSection, items: [{ description: "", unitPrice: 0, customFields: {} }] }],
       collaboratorQuotes: Array.isArray(task.collaboratorQuotes) ? task.collaboratorQuotes : [],
     } : {
       name: "",
@@ -244,6 +258,49 @@ export function CreateTaskForm({
     name: "collaboratorQuotes" 
   });
 
+  const onError = useCallback((errors: FieldErrors<TaskFormValues>) => { 
+    console.error('Form validation errors:', errors);
+    
+    const errorMessages: string[] = [];
+    const flattenErrors = (obj: FieldErrors | any, path = '') => { 
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          const currentPath = path ? `${path}.${key}` : key;
+          if (obj[key] && typeof obj[key].message === 'string') {
+              errorMessages.push(`${currentPath}: ${obj[key].message}`);
+          } else if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key])) { 
+              flattenErrors(obj[key], currentPath);
+          } else if (Array.isArray(obj[key])) { 
+            obj[key].forEach((item: any, index: number) => {
+              if (item && typeof item.message === 'string') {
+                errorMessages.push(`${currentPath}[${index}]: ${item.message}`);
+              } else if (typeof item === 'object' && item !== null) {
+                flattenErrors(item, `${currentPath}[${index}]`);
+              } else {
+                errorMessages.push(`${currentPath}[${index}]: ${String(item)}`);
+              }
+            });
+          }
+        }
+      }
+    };
+    
+    flattenErrors(errors);
+    
+    const errorDescription = errorMessages.length > 0 
+      ? errorMessages.join('; ') 
+      : (Object.keys(errors).length > 0 
+          ? "Có lỗi xảy ra khi xác thực form. Một số trường có thể không hợp lệ. Vui lòng kiểm tra lại."
+          : "Có lỗi xảy ra khi xác thực form. Không có mô tả chi tiết." 
+        );
+    
+    toast({
+      title: "Lỗi xác thực",
+      description: errorDescription,
+      variant: "destructive",
+    });
+  }, [toast]);
+
   const handleFormSubmit = (data: TaskFormValues) => {
     // Extract collaborator IDs from collaboratorQuotes
     const collaboratorIds = data.collaboratorQuotes
@@ -256,23 +313,37 @@ export function CreateTaskForm({
       collaboratorIds
     };
     
+    setIsFormSuccessfullySubmitted(true); // Set the flag to true on successful submission
     onFormSubmit(formDataWithCollaborators, columns, collaboratorColumns);
+    setOpen(false); // Close the dialog immediately after successful submission
   };
   
   const handleAddNewClient = () => {
-    if (newClientName.trim() && onAddClient) {
-        const newClient = onAddClient({ name: newClientName.trim() });
-        form.setValue("clientId", newClient.id, { shouldValidate: true });
-        setNewClientName("");
-        setIsAddClientOpen(false);
+    if (newClientName.trim() === "") {
+      toast({
+        title: T.addClient, // Use translated title
+        description: T.clientNameRequired, // Use translated description
+        variant: "destructive",
+      });
+      return;
     }
+
+    const newClient = onAddClient({ name: newClientName.trim() });
+    form.setValue("clientId", newClient.id, { shouldValidate: true });
+    setNewClientName("");
+    setIsAddClientOpen(false);
+    
+    toast({
+      title: T.add, // Use translated title
+      description: `${T.addClient} ${newClient.name} thành công.`, // Adjusted description for better context
+    });
   };
   
   const handleApplyTemplate = () => {
     if (!templateToApply) return;
     const sectionsWithIds = templateToApply.sections.map(s => ({ 
       ...s, 
-      id: s.id || `section-tpl-${Date.now()}-${Math.random()}`, 
+      id: `section-tpl-${Date.now()}-${Math.random()}`, 
       items: s.items.map(item => ({ 
         ...item, 
         id: `item-tpl-${Date.now()}-${Math.random()}`, 
@@ -294,7 +365,7 @@ export function CreateTaskForm({
   const watchedCollabQuotes = useWatch({ control: form.control, name: 'collaboratorQuotes' });
 
   const handleApplySuggestion = (items: SuggestQuoteOutput['suggestedItems']) => {
-    const newItems = items.map(item => ({
+    const newItems = items.map((item: { description: string; unitPrice: number }) => ({
       description: item.description,
       unitPrice: item.unitPrice,
       id: `item-sugg-${Date.now()}-${Math.random()}`,
@@ -308,7 +379,7 @@ export function CreateTaskForm({
     });
   };
   
-  const handleCopyFromQuote = () => {
+  const handleCopyFromQuote = (targetCollaboratorIndex: number) => {
     const currentSections = form.getValues('sections');
     // When copying from quote, create a new collaborator quote entry
     const newCollaboratorQuote = {
@@ -332,12 +403,15 @@ export function CreateTaskForm({
   }, [watchedStatus, settings.statusSettings]);
   
   // Custom close handler for dialog
-  const handleDialogOpenChange = (open: boolean) => {
-    if (!open) {
-      setShowExitWarning(true);
-      setPendingClose(true);
-    } else {
-      setPendingClose(false);
+  const handleDialogCloseAttempt = (openState: boolean) => {
+    if (openState === false) { // Attempting to close the dialog
+        if (!isFormSuccessfullySubmitted) {
+            setShowExitWarning(true); // Show warning if not submitted
+        } else {
+            setOpen(false); // Directly close if successfully submitted
+        }
+    } else { // Dialog is opening
+        setShowExitWarning(false); // Reset warning
     }
   };
 
@@ -346,288 +420,314 @@ export function CreateTaskForm({
     const draftData = form.getValues();
     // Set status to 'archived' for draft, ensure correct type
     const draftTask = { ...draftData, status: 'archived' as TaskFormValues['status'] };
+    setIsFormSuccessfullySubmitted(true); // Treat draft save as a successful "submission" to avoid warning
     onFormSubmit(draftTask, columns, collaboratorColumns);
     setShowExitWarning(false);
     setOpen(false);
   };
 
-  // Confirm close
+  // Confirm close (from AlertDialog)
   const handleConfirmClose = () => {
     setShowExitWarning(false);
-    setOpen(false);
+    setOpen(false); // Close parent dialog
   };
 
-  // Cancel close
+  // Cancel close (from AlertDialog)
   const handleCancelClose = () => {
     setShowExitWarning(false);
-    setPendingClose(false);
-    setOpen(true);
+    // Do not call setOpen(true) here; let the parent dialog state remain open.
+    // The AlertDialog's open state will become false automatically via onOpenChange when setShowExitWarning is false.
   };
 
   return (
-    <>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
-          {/* Dialog title is now handled by parent DialogTitle, do not duplicate here */}
-          {/* Main task details */}
-          <div className="space-y-4">
-            <FormField 
-              control={form.control} 
-              name="name" 
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{T.taskName}</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Animate new logo" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} 
-            />
-            <FormField 
-              control={form.control} 
-              name="description" 
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{T.description}</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Provide a brief description of the task." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} 
-            />
-            
-            {/* Brief Link dynamic fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="briefLink"
-                render={({ field }) => {
-                  const links = field.value || [];
-                  return (
-                    <FormItem>
-                      <FormLabel>{T.briefLink}</FormLabel>
-                      <div className="space-y-2">
-                        {links.map((_: string, idx: number) => (
-                          <div key={idx} className="flex gap-2 items-center">
-                            <Input
-                              {...form.register(`briefLink.${idx}`)}
-                              placeholder="e.g., https://docs.google.com/document/..."
-                            />
-                            {idx > 0 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  if (links.length > 1) {
-                                    const updated = [...links];
-                                    updated.splice(idx, 1);
-                                    form.setValue('briefLink', updated);
-                                  } else {
-                                    form.setValue('briefLink.0', '');
-                                  }
-                                }}
-                                disabled={links.length === 1 && !form.getValues(`briefLink.${idx}`)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
-                            {idx === links.length - 1 && links.length < 5 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => form.setValue('briefLink', [...links, ""])}
-                                title={T.addLink || "Thêm link"}
-                              >
-                                <PlusCircle className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-              <FormField
-                control={form.control}
-                name="driveLink"
-                render={({ field }) => {
-                  const links = field.value || [];
-                  return (
-                    <FormItem>
-                      <FormLabel>Storage Links</FormLabel>
-                      <div className="space-y-2">
-                        {links.map((_: string, idx: number) => (
-                          <div key={idx} className="flex gap-2 items-center">
-                            <Input
-                              {...form.register(`driveLink.${idx}`)}
-                              placeholder="e.g., https://drive.google.com/drive/... or file:///C:/Users/yourfile.pdf"
-                            />
-                            {idx > 0 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  if (links.length > 1) {
-                                    const updated = [...links];
-                                    updated.splice(idx, 1);
-                                    form.setValue('driveLink', updated);
-                                  } else {
-                                    form.setValue('driveLink.0', '');
-                                  }
-                                }}
-                                disabled={links.length === 1 && !form.getValues(`driveLink.${idx}`)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
-                            {idx === links.length - 1 && links.length < 5 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => form.setValue('driveLink', [...links, ""])}
-                                title={T.addLink || "Thêm link"}
-                              >
-                                <PlusCircle className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="clientId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Client</FormLabel>
-                    <div className="flex gap-2">
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder="Select client" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {(clients || []).map((client) => (
-                            <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setIsAddClientOpen(true)}
-                        title={T.addClient}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="categoryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{T.category}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={T.selectCategory} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {(categories || []).map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {T.categories?.[category.id as keyof typeof T.categories] || category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <Dialog open={isOpen} onOpenChange={handleDialogCloseAttempt}>
+      <DialogContent className="w-[80vw] max-w-5xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>{task ? T.editTask : T.createTask}</DialogTitle>
+          <DialogDescription>
+            {task ? "Edit the task details." : "Fill in the details for your new task."}
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleFormSubmit, onError)} className="space-y-8 flex-1 overflow-y-auto">
+            {/* Main task details */}
+            <div className="space-y-4">
               <FormField 
                 control={form.control} 
-                name="dates" 
+                name="name" 
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>{T.dates}</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !field.value?.from && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value?.from ? (
-                              field.value.to ? (
-                                <>
-                                  {format(field.value.from, "LLL dd, y")} -{" "}
-                                  {format(field.value.to, "LLL dd, y")}
-                                </>
-                              ) : (
-                                format(field.value.from, "LLL dd, y")
-                              )
-                            ) : (
-                              <span>{T.pickDateRange}</span>
-                            )}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="range"
-                          selected={{ from: field.value?.from, to: field.value?.to }}
-                          onSelect={(range) => field.onChange({ from: range?.from, to: range?.to })}
-                          numberOfMonths={2}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                  <FormItem>
+                    <FormLabel>{T.taskName}</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Animate new logo" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} 
               />
-              <div className="space-y-4">
-                <div className="flex gap-4">
-                  <FormField 
-                    control={form.control} 
-                    name="status" 
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel>{T.status}</FormLabel>
-                        <Select 
-                          onValueChange={(value) => { 
-                            field.onChange(value); 
-                            form.setValue('subStatusId', ''); 
-                          }} 
-                          defaultValue={field.value}
+              <FormField 
+                control={form.control} 
+                name="description" 
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{T.description}</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Provide a brief description of the task." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} 
+              />
+              
+              {/* Brief Link dynamic fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="briefLink"
+                  render={({ field }) => {
+                    const links = field.value || [""]; // Ensure it's always at least [""]
+                    return (
+                      <FormItem>
+                        <FormLabel>{T.briefLink}</FormLabel>
+                        <div className="space-y-2">
+                          {links.map((link: string, idx: number) => (
+                            <div key={idx} className="flex gap-2 items-center">
+                              <Input
+                                value={link}
+                                placeholder="e.g., https://docs.google.com/document/..."
+                                onChange={e => {
+                                  const newLinks = [...links];
+                                  newLinks[idx] = e.target.value;
+                                  field.onChange(newLinks);
+                                }}
+                              />
+                              {links.length > 1 && ( // Show trash button only if more than 1 link
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    const updated = [...links];
+                                    updated.splice(idx, 1);
+                                    field.onChange(updated.length === 0 ? [""] : updated); // Ensure at least [""]
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
+                              {idx === links.length - 1 && links.length < 5 && ( // Always show + if last field is not empty and count < 5
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => field.onChange([...links, ""])}
+                                  title={T.addLink || "Thêm link"}
+                                >
+                                  <PlusCircle className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+                <FormField
+                  control={form.control}
+                  name="driveLink"
+                  render={({ field }) => {
+                    const links = field.value || [""]; // Ensure it's always at least [""]
+                    return (
+                      <FormItem>
+                        <FormLabel>Storage Links</FormLabel>
+                        <div className="space-y-2">
+                          {links.map((link: string, idx: number) => (
+                            <div key={idx} className="flex gap-2 items-center">
+                              <Input
+                                value={link}
+                                placeholder="e.g., https://drive.google.com/drive/... or file:///C:/Users/yourfile.pdf"
+                                onChange={e => {
+                                  const newLinks = [...links];
+                                  newLinks[idx] = e.target.value;
+                                  field.onChange(newLinks);
+                                }}
+                              />
+                              {links.length > 1 && ( // Show trash button only if more than 1 link
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    const updated = [...links];
+                                    updated.splice(idx, 1);
+                                    field.onChange(updated.length === 0 ? [""] : updated); // Ensure at least [""]
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
+                              {idx === links.length - 1 && links.length < 5 && ( // Always show + if last field is not empty and count < 5
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => field.onChange([...links, ""])}
+                                  title={T.addLink || "Thêm link"}
+                                >
+                                  <PlusCircle className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="clientId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Client</FormLabel>
+                      <div className="flex gap-2">
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select client" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {(clients || []).map((client) => (
+                              <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>
+                          <DialogTrigger asChild>
+                            <Button type="button" variant="outline" size="sm">
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>{T.addClient}</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="newClientName">{T.clientNameRequired || "Tên client"}</Label>
+                                <Input
+                                  id="newClientName"
+                                  value={newClientName}
+                                  onChange={(e) => setNewClientName(e.target.value)}
+                                  placeholder="Nhập tên client"
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button type="button" variant="ghost" onClick={() => setIsAddClientOpen(false)}>
+                                {T.cancel}
+                              </Button>
+                              <Button type="button" onClick={handleAddNewClient}>
+                                {T.add}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{T.category}</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={T.selectCategory} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {(categories || []).map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {T.categories?.[category.id as keyof typeof T.categories] || category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField 
+                  control={form.control} 
+                  name="dates" 
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>{T.dates}</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !field.value?.from && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {field.value?.from ? (
+                                field.value.to ? (
+                                  <>
+                                    {format(field.value.from, "LLL dd, y")} -{" "}
+                                    {format(field.value.to, "LLL dd, y")}
+                                  </>
+                                ) : (
+                                  format(field.value.from, "LLL dd, y")
+                                )
+                              ) : (
+                                <span>{T.pickDateRange}</span>
+                              )}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="range"
+                            selected={{ from: field.value?.from, to: field.value?.to }}
+                            onSelect={(range) => field.onChange({ from: range?.from, to: range?.to })}
+                            numberOfMonths={2}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )} 
+                />
+                <div className="space-y-4">
+                  <div className="flex gap-4">
+                    <FormField 
+                      control={form.control} 
+                      name="status" 
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormLabel>{T.status}</FormLabel>
+                          <Select 
+                            onValueChange={(value) => { field.onChange(value as string); form.setValue('subStatusId', ''); }} 
+                            value={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -635,10 +735,8 @@ export function CreateTaskForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {(settings.statusSettings || []).map((status) => (
-                              <SelectItem key={status.id} value={status.id}>
-                                {status.label}
-                              </SelectItem>
+                            {(settings.statusSettings || []).map((s) => (
+                              <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -654,8 +752,8 @@ export function CreateTaskForm({
                         <FormItem className="flex-1">
                           <FormLabel>{T.subStatuses}</FormLabel>
                           <Select 
-                            onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} 
-                            defaultValue={field.value || '__none__'}
+                            onValueChange={(value) => field.onChange(value === '__none__' ? '' : value as string)} 
+                            value={field.value || '__none__'}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -679,125 +777,41 @@ export function CreateTaskForm({
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Price Quote Section */}
-          <Separator />
-          <QuoteManager
-            control={form.control}
-            form={form}
-            fieldArrayName="sections"
-            columns={columns}
-            setColumns={setColumns}
-            title={T.priceQuote}
-            quoteTemplates={quoteTemplates}
-            settings={settings}
-            taskDescription={form.getValues('description') || ''}
-            taskCategory={categoryName}
-            onApplySuggestion={handleApplySuggestion}
-          />
+            {/* Price Quote Section */}
+            <Separator />
+            <QuoteManager
+              control={form.control}
+              form={form}
+              fieldArrayName="sections"
+              columns={columns}
+              setColumns={setColumns}
+              title={T.priceQuote}
+              quoteTemplates={quoteTemplates}
+              settings={settings}
+              taskDescription={form.getValues('description') || ''}
+              taskCategory={categoryName}
+              onApplySuggestion={handleApplySuggestion}
+            />
 
-          <Separator />
-          {/* Collaborator Section */}
-          <Collapsible open={isCollaboratorSectionOpen} onOpenChange={setIsCollaboratorSectionOpen}>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <CollapsibleTrigger asChild>
-                  <button type="button" className="flex items-center w-full group">
-                    <h3 className="text-lg font-medium">{T.collaboratorCosts}</h3>
-                    <ChevronDown className="h-4 w-4 ml-2 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                  </button>
-                </CollapsibleTrigger>
-              </div>
-              
-              <CollapsibleContent className="space-y-4 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                {/* Multiple Collaborators Manager */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h4 className="text-sm font-medium">{T.collaborators}</h4>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        const newQuote = {
-                          collaboratorId: '',
-                          sections: [{
-                            id: `section-${Date.now()}`,
-                            name: T.untitledSection,
-                            items: [{ description: "", unitPrice: 0, customFields: {} }]
-                          }]
-                        };
-                        collabAppendQuote(newQuote);
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      {T.addCollaborator}
-                    </Button>
-                  </div>
-                  
-                  {collabQuoteFields.map((field, index) => (
-                    <div key={field.id} className="border rounded-lg p-4 space-y-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1 mr-4">
-                          <FormField 
-                            control={form.control} 
-                            name={`collaboratorQuotes.${index}.collaboratorId`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{T.collaborator}</FormLabel>
-                                <Select 
-                                  onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} 
-                                  value={field.value || '__none__'}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder={T.selectCollaborator} />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="__none__">{T.none}</SelectItem>
-                                    {(collaborators || []).map((collaborator) => (
-                                      <SelectItem key={collaborator.id} value={collaborator.id}>
-                                        {collaborator.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )} 
-                          />
-                        </div>
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => collabRemoveQuote(index)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <QuoteManager
-                        control={form.control}
-                        form={form}
-                        fieldArrayName={`collaboratorQuotes.${index}.sections`}
-                        columns={collaboratorColumns}
-                        setColumns={setCollaboratorColumns}
-                        title={`${T.collaboratorCosts} #${index + 1}`}
-                        settings={settings}
-                        quoteTemplates={quoteTemplates}
-                        onCopyFromQuote={handleCopyFromQuote}
-                        showCopyFromQuote={true}
-                      />
-                    </div>
-                  ))}
-                  
-                  {collabQuoteFields.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>{T.noCollaborators}</p>
+            <Separator />
+            {/* Collaborator Section */}
+            <Collapsible open={isCollaboratorSectionOpen} onOpenChange={setIsCollaboratorSectionOpen}>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <CollapsibleTrigger asChild>
+                    <button type="button" className="flex items-center w-full group">
+                      <h3 className="text-lg font-medium">{T.collaboratorCosts}</h3>
+                      <ChevronDown className="h-4 w-4 ml-2 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    </button>
+                  </CollapsibleTrigger>
+                </div>
+                
+                <CollapsibleContent className="space-y-4 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                  {/* Multiple Collaborators Manager */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-sm font-medium">{T.collaborators}</h4>
                       <Button 
                         type="button" 
                         variant="outline" 
@@ -806,33 +820,115 @@ export function CreateTaskForm({
                           const newQuote = {
                             collaboratorId: '',
                             sections: [{
-                              id: `section-${Date.now()}`,
+                              id: `section-${Date.now()}-${Math.random()}`,
                               name: T.untitledSection,
                               items: [{ description: "", unitPrice: 0, customFields: {} }]
                             }]
                           };
                           collabAppendQuote(newQuote);
                         }}
-                        className="mt-2"
                       >
                         <Plus className="h-4 w-4 mr-2" />
-                        {T.addFirstCollaborator}
+                        {T.addCollaborator}
                       </Button>
                     </div>
-                  )}
-                </div>
-              </CollapsibleContent>
-            </div>
-          </Collapsible>
+                    
+                    {collabQuoteFields.map((field, index) => (
+                      <div key={field.id} className="border rounded-lg p-4 space-y-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1 mr-4">
+                            <FormField 
+                              control={form.control} 
+                              name={`collaboratorQuotes.${index}.collaboratorId`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{T.collaborator}</FormLabel>
+                                  <Select 
+                                    onValueChange={(value) => field.onChange(value === '__none__' ? '' : value as string)} 
+                                    value={field.value || '__none__'}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder={T.selectCollaborator} />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {(collaborators || []).map((collaborator) => (
+                                        <SelectItem key={collaborator.id} value={collaborator.id}>
+                                          {collaborator.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )} 
+                            />
+                          </div>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => collabRemoveQuote(index)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        <QuoteManager
+                          control={form.control}
+                          form={form}
+                          fieldArrayName={`collaboratorQuotes.${index}.sections`}
+                          columns={collaboratorColumns}
+                          setColumns={setCollaboratorColumns}
+                          title={`${T.collaboratorCosts} #${index + 1}`}
+                          settings={settings}
+                          onCopyFromQuote={() => handleCopyFromQuote(index)}
+                          showCopyFromQuote={true}
+                        />
+                      </div>
+                    ))}
+                    
+                    {collabQuoteFields.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>{T.noCollaborators}</p>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            const newQuote = {
+                              collaboratorId: '',
+                              sections: [{
+                                id: `section-${Date.now()}`,
+                                name: T.untitledSection,
+                                items: [{ description: "", unitPrice: 0, customFields: {} }]
+                              }]
+                            };
+                            collabAppendQuote(newQuote);
+                          }}
+                          className="mt-2"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          {T.addFirstCollaborator}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              {T.cancel}
-            </Button>
-            <Button type="submit">{task ? T.editTask : T.createTask}</Button>
-          </div>
-        </form>
-      </Form>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                {T.cancel}
+              </Button>
+              <Button type="submit">{task ? T.editTask : T.createTask}</Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
 
       {/* Add Client Dialog */}
       <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>
@@ -882,14 +978,14 @@ export function CreateTaskForm({
         </DialogContent>
       </Dialog>
       {/* Exit Warning Dialog */}
-      <AlertDialog open={showExitWarning} onOpenChange={setShowExitWarning}>
+      <AlertDialog open={showExitWarning && !isFormSuccessfullySubmitted} onOpenChange={setShowExitWarning}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure you want to exit?</AlertDialogTitle>
-            <AlertDialogDescription>
-              You have unsaved changes. What would you like to do?
-            </AlertDialogDescription>
           </AlertDialogHeader>
+          <AlertDialogDescription>
+            You have unsaved changes. What would you like to do?
+          </AlertDialogDescription>
           <AlertDialogFooter>
             <Button variant="ghost" onClick={handleConfirmClose}>OK</Button>
             <Button variant="outline" onClick={handleSaveDraft}>Save Draft</Button>
@@ -897,6 +993,6 @@ export function CreateTaskForm({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </Dialog>
   );
 }

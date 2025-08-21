@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useRef, useMemo } from 'react';
+import React, { Suspense, useState, useRef, useMemo, useEffect } from 'react';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
@@ -16,14 +16,15 @@ import { cn } from "@/lib/utils";
 import { i18n } from '@/lib/i18n';
 
 export function DashboardHeader() {
-    const { 
-        appData, isTaskFormOpen, setIsTaskFormOpen, handleAddTask, 
-        handleAddClientAndSelect, cycleTaskFormSize, taskFormSize, 
-        handleEventSubmit, backupStatusText, handleExport 
-    } = useDashboard();
+  const { 
+    appData, isTaskFormOpen, setIsTaskFormOpen, handleAddTask, 
+    handleAddClientAndSelect, cycleTaskFormSize, taskFormSize, 
+    handleEventSubmit, backupStatusText, handleExport, handleViewTask,
+    defaultExportFormat
+  } = useDashboard();
     
-    const T = useMemo(() => {
-        const lang = appData.appSettings.language;
+  const T = useMemo(() => {
+    const lang = appData.appSettings.language as 'en' | 'vi';
         return {
             ...i18n[lang],
             // Back-compat fallbacks; unified keys are unsaved*
@@ -33,11 +34,13 @@ export function DashboardHeader() {
             unsavedCloseWithoutSaving: (i18n[lang] as any)?.unsavedCloseWithoutSaving || (i18n[lang] as any)?.closeWithoutSaving || "Close Without Saving",
             saveDraft: (i18n[lang] as any)?.saveDraft || "Save Draft",
         };
-    }, [appData.appSettings.language]);
+  }, [appData.appSettings.language]);
 
     const [isTaskFormDirty, setIsTaskFormDirty] = useState(false);
     const [isConfirmCloseOpen, setIsConfirmCloseOpen] = useState(false);
     const createTaskFormRef = useRef<CreateTaskFormRef>(null);
+
+    const [openDetailsAfterCreateId, setOpenDetailsAfterCreateId] = useState<string | null>(null);
 
     const handleRequestClose = () => {
         if (isTaskFormDirty) {
@@ -47,10 +50,14 @@ export function DashboardHeader() {
         }
     };
     
-    const handleSubmitSuccess = () => {
+    const handleSubmitSuccess = (newTaskId?: string) => {
         // Close dialog directly without triggering warning logic
         setIsTaskFormOpen(false);
         setIsTaskFormDirty(false);
+        // If created via duplicate flow, store id to open details after close
+        if (newTaskId) {
+          setOpenDetailsAfterCreateId(newTaskId);
+        }
     };
     
     const handleConfirmSaveDraft = () => {
@@ -64,13 +71,56 @@ export function DashboardHeader() {
         setIsTaskFormOpen(false);
     };
 
-    const handleSetOpen = (open: boolean) => {
+  const handleSetOpen = (open: boolean) => {
         if (open) {
             setIsTaskFormOpen(true);
         } else {
             handleRequestClose();
         }
     }
+
+  // Open create form prefilled from a duplicate payload
+  useEffect(() => {
+    function onDuplicateOpen(e: any) {
+      try {
+        const payload = e?.detail;
+        if (!payload) return;
+        setIsTaskFormOpen(true);
+        // Mark that next successful create should open details
+        setOpenDetailsAfterCreateId('PENDING');
+        // Let dialog mount, then prefill
+        setTimeout(() => {
+          createTaskFormRef.current?.setInitialValues(payload.values || {}, {
+            columns: payload.columns,
+            collaboratorColumns: payload.collaboratorColumns,
+          });
+        }, 0);
+      } catch (err) {
+        console.error('Failed to open duplicate task form:', err);
+      }
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('task:duplicateOpen', onDuplicateOpen);
+      return () => window.removeEventListener('task:duplicateOpen', onDuplicateOpen);
+    }
+  }, []);
+
+  // After closing create form, if we have a created task id, open its details
+  useEffect(() => {
+    if (!isTaskFormOpen && openDetailsAfterCreateId && openDetailsAfterCreateId !== 'PENDING') {
+      try {
+        // Use dashboard context to open details dialog
+        const id = openDetailsAfterCreateId;
+        setOpenDetailsAfterCreateId(null);
+    // handleViewTask is available from context
+    handleViewTask?.(id);
+      } catch (e) {
+        // Fallback: dispatch an event other parts can listen to
+        try { window.dispatchEvent(new CustomEvent('task:view', { detail: { id: openDetailsAfterCreateId } })); } catch {}
+        setOpenDetailsAfterCreateId(null);
+      }
+    }
+  }, [isTaskFormOpen, openDetailsAfterCreateId, handleViewTask]);
 
     return (
         <>
@@ -130,7 +180,10 @@ export function DashboardHeader() {
                             <CreateTaskForm 
                               ref={createTaskFormRef}
                               setOpen={handleSetOpen} 
-                              onSubmit={handleAddTask} 
+                              onSubmit={(values, quoteColumns, collaboratorQuoteColumns) => {
+                                // handleAddTask in context returns id
+                                return handleAddTask(values as any);
+                              }} 
                               clients={appData.clients} 
                               onAddClient={handleAddClientAndSelect} 
                               quoteTemplates={appData.quoteTemplates} 
@@ -145,16 +198,19 @@ export function DashboardHeader() {
                       </Dialog>
                     </div>
                   </div>
-                  {/* Export button with subtle separator */}
+                  {/* Simple export button using settings */}
                   <div className="flex items-center h-10 pl-5 border-l">
                     <TooltipProvider delayDuration={100}>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={handleExport}>
+                          <Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={() => handleExport()}>
                             <Download className="h-5 w-5" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent><p>Export Data</p></TooltipContent>
+                        <TooltipContent>
+                          <p>Export Data ({defaultExportFormat?.toUpperCase() || 'EXCEL'})</p>
+                          <p className="text-xs text-muted-foreground">Configure format in Settings</p>
+                        </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   </div>

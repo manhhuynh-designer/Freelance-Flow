@@ -119,16 +119,16 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   
   const collaboratorQuotesForEditingTask = useMemo(() => {
     if (!editingTask || !editingTask.collaboratorQuotes) return [] as Quote[];
-    return editingTask.collaboratorQuotes.map(cq => 
-      collabQuotesAsQuote.find(q => q.id === cq.quoteId)
-    ).filter((q): q is Quote => !!q);
+    return editingTask.collaboratorQuotes.map((cq: any) => 
+      collabQuotesAsQuote.find((q: Quote) => q.id === cq.quoteId)
+    ).filter((q: Quote | undefined): q is Quote => !!q);
   }, [editingTask, collabQuotesAsQuote]);
 
   const collaboratorQuotesForDetails = useMemo(() => {
     if (!viewingTaskDetails?.task?.collaboratorQuotes) return [] as Quote[];
-    return viewingTaskDetails.task.collaboratorQuotes.map(cq =>
-      collabQuotesAsQuote.find(q => q.id === cq.quoteId)
-    ).filter((q): q is Quote => !!q);
+    return viewingTaskDetails.task.collaboratorQuotes.map((cq: any) =>
+      collabQuotesAsQuote.find((q: Quote) => q.id === cq.quoteId)
+    ).filter((q: Quote | undefined): q is Quote => !!q);
   }, [viewingTaskDetails, collabQuotesAsQuote]);
 
   // Auto-open details after save (create or edit)
@@ -433,6 +433,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
           onDelete={handleDeleteTask}
           onUpdateQuote={updateQuote}
           onUpdateCollaboratorQuote={updateCollaboratorQuote}
+          onChangeStatus={(taskId, statusId) => handleTaskStatusChange?.(taskId, statusId as any)}
         />
       )}
 
