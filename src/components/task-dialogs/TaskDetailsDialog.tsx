@@ -38,7 +38,8 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { getContrastingTextColor } from "@/lib/colors";
 import { i18n } from "@/lib/i18n";
-import { FileText, Pencil, Link as LinkIcon, Folder, Copy, Trash2, Building2, Calendar, Briefcase, Flag, FlagOff, CopyPlus } from "lucide-react";
+import { FileText, Pencil, Link as LinkIcon, Folder, Copy, Trash2, Building2, Calendar, Briefcase, Flag, FlagOff, CopyPlus, Image } from "lucide-react";
+import exportQuoteImageToClipboard from '@/lib/exports/exportImageToClipboard';
 import { RichTextViewer } from "@/components/ui/RichTextViewer";
 import { QuotePaymentManager } from "@/components/quote-payment-manager";
 import {
@@ -147,7 +148,7 @@ function LinkPreview({ url, maxLength = 30, fallback }: { url: string; maxLength
       .then(html => {
         if (!cancelled) {
           const match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-          const extractedTitle = match?.[1]?.trim();
+          const extractedTitle = match?.[1]?.trim(); 
           if (extractedTitle && extractedTitle.length <= maxLength) {
             setTitle(extractedTitle);
           }
@@ -313,6 +314,7 @@ function LinksDisplay({
           <button
             onClick={() => setShowAll(!showAll)}
             className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+            type="button"
           >
             {showAll 
               ? `Show less (hiding ${links.length - 5} links)` 
@@ -744,6 +746,29 @@ export function TaskDetailsDialog({
     });
   }, [toast, T, settings, defaultColumns]);
 
+  const copyQuoteAsImage = useCallback(async (quoteToCopy: Quote | undefined) => {
+    if (!quoteToCopy || !quote || !task) return;
+    try {
+      toast({ title: T.exportPreparing || 'Preparing image...' });
+      await exportQuoteImageToClipboard({ 
+        quote: quoteToCopy, 
+        task, 
+        settings, 
+        fileName: `quote-${task.id || 'export'}.png`, 
+        clients, 
+        categories,
+        defaultColumns: quote.columns || defaultColumns, // Ensure to pass the actual columns
+        calculationResults, // Pass calculated results
+        calculateRowValue, // Pass the helper function
+        grandTotal: totalQuote // Pass the grand total
+      });
+      toast({ title: T.exportCopied || 'Image copied to clipboard', description: T.exportCopiedDesc || 'You can paste the image into an email or chat.' });
+    } catch (err: any) {
+      console.error('Export image failed', err);
+      toast({ variant: 'destructive', title: T.exportFailed || 'Export failed', description: err?.message || String(err) });
+    }
+  }, [task, settings, toast, T, clients, categories, defaultColumns, calculationResults, calculateRowValue, totalQuote, quote]);
+
   const renderQuoteTable = (title: string, quoteData: Quote | undefined) => {
     if (!quoteData) return null; // Add this check
     return (
@@ -751,10 +776,16 @@ export function TaskDetailsDialog({
       <div className="flex items-center justify-between mb-2">
         <h4 className="font-semibold">{title}</h4>
         {quoteData && (
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => copyQuoteToClipboard(quoteData)} title="Copy table to clipboard">
-            <Copy className="w-4 h-4" />
-            <span className="sr-only">Copy {title}</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => copyQuoteToClipboard(quoteData)} title="Copy table to clipboard">
+              <Copy className="w-4 h-4" />
+              <span className="sr-only">Copy {title}</span>
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => copyQuoteAsImage(quoteData)} title="Copy quote image to clipboard">
+              <Image className="w-4 h-4" />
+              <span className="sr-only">Copy image of {title}</span>
+            </Button>
+          </div>
         )}
       </div>
       {(quoteData?.sections || []).map((section, sectionIndex) => (
@@ -815,7 +846,7 @@ export function TaskDetailsDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[80vw] max-w-5xl h-[80vh] min-h-[600px] max-h-[90vh] flex flex-col">
         {/* Visually hidden DialogTitle for accessibility */}
-  <span className="sr-only">
+    <span className="sr-only">
           <DialogTitle>{task.name}</DialogTitle>
         </span>
         {/* --- HEADER: Project Info --- */}
@@ -942,7 +973,7 @@ export function TaskDetailsDialog({
         </nav>
 
         {/* --- MAIN CONTENT: Scrollable, flush left --- */}
-  <div className="flex-1 min-h-0 max-h-full overflow-y-auto pr-2 scrollbar-gutter-stable">
+    <div className="flex-1 min-h-0 max-h-full overflow-y-auto pr-2 scrollbar-gutter-stable">
           {/* Timeline Section */}
           {selectedNav === 'timeline' && (
             <div className="space-y-4">
@@ -1211,9 +1242,9 @@ export function TaskDetailsDialog({
                   description: task.description || '',
                   briefLink: Array.isArray(task.briefLink) ? [...task.briefLink] : [],
                   driveLink: Array.isArray(task.driveLink) ? [...task.driveLink] : [],
-                  clientId: task.clientId || (clients && clients.length > 0 ? clients[0].id : ''),
+                  clientId: task.clientId || (clients.length > 0 ? clients[0]?.id : ''), // fallback to first client id if available
                   collaboratorIds: Array.isArray(task.collaboratorIds) ? [...task.collaboratorIds] : [],
-                  categoryId: task.categoryId || (categories && categories.length > 0 ? categories[0].id : ''),
+                  categoryId: task.categoryId || (categories.length > 0 ? categories[0]?.id : ''), // fallback to first category id if available
                   status: task.status,
                   subStatusId: task.subStatusId || '',
                   dates: {
