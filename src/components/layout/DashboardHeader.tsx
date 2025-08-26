@@ -16,6 +16,39 @@ import { cn } from "@/lib/utils";
 import { i18n } from '@/lib/i18n';
 
 export function DashboardHeader() {
+  // Prefill state for duplicate task
+  const [prefillValues, setPrefillValues] = useState<any>(null);
+  const [prefillColumns, setPrefillColumns] = useState<any>(null);
+  const [prefillCollaboratorColumns, setPrefillCollaboratorColumns] = useState<any>(null);
+
+  // Listen for duplicate task event
+  useEffect(() => {
+    function handleDuplicateOpen(e: CustomEvent) {
+      if (!e.detail) return;
+      const values = e.detail.values || null;
+      const cols = e.detail.columns || null;
+      const collabCols = e.detail.collaboratorColumns || null;
+      setPrefillValues(values);
+      setPrefillColumns(cols);
+      setPrefillCollaboratorColumns(collabCols);
+      // Open dialog first, then ensure child form receives initial values via ref
+      setIsTaskFormOpen(true);
+      // Delay slightly to allow CreateTaskForm to mount and register its ref
+      setTimeout(() => {
+        try {
+          if (createTaskFormRef.current && typeof createTaskFormRef.current.setInitialValues === 'function') {
+            createTaskFormRef.current.setInitialValues(values || {}, { columns: cols || undefined, collaboratorColumns: collabCols || undefined });
+          }
+        } catch (err) {
+          // ignore
+        }
+      }, 50);
+    }
+    window.addEventListener('task:duplicateOpen', handleDuplicateOpen as EventListener);
+    return () => {
+      window.removeEventListener('task:duplicateOpen', handleDuplicateOpen as EventListener);
+    };
+  }, []);
   const { appData, isTaskFormOpen, setIsTaskFormOpen, handleAddTask, handleAddClientAndSelect, cycleTaskFormSize, taskFormSize, handleEventSubmit, backupStatusText, handleExport, handleViewTask, defaultExportFormat } = useDashboard();
 
   const T = useMemo(() => {
@@ -176,6 +209,9 @@ export function DashboardHeader() {
                       categories={appData.categories}
                       onDirtyChange={setIsTaskFormDirty}
                       onSubmitSuccess={handleSubmitSuccess}
+                      prefillValues={prefillValues}
+                      prefillColumns={prefillColumns}
+                      prefillCollaboratorColumns={prefillCollaboratorColumns}
                     />
                   </div>
                 </DialogContent>

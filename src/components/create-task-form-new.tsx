@@ -106,6 +106,9 @@ type CreateTaskFormProps = {
   defaultDate?: Date;
   onDirtyChange?: (isDirty: boolean) => void;
   onSubmitSuccess?: (newTaskId?: string) => void;
+  prefillValues?: Partial<TaskFormValues>;
+  prefillColumns?: QuoteColumn[];
+  prefillCollaboratorColumns?: QuoteColumn[];
 };
 
 export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>((props, ref) => {
@@ -121,8 +124,28 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
     settings, 
     defaultDate,
     onDirtyChange,
-    onSubmitSuccess
+    onSubmitSuccess,
+    prefillValues,
+    prefillColumns,
+    prefillCollaboratorColumns
   } = props;
+  // Prefill logic for duplicate task
+  useEffect(() => {
+    if (prefillColumns && prefillColumns.length > 0) {
+      setColumns(prefillColumns);
+    }
+    if (prefillCollaboratorColumns && prefillCollaboratorColumns.length > 0) {
+      setCollaboratorColumns(prefillCollaboratorColumns);
+    }
+    if (prefillValues) {
+      // Set form values and mark dirty so submit is enabled
+      form.reset({
+        ...form.getValues(),
+        ...prefillValues,
+      });
+      onDirtyChange?.(true);
+    }
+  }, [prefillValues, prefillColumns, prefillCollaboratorColumns]);
   const { toast } = useToast();
   const T = useMemo(() => ({
     ...i18n[settings.language],
@@ -523,7 +546,7 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{T.category}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={T.selectCategory} />

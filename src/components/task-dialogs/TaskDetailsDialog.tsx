@@ -1211,9 +1211,9 @@ export function TaskDetailsDialog({
                   description: task.description || '',
                   briefLink: Array.isArray(task.briefLink) ? [...task.briefLink] : [],
                   driveLink: Array.isArray(task.driveLink) ? [...task.driveLink] : [],
-                  clientId: task.clientId,
+                  clientId: task.clientId || (clients && clients.length > 0 ? clients[0].id : ''),
                   collaboratorIds: Array.isArray(task.collaboratorIds) ? [...task.collaboratorIds] : [],
-                  categoryId: task.categoryId,
+                  categoryId: task.categoryId || (categories && categories.length > 0 ? categories[0].id : ''),
                   status: task.status,
                   subStatusId: task.subStatusId || '',
                   dates: {
@@ -1221,39 +1221,63 @@ export function TaskDetailsDialog({
                     to: task.deadline ? new Date(task.deadline as any) : undefined,
                   },
                 };
-                // Prefill quote and collaborator quote sections if available
-                const baseQuoteColumns = (quote?.columns && quote.columns.length > 0) ? quote.columns : [
-                  { id: 'description', name: T.description, type: 'text' },
-                  { id: 'unitPrice', name: `${T.unitPrice} (${settings.currency})`, type: 'number', calculation: { type: 'sum' as const } },
-                ];
-                const sections = (quote?.sections || []).map(sec => ({
-                  id: sec.id,
-                  name: sec.name,
-                  items: (sec.items || []).map(it => ({ id: undefined, description: it.description, unitPrice: it.unitPrice, customFields: it.customFields || {} }))
-                }));
-                if (sections.length > 0) prefill.sections = sections;
 
-                const collabQuotes = (task.collaboratorQuotes || []).map(cq => {
-                  const q = (collaboratorQuotes || []).find(x => x.id === cq.quoteId);
-                  if (!q) return { collaboratorId: cq.collaboratorId, sections: [] };
-                  return {
-                    collaboratorId: cq.collaboratorId,
-                    sections: (q.sections || []).map(sec => ({
-                      id: sec.id,
-                      name: sec.name,
-                      items: (sec.items || []).map(it => ({ id: undefined, description: it.description, unitPrice: it.unitPrice, customFields: it.customFields || {} }))
-                    }))
-                  };
-                });
+                // Prefill quote columns and sections
+                const quoteColumns = (quote?.columns && quote.columns.length > 0)
+                  ? quote.columns.map(col => ({ ...col }))
+                  : [
+                      { id: 'description', name: T.description, type: 'text' },
+                      { id: 'unitPrice', name: `${T.unitPrice} (${settings.currency})`, type: 'number', calculation: { type: 'sum' as const } },
+                    ];
+                const quoteSections = (quote?.sections || []).map(sec => ({
+                  id: `section-${Date.now()}-${Math.random()}`,
+                  name: sec.name,
+                  items: (sec.items || []).map(it => ({
+                    id: `item-${Date.now()}-${Math.random()}`,
+                    description: it.description,
+                    unitPrice: it.unitPrice,
+                    customFields: it.customFields ? { ...it.customFields } : {},
+                  }))
+                }));
+                if (quoteSections.length > 0) prefill.sections = quoteSections;
+
+                // Prefill collaborator quotes, columns, and sections
+                let collabQuotes: any[] = [];
+                let collabColumns: any[] = [];
+                if (task.collaboratorQuotes && collaboratorQuotes) {
+                  collabQuotes = task.collaboratorQuotes.map(cq => {
+                    const q = collaboratorQuotes.find(x => x.id === cq.quoteId);
+                    if (!q) return { collaboratorId: cq.collaboratorId, sections: [] };
+                    // Copy columns for this collaborator quote
+                    if (q.columns && q.columns.length > 0) {
+                      collabColumns = q.columns.map(col => ({ ...col }));
+                    }
+                    return {
+                      collaboratorId: cq.collaboratorId,
+                      sections: (q.sections || []).map(sec => ({
+                        id: `section-${Date.now()}-${Math.random()}`,
+                        name: sec.name,
+                        items: (sec.items || []).map(it => ({
+                          id: `item-${Date.now()}-${Math.random()}`,
+                          description: it.description,
+                          unitPrice: it.unitPrice,
+                          customFields: it.customFields ? { ...it.customFields } : {},
+                        }))
+                      }))
+                    };
+                  });
+                }
                 if (collabQuotes.length > 0) prefill.collaboratorQuotes = collabQuotes;
 
                 // Dispatch event for dashboard header to open create dialog prefilled
                 if (typeof window !== 'undefined') {
-                  window.dispatchEvent(new CustomEvent('task:duplicateOpen', { detail: {
-                    values: prefill,
-                    columns: baseQuoteColumns,
-                    collaboratorColumns: baseQuoteColumns,
-                  }}));
+                  window.dispatchEvent(new CustomEvent('task:duplicateOpen', {
+                    detail: {
+                      values: prefill,
+                      columns: quoteColumns,
+                      collaboratorColumns: collabColumns.length > 0 ? collabColumns : quoteColumns,
+                    }
+                  }));
                 }
                 // Keep details dialog open; user will switch to create dialog
               } catch (err) {
