@@ -50,6 +50,11 @@ export class PatternAnalyzer {
 
   constructor(private userId: string) {}
 
+  // Compatibility wrapper used by older call sites
+  async analyzePatterns(actions: ActionEvent[]): Promise<PatternInsight[]> {
+    return this.analyzeAllPatterns(actions);
+  }
+
   /**
    * Analyze all patterns from action history
    */

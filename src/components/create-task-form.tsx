@@ -777,6 +777,7 @@ export function CreateTaskForm({
                 </div>
               </div>
             </div>
+            </div>
 
             {/* Price Quote Section */}
             <Separator />

@@ -12,14 +12,7 @@ export async function getEmbeddingsForTexts(texts: string[], options?: { provide
         console.warn('Embeddings: missing apiKey (server). Returning empty vectors.');
         return texts.map(() => [] as number[]);
       }
-      if (provider === 'openai') {
-        const OpenAI = require('openai');
-        const client = new OpenAI.default({ apiKey });
-        const resp = await client.embeddings.create({ model: options?.model || 'text-embedding-3-small', input: texts });
-        return resp.data.map((r: any) => r.embedding as number[]);
-      }
-
-      // Default: use Google Generative API (Gemini)
+      // Only support Google Gemini
       const Google = require('@google/generative-ai');
       const gen = new (Google as any).GoogleGenerativeAI(apiKey);
       const model = gen.getGenerativeModel({ model: options?.model || 'text-bison-001' });

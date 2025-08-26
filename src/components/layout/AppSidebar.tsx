@@ -12,7 +12,7 @@ import {
 import {
     Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle
 } from "@/components/ui/dialog";
-import { Users, FileText, Briefcase, LayoutGrid, Cog, Trash2 } from "lucide-react";
+import { Users, FileText, Briefcase, LayoutGrid, Cog, Trash2, LogIn, LogOut, User } from "lucide-react";
 import { SidebarNavigation } from "@/components/sidebar-navigation";
 import { ClientManager } from "@/components/client-manager";
 import { CollaboratorManager } from "@/components/collaborator-manager";
@@ -20,6 +20,7 @@ import { CategoryManager } from "@/components/category-manager";
 import { QuoteTemplateManager } from "@/components/quote-template-manager";
 import { WIDGETS } from '@/lib/widgets';
 import type { AppSettings } from '@/lib/types';
+import { useSession, signIn, signOut } from 'next-auth/react';
 
 function SidebarTrashMenuItem({ T }: { T: any }) {
   const searchParams = useSearchParams();
@@ -35,6 +36,7 @@ function SidebarTrashMenuItem({ T }: { T: any }) {
 export function AppSidebar() {
     const dashboardContext = useDashboard();
     const pathname = usePathname();
+    const { data: session, status } = useSession();
 
     if (!dashboardContext || !dashboardContext.appData || !dashboardContext.appData.appSettings) {
         return (
@@ -137,6 +139,48 @@ export function AppSidebar() {
                  </div>
                  <div className="mt-auto">
                    <SidebarSeparator />
+                    
+                    {/* Authentication Section */}
+                    <SidebarGroup>
+                      <SidebarGroupContent>
+                        <SidebarMenu>
+                          {status === 'loading' ? (
+                            <SidebarMenuItem>
+                              <SidebarMenuButton disabled>
+                                <User />Loading...
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          ) : session ? (
+                            <>
+                              <SidebarMenuItem>
+                                <SidebarMenuButton asChild>
+                                  <div className="flex items-center gap-2 px-2 py-1 text-sm">
+                                    <User className="h-4 w-4" />
+                                    <span className="truncate">{session.user?.email || session.user?.name || 'User'}</span>
+                                  </div>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                              <SidebarMenuItem>
+                                <SidebarMenuButton onClick={() => signOut()}>
+                                  <LogOut />
+                                  {T.signOut || 'Sign Out'}
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            </>
+                          ) : (
+                            <SidebarMenuItem>
+                              <SidebarMenuButton onClick={() => signIn()}>
+                                <LogIn />
+                                {T.signIn || 'Sign In'}
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          )}
+                        </SidebarMenu>
+                      </SidebarGroupContent>
+                    </SidebarGroup>
+                    
+                    <SidebarSeparator />
+                    
                     <SidebarGroup>
                        <SidebarGroupContent>
                          <SidebarMenu>

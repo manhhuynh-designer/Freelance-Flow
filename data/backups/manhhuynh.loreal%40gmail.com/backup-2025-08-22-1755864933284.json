@@ -1,0 +1,1921 @@
+{
+  "tasks": [
+    {
+      "id": "task-1753878749261",
+      "name": "POSM Trắng gắt hơn nắng",
+      "description": "",
+      "briefLink": [
+        "https://example.com"
+      ],
+      "driveLink": [
+        "https://drive.google.com/drive/folders/1svFDoQ7ShIjT5tgG5uM133KoGi0ifIV0"
+      ],
+      "clientId": "client-1753878639671",
+      "collaboratorIds": [],
+      "categoryId": "cat-2",
+      "status": "done",
+      "subStatusId": "sub-1753192831335",
+      "startDate": "2025-06-29T17:00:00.000Z",
+      "deadline": "2025-07-29T17:00:00.000Z",
+      "quoteId": "quote-1753878749261",
+      "collaboratorQuoteIds": []
+    },
+    {
+      "id": "task-1753863101523",
+      "name": "cloudtopia product model & render",
+      "description": "",
+      "briefLink": [
+        "https://loreal-my.sharepoint.com/personal/shellen_teh_loreal_com/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fshellen%5Fteh%5Floreal%5Fcom%2FDocuments%2F04%2E%20PROJECT%20BRIEF%2F3D%20PACKSHOTS%2FCLOUDTOPIA&ga=1"
+      ],
+      "driveLink": [
+        "https://loreal-my.sharepoint.com/personal/shellen_teh_loreal_com/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fshellen%5Fteh%5Floreal%5Fcom%2FDocuments%2F04%2E%20PROJECT%20BRIEF%2F3D%20PACKSHOTS&ga=1"
+      ],
+      "clientId": "client-1751938248726",
+      "collaboratorIds": [],
+      "categoryId": "cat-2",
+      "status": "done",
+      "subStatusId": "",
+      "startDate": "2025-07-29T17:00:00.000Z",
+      "deadline": "2025-07-30T17:00:00.000Z",
+      "quoteId": "quote-1753863101523",
+      "collaboratorQuoteIds": [],
+      "collaboratorQuotes": [],
+      "eisenhowerQuadrant": "do"
+    },
+    {
+      "id": "task-1752745843856",
+      "name": "Vietjet air texturing model",
+      "description": "",
+      "startDate": "2025-07-17T00:00:00.000Z",
+      "deadline": "2025-07-20T00:00:00.000Z",
+      "clientId": "client-1751890375942",
+      "categoryId": "cat-2",
+      "status": "onhold",
+      "quoteId": "quote-1752745843856",
+      "eisenhowerQuadrant": "do"
+    },
+    {
+      "id": "task-1752084374965",
+      "name": "EC VAN 3D artwork",
+      "description": "EC VAN 3D artwork - flower",
+      "briefLink": "",
+      "driveLink": "",
+      "clientId": "client-1751890375942",
+      "collaboratorId": "",
+      "categoryId": "cat-2",
+      "status": "done",
+      "startDate": "2025-05-31T17:00:00.000Z",
+      "deadline": "2025-06-29T17:00:00.000Z",
+      "quoteId": "quote-1752084374964",
+      "eisenhowerQuadrant": "decide"
+    },
+    {
+      "id": "task-1752052888806",
+      "name": "Capybara mascot model 3D pack 2",
+      "description": "Capybara mascot model 3D - 3 version from 2D concept",
+      "briefLink": "",
+      "driveLink": "",
+      "clientId": "client-1751890375942",
+      "collaboratorId": "",
+      "categoryId": "cat-2",
+      "status": "onhold",
+      "startDate": "2025-07-08T17:00:00.000Z",
+      "deadline": "2025-07-30T17:00:00.000Z",
+      "quoteId": "quote-1752052888804"
+    },
+    {
+      "id": "task-1751938287995",
+      "name": "Lifter Glaze model & render",
+      "description": "LIfter Glaze model & render",
+      "briefLink": "",
+      "driveLink": "",
+      "clientId": "client-1751938248726",
+      "collaboratorId": "",
+      "categoryId": "cat-2",
+      "status": "done",
+      "startDate": "2025-07-07T17:00:00.000Z",
+      "deadline": "2025-07-08T17:00:00.000Z",
+      "quoteId": "quote-1751938287995",
+      "eisenhowerQuadrant": "decide"
+    },
+    {
+      "id": "task-1751890975260",
+      "name": "VF8 Render",
+      "description": "VF8 Render for internal agency",
+      "briefLink": "",
+      "driveLink": "",
+      "clientId": "client-1751890375942",
+      "collaboratorId": "",
+      "categoryId": "cat-2",
+      "status": "done",
+      "startDate": "2025-05-31T17:00:00.000Z",
+      "deadline": "2025-06-29T17:00:00.000Z",
+      "quoteId": "quote-1751890975260",
+      "eisenhowerQuadrant": "decide"
+    },
+    {
+      "id": "task-1751890728145",
+      "name": "Flex cappy Green Future - Cara",
+      "description": "mascot Flex cappy Green Future - Cara",
+      "briefLink": [],
+      "driveLink": [],
+      "clientId": "client-1751890375942",
+      "collaboratorId": "",
+      "categoryId": "category-1755777890862",
+      "status": "onhold",
+      "startDate": "2025-04-30T17:00:00.000Z",
+      "deadline": "2025-05-30T17:00:00.000Z",
+      "quoteId": "quote-1751890728145",
+      "collaboratorIds": [],
+      "sections": [
+        {
+          "id": "section-migrated-quote-1751890728145",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "id": "item-new-1751890728145-0",
+              "description": "1. Modeling base character (Green & cool)",
+              "unitPrice": 4000000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "id": "item-new-1751890728145-1",
+              "description": "3. Modeling Outfit (4)",
+              "unitPrice": 5000000,
+              "customFields": {
+                "custom_1751890606751_1": 3
+              }
+            },
+            {
+              "id": "item-new-1751890728145-2",
+              "description": "5. UV Unwrap & Texturing (cả  5 outfit)",
+              "unitPrice": 3500000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "id": "item-new-1751890728145-3",
+              "description": "6. Rigging full character",
+              "unitPrice": 1500000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "id": "item-new-1751890728145-4",
+              "description": "8. Posing, Lighting & Render 5 ảnh 4K (.PNG)",
+              "unitPrice": 4000000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "id": "item-new-1751890728145-5",
+              "description": "9. Export file .FBX (.blend)",
+              "unitPrice": 500000,
+              "customFields": {
+                "custom_1751890606751_1": 1
+              }
+            }
+          ]
+        }
+      ],
+      "collaboratorQuotes": [],
+      "eisenhowerQuadrant": "do"
+    },
+    {
+      "id": "task-1751890436058",
+      "name": "Vietjet air Flight box animation",
+      "description": "Vietject air Flight box animation 6 scene",
+      "briefLink": [
+        "https://docs.google.com/presentation/d/16hlyOSow9bFYSc_4Brp-cN54n78m4WrLN1KhXOcgLgU/edit?slide=id.g36d2054e92f_1_5#slide=id.g36d2054e92f_1_5"
+      ],
+      "driveLink": [
+        "https://drive.google.com/drive/folders/12L7ala2I6E6_WhLFdZiWoM2BhkicoWyT"
+      ],
+      "clientId": "client-1751890375942",
+      "collaboratorId": "collab-1752741998151",
+      "categoryId": "cat-2",
+      "status": "done",
+      "startDate": "2025-07-03T17:00:00.000Z",
+      "deadline": "2025-07-09T17:00:00.000Z",
+      "quoteId": "quote-1751890436058",
+      "collaboratorIds": [],
+      "collaboratorQuotes": [],
+      "collaboratorQuoteIds": [],
+      "eisenhowerQuadrant": "do"
+    },
+    {
+      "id": "task-1751889791575",
+      "name": "BIOCODEX PDP & LEAFLET",
+      "description": "BIOCODEX PDP & LEAFLET DESIGN",
+      "briefLink": [
+        "https://example.com"
+      ],
+      "driveLink": [
+        "https://drive.google.com/drive/folders/1NbeOG9XeHU-hPx2Q6bYAlxoAX2_FSlNZ"
+      ],
+      "clientId": "client-1751888811457",
+      "collaboratorId": "",
+      "categoryId": "cat-1",
+      "status": "done",
+      "startDate": "2025-07-07T17:00:00.000Z",
+      "deadline": "2025-08-28T17:00:00.000Z",
+      "quoteId": "quote-1751889791575",
+      "collaboratorIds": [],
+      "subStatusId": "",
+      "collaboratorQuotes": [
+        {
+          "collaboratorId": "collab-1755242332951",
+          "quoteId": "collab-quote-1755242387666-0.1676124410135028"
+        }
+      ],
+      "collaboratorQuoteIds": []
+    },
+    {
+      "id": "task-1755010385251",
+      "name": "Animation product Holo Fan",
+      "description": "<p>Animation product Holo Fan 20s</p>",
+      "startDate": "2025-08-11T17:00:00.000Z",
+      "deadline": "2025-08-14T17:00:00.000Z",
+      "clientId": "client-1753338860857",
+      "collaboratorIds": [],
+      "categoryId": "cat-2",
+      "status": "done",
+      "quoteId": "quote-1755010385251",
+      "collaboratorQuotes": [],
+      "briefLink": [],
+      "driveLink": [
+        "https://drive.google.com/file/d/1xlKwNeU1Mu9PW5yZwpDn0srYhdRDPiYb/view?usp=drive_link",
+        "https://drive.google.com/file/d/1bcR_4nXypiuBZOvQSdfEH4t8sjl2PnXq/view?usp=drive_link"
+      ],
+      "subStatusId": ""
+    },
+    {
+      "id": "task-1754111266570",
+      "name": "3D CHALLENGE!!!!!!!!",
+      "description": "",
+      "briefLink": [
+        "https://createwithclint.com/community-challenges/11"
+      ],
+      "driveLink": [
+        "E:\\BLENDER\\3D CHA"
+      ],
+      "clientId": "client-1754110822557",
+      "collaboratorIds": [],
+      "categoryId": "cat-2",
+      "status": "inprogress",
+      "subStatusId": "",
+      "startDate": "2025-08-01T17:00:00.000Z",
+      "deadline": "2025-08-30T17:00:00.000Z",
+      "quoteId": "quote-1754111266570",
+      "collaboratorQuoteIds": [],
+      "collaboratorQuotes": []
+    },
+    {
+      "id": "task-1753090700186",
+      "name": "POSM Close UP",
+      "description": "",
+      "briefLink": [
+        "https://docs.google.com/presentation/d/1Glu2ibzRMJSbfm71SHQ0tGYqAunRAF-_veq7YM0Dje0/edit?slide=id.g36f54f59499_0_34#slide=id.g36f54f59499_0_34"
+      ],
+      "driveLink": [
+        "https://drive.google.com/drive/folders/1KzBunhhK9i3me3U98OlvaOQLe_X0A42Q",
+        "E:\\FREELANCE\\closeup"
+      ],
+      "clientId": "client-1753090654816",
+      "collaboratorIds": [],
+      "categoryId": "cat-1",
+      "status": "done",
+      "startDate": "2025-07-21T00:00:00.000Z",
+      "deadline": "2025-08-05T17:00:00.000Z",
+      "quoteId": "quote-1753090700186",
+      "collaboratorQuoteIds": [],
+      "collaboratorQuotes": [],
+      "subStatusId": ""
+    },
+    {
+      "id": "task-1753342284283",
+      "name": "Animation product trong lồng máy giặt",
+      "description": "",
+      "briefLink": [
+        "https://docs.google.com/presentation/d/1ent3UVQ-7YPNJrgUqP1YSffOq-10jXIbTJ80Xyi-aKQ/edit?fbclid=IwY2xjawLuoHlleHRuA2FlbQIxMABicmlkETFjQzhYRU93WEZLa3ZqR1IzAR48VsXTgCQdoytFwZtN3Q_abN-l3eR_1GrcXkC-Zn9oYr4c-59SoI-IoYkzuQ_aem_0O9g35Mgq_efr5YfVV69aA&slide=id.g37147974bbc_2_172#slide=id.g37147974bbc_2_172"
+      ],
+      "driveLink": [
+        "https://docs.google.com/spreadsheets/d/16EM3LXhEM3V6rSzEQ_6Ql7wzP6Qm2aPRBodCXl0dzKk/edit?usp=sharing",
+        "https://drive.google.com/drive/folders/19xFYDM6YlRys0j_yuZzaVMJ6zscL9718",
+        "E:\\FREELANCE\\3CE"
+      ],
+      "clientId": "client-1753338860857",
+      "collaboratorIds": [
+        "collab-1752741998151"
+      ],
+      "categoryId": "cat-2",
+      "status": "done",
+      "startDate": "2025-07-23T17:00:00.000Z",
+      "deadline": "2025-07-30T17:00:00.000Z",
+      "quoteId": "quote-1753342284283",
+      "collaboratorQuoteIds": [
+        "collab-quote-1753986498215-0"
+      ],
+      "collaboratorQuotes": [
+        {
+          "collaboratorId": "collab-1752741998151",
+          "quoteId": "collab-quote-1753986498215-0"
+        }
+      ],
+      "subStatusId": ""
+    },
+    {
+      "name": "T-800 Endoskeleton Redesignfsdf",
+      "description": "",
+      "briefLink": [],
+      "driveLink": [],
+      "clientId": "client-1751890375942",
+      "collaboratorIds": [],
+      "categoryId": "cat-2",
+      "status": "done",
+      "subStatusId": "",
+      "dates": {
+        "from": "2025-08-21T09:43:39.703Z",
+        "to": "2025-09-03T09:43:39.703Z"
+      },
+      "sections": [
+        {
+          "id": "section-1755769419689",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "description": "",
+              "unitPrice": 0,
+              "customFields": {}
+            }
+          ]
+        }
+      ],
+      "collaboratorQuotes": [],
+      "id": "task-1755769435095",
+      "startDate": "2025-08-21T10:43:43.867Z",
+      "deadline": "2025-08-21T10:43:43.867Z"
+    },
+    {
+      "name": "T-800 Endoskeleton Redesign256656",
+      "description": "",
+      "briefLink": [],
+      "driveLink": [],
+      "clientId": "client-1753338860857",
+      "collaboratorIds": [],
+      "categoryId": "cat-1",
+      "status": "todo",
+      "subStatusId": "",
+      "dates": {
+        "from": "2025-08-21T10:20:21.894Z",
+        "to": "2025-09-03T10:20:21.894Z"
+      },
+      "sections": [
+        {
+          "id": "section-edit-task-1755771591079",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "id": "item-edit-task-1755771591079-0",
+              "description": "",
+              "unitPrice": 0,
+              "customFields": {}
+            }
+          ]
+        }
+      ],
+      "collaboratorQuotes": [],
+      "id": "task-1755771591079",
+      "startDate": "2025-08-21T10:53:05.202Z",
+      "deadline": "2025-09-03T10:53:05.202Z"
+    },
+    {
+      "name": "Flex cappy Green Future - Cara [Copy]",
+      "description": "mascot Flex cappy Green Future - Cara",
+      "briefLink": [],
+      "driveLink": [],
+      "clientId": "client-1751890375942",
+      "collaboratorIds": [],
+      "categoryId": "category-1755777890862",
+      "status": "onhold",
+      "subStatusId": "",
+      "sections": [
+        {
+          "id": "section-migrated-quote-1751890728145",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "description": "1. Modeling base character (Green & cool)",
+              "unitPrice": 4000000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "description": "3. Modeling Outfit (4)",
+              "unitPrice": 5000000,
+              "customFields": {
+                "custom_1751890606751_1": 3
+              }
+            },
+            {
+              "description": "5. UV Unwrap & Texturing (cả  5 outfit)",
+              "unitPrice": 3500000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "description": "6. Rigging full character",
+              "unitPrice": 1500000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "description": "8. Posing, Lighting & Render 5 ảnh 4K (.PNG)",
+              "unitPrice": 4000000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "description": "9. Export file .FBX (.blend)",
+              "unitPrice": 500000,
+              "customFields": {
+                "custom_1751890606751_1": 1
+              }
+            }
+          ]
+        }
+      ],
+      "collaboratorQuotes": [],
+      "startDate": "2025-04-30T17:00:00.000Z",
+      "deadline": "2025-05-30T17:00:00.000Z",
+      "id": "task-1755785965149"
+    },
+    {
+      "name": "Flex cappy Green Future - Cara [Copy]dasd",
+      "description": "mascot Flex cappy Green Future - Cara",
+      "briefLink": [],
+      "driveLink": [],
+      "clientId": "client-1751890375942",
+      "collaboratorIds": [],
+      "categoryId": "category-1755777890862",
+      "status": "onhold",
+      "subStatusId": "",
+      "sections": [
+        {
+          "id": "section-migrated-quote-1751890728145",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "description": "1. Modeling base character (Green & cool)",
+              "unitPrice": 4000000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "description": "3. Modeling Outfit (4)",
+              "unitPrice": 5000000,
+              "customFields": {
+                "custom_1751890606751_1": 3
+              }
+            },
+            {
+              "description": "5. UV Unwrap & Texturing (cả  5 outfit)",
+              "unitPrice": 3500000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "description": "6. Rigging full character",
+              "unitPrice": 1500000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "description": "8. Posing, Lighting & Render 5 ảnh 4K (.PNG)",
+              "unitPrice": 4000000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "description": "9. Export file .FBX (.blend)",
+              "unitPrice": 500000,
+              "customFields": {
+                "custom_1751890606751_1": 1
+              }
+            }
+          ]
+        }
+      ],
+      "collaboratorQuotes": [],
+      "startDate": "2025-04-30T17:00:00.000Z",
+      "deadline": "2025-05-30T17:00:00.000Z",
+      "id": "task-1755787613460"
+    },
+    {
+      "name": "Flex cappy Green Future - Cara [Copy]",
+      "description": "mascot Flex cappy Green Future - Cara",
+      "briefLink": [],
+      "driveLink": [],
+      "clientId": "client-1751890375942",
+      "collaboratorIds": [],
+      "categoryId": "category-1755777890862",
+      "status": "onhold",
+      "subStatusId": "",
+      "sections": [
+        {
+          "id": "section-migrated-quote-1751890728145",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "description": "1. Modeling base character (Green & cool)",
+              "unitPrice": 4000000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "description": "3. Modeling Outfit (4)",
+              "unitPrice": 5000000,
+              "customFields": {
+                "custom_1751890606751_1": 3
+              }
+            },
+            {
+              "description": "5. UV Unwrap & Texturing (cả  5 outfit)",
+              "unitPrice": 3500000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "description": "6. Rigging full character",
+              "unitPrice": 1500000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "description": "8. Posing, Lighting & Render 5 ảnh 4K (.PNG)",
+              "unitPrice": 4000000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              }
+            },
+            {
+              "description": "9. Export file .FBX (.blend)",
+              "unitPrice": 500000,
+              "customFields": {
+                "custom_1751890606751_1": 1
+              }
+            }
+          ]
+        }
+      ],
+      "collaboratorQuotes": [],
+      "startDate": "2025-04-30T17:00:00.000Z",
+      "deadline": "2025-05-30T17:00:00.000Z",
+      "id": "task-1755789950097"
+    }
+  ],
+  "quotes": [
+    {
+      "id": "quote-1751889791575",
+      "total": 13400000,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Dự án",
+          "type": "text"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Chi phí\r",
+          "type": "number",
+          "sumTotal": false
+        }
+      ],
+      "sections": [
+        {
+          "id": "section-migrated-quote-1751889791575",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "id": "item-update-1751947523904-0",
+              "description": "Hợp đồng",
+              "unitPrice": 13400000,
+              "customFields": {}
+            }
+          ]
+        }
+      ],
+      "payments": [
+        {
+          "id": "default-payment",
+          "status": "paid",
+          "method": "bank_transfer",
+          "notes": "",
+          "amountType": "percent",
+          "percent": 80
+        }
+      ],
+      "amountPaid": 10720000,
+      "status": "draft"
+    },
+    {
+      "id": "quote-1751890436058",
+      "total": 9500000,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Hạng mục",
+          "type": "text"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Chi phí dự kiến\r",
+          "type": "number",
+          "sumTotal": false
+        }
+      ],
+      "sections": [
+        {
+          "id": "section-migrated-quote-1751890436058",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "id": "item-update-1751900229513-0",
+              "description": "Dựng 3D (Box quà, Pin, City)",
+              "unitPrice": 3000000,
+              "customFields": {}
+            },
+            {
+              "id": "item-update-1751900229513-1",
+              "description": "Setup lighting +Animation (6 scene)",
+              "unitPrice": 4000000,
+              "customFields": {}
+            },
+            {
+              "id": "item-update-1751900229513-2",
+              "description": "Render + Basic Compositing (1920x1080)",
+              "unitPrice": 2000000,
+              "customFields": {}
+            },
+            {
+              "description": "làm texture và simple rig cho panda",
+              "unitPrice": 500000,
+              "customFields": {},
+              "id": "item-1752821606749-3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "quote-1751890728145",
+      "total": 18500000,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Hạng mục",
+          "type": "text"
+        },
+        {
+          "id": "custom_1751890606751_1",
+          "name": "Ngày làm việc",
+          "type": "number",
+          "sumTotal": false
+        },
+        {
+          "id": "unitPrice",
+          "name": "Thành tiền (VND)\r",
+          "type": "number",
+          "sumTotal": false
+        }
+      ],
+      "sections": [
+        {
+          "id": "section-migrated-quote-1751890728145",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "description": "1. Modeling base character (Green & cool)",
+              "quantity": 1,
+              "unitPrice": 4000000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              },
+              "id": "item-new-1751890728145-0"
+            },
+            {
+              "description": "3. Modeling Outfit (4)",
+              "quantity": 1,
+              "unitPrice": 5000000,
+              "customFields": {
+                "custom_1751890606751_1": 3
+              },
+              "id": "item-new-1751890728145-1"
+            },
+            {
+              "description": "5. UV Unwrap & Texturing (cả  5 outfit)",
+              "quantity": 1,
+              "unitPrice": 3500000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              },
+              "id": "item-new-1751890728145-2"
+            },
+            {
+              "description": "6. Rigging full character",
+              "quantity": 1,
+              "unitPrice": 1500000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              },
+              "id": "item-new-1751890728145-3"
+            },
+            {
+              "description": "8. Posing, Lighting & Render 5 ảnh 4K (.PNG)",
+              "quantity": 1,
+              "unitPrice": 4000000,
+              "customFields": {
+                "custom_1751890606751_1": 2
+              },
+              "id": "item-new-1751890728145-4"
+            },
+            {
+              "description": "9. Export file .FBX (.blend)",
+              "quantity": 1,
+              "unitPrice": 500000,
+              "customFields": {
+                "custom_1751890606751_1": 1
+              },
+              "id": "item-new-1751890728145-5"
+            }
+          ]
+        }
+      ],
+      "payments": [
+        {
+          "id": "default-payment",
+          "status": "paid",
+          "notes": "",
+          "amountType": "percent",
+          "percent": 100
+        }
+      ],
+      "amountPaid": 18500000
+    },
+    {
+      "id": "quote-1751890975260",
+      "total": 7100000,
+      "columns": [
+        {
+          "id": "description",
+          "name": "SOW",
+          "type": "text"
+        },
+        {
+          "id": "quantity",
+          "name": "Số lượng hình",
+          "type": "number",
+          "sumTotal": true
+        },
+        {
+          "id": "unitPrice",
+          "name": "Chi phí dự kiến (VND)\r",
+          "type": "number",
+          "sumTotal": false
+        }
+      ],
+      "sections": [
+        {
+          "id": "section-migrated-quote-1751890975260",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "description": "Setup render - lighting (6 scene)",
+              "quantity": 0,
+              "unitPrice": 2000000,
+              "customFields": {},
+              "id": "item-new-1751890975260-0"
+            },
+            {
+              "description": "High angle shot [2 hình - 2k .png]",
+              "quantity": 2,
+              "unitPrice": 600000,
+              "customFields": {},
+              "id": "item-new-1751890975260-1"
+            },
+            {
+              "description": "top shot [2 hình - 2k.png]",
+              "quantity": 2,
+              "unitPrice": 600000,
+              "customFields": {},
+              "id": "item-new-1751890975260-2"
+            },
+            {
+              "description": "High angle - side shot [3 hình -2k.png]",
+              "quantity": 3,
+              "unitPrice": 900000,
+              "customFields": {},
+              "id": "item-new-1751890975260-3"
+            },
+            {
+              "description": "Low angle - fisheyes shot [3 hình -2k.png]",
+              "quantity": 3,
+              "unitPrice": 900000,
+              "customFields": {},
+              "id": "item-new-1751890975260-4"
+            },
+            {
+              "description": "High speed - fisheyes shot [3 hình -2k.png]",
+              "quantity": 3,
+              "unitPrice": 900000,
+              "customFields": {},
+              "id": "item-new-1751890975260-5"
+            },
+            {
+              "description": "Extra [4 hình -2k.png]",
+              "quantity": 4,
+              "unitPrice": 1200000,
+              "customFields": {},
+              "id": "item-new-1751890975260-6"
+            }
+          ]
+        }
+      ],
+      "payments": [
+        {
+          "id": "default-payment",
+          "status": "paid",
+          "date": "2025-08-16",
+          "notes": "",
+          "amountType": "percent",
+          "percent": 100
+        }
+      ],
+      "amountPaid": 7100000
+    },
+    {
+      "id": "quote-1751938287995",
+      "total": 0,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Item Description",
+          "type": "text"
+        },
+        {
+          "id": "quantity",
+          "name": "Quantity",
+          "type": "number"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Unit Price (VND)",
+          "type": "number",
+          "sumTotal": false
+        }
+      ],
+      "sections": [
+        {
+          "id": "section-migrated-quote-1751938287995",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "description": "LIfter Glaze model & render",
+              "quantity": 1,
+              "unitPrice": 0,
+              "customFields": {},
+              "id": "item-update-1752135986439-0"
+            }
+          ]
+        }
+      ],
+      "payments": [
+        {
+          "id": "default-payment",
+          "status": "paid",
+          "notes": "",
+          "amountType": "percent",
+          "percent": 100
+        }
+      ],
+      "amountPaid": 0
+    },
+    {
+      "id": "quote-1752052888804",
+      "total": 8100000,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Hạng mục",
+          "type": "text"
+        },
+        {
+          "id": "custom_1752052686274_1",
+          "name": "Ngày làm việc",
+          "type": "text"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Thành tiền (VND)\r",
+          "type": "number",
+          "sumTotal": false
+        }
+      ],
+      "sections": [
+        {
+          "id": "section-migrated-quote-1752052888804",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "description": "1. Modeling base character (3 characterl)",
+              "quantity": 1,
+              "unitPrice": 2500000,
+              "customFields": {
+                "custom_1752052686274_1": 2
+              },
+              "id": "item-update-1752135973267-0"
+            },
+            {
+              "description": "5. UV Unwrap & Texturing (cả  5 outfit)",
+              "quantity": 1,
+              "unitPrice": 2100000,
+              "customFields": {
+                "custom_1752052686274_1": 2
+              },
+              "id": "item-update-1752135973267-1"
+            },
+            {
+              "description": "6. Rigging full character",
+              "quantity": 1,
+              "unitPrice": 1000000,
+              "customFields": {
+                "custom_1752052686274_1": 2
+              },
+              "id": "item-update-1752135973267-2"
+            },
+            {
+              "description": "8. Posing, Lighting & Render 3 ảnh 4K (.PNG)",
+              "quantity": 1,
+              "unitPrice": 2000000,
+              "customFields": {
+                "custom_1752052686274_1": 2
+              },
+              "id": "item-update-1752135973267-3"
+            },
+            {
+              "description": "9. Export file .FBX (.blend)",
+              "quantity": 1,
+              "unitPrice": 500000,
+              "customFields": {
+                "custom_1752052686274_1": 1
+              },
+              "id": "item-update-1752135973267-4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "quote-1752084374964",
+      "total": 19000000,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Item Description",
+          "type": "text"
+        },
+        {
+          "id": "quantity",
+          "name": "Quantity",
+          "type": "number"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Unit Price (VND)",
+          "type": "number",
+          "sumTotal": false
+        }
+      ],
+      "sections": [
+        {
+          "id": "section-migrated-quote-1752084374964",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "description": "Full artwork",
+              "quantity": 1,
+              "unitPrice": 19000000,
+              "customFields": {},
+              "id": "item-new-1752084374964-0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "quote-1752745843856",
+      "sections": [
+        {
+          "id": "section-ai-1",
+          "name": "Untitled Section",
+          "items": []
+        }
+      ],
+      "total": 0,
+      "columns": []
+    },
+    {
+      "id": "quote-1753090700186",
+      "sections": [
+        {
+          "id": "section-1753090609612",
+          "name": "POSM GE",
+          "items": [
+            {
+              "id": "item-1753090700186-0",
+              "description": "Design POSM GE 2D +3D mockup",
+              "unitPrice": 5000000,
+              "customFields": {
+                "custom_1754999920596": "1800000"
+              }
+            },
+            {
+              "id": "item-1753293441594-1",
+              "description": "Design POSM GE 2D +3D mockup VER 2",
+              "unitPrice": 5000000,
+              "customFields": {
+                "custom_1754999920596": 0
+              }
+            },
+            {
+              "id": "item-1753342134033-2",
+              "description": "Sideburn 120x30x30cm",
+              "unitPrice": 5000000,
+              "customFields": {
+                "custom_1754999920596": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "section-1754371766997",
+          "name": "POSM 2",
+          "items": [
+            {
+              "id": "item-1754371798289-0.41508625468136084",
+              "description": "Product showcase",
+              "unitPrice": 2000000,
+              "customFields": {
+                "custom_1754999920596": 0
+              }
+            },
+            {
+              "id": "item-1754828771466-0.5482400097169631",
+              "description": "extra 3D file",
+              "unitPrice": 1000000,
+              "customFields": {
+                "custom_1754999920596": 0
+              }
+            },
+            {
+              "id": "item-1754990189227-0.5607131532440989",
+              "description": "extra 3D file [12.08]",
+              "unitPrice": 1500000,
+              "customFields": {
+                "custom_1754999920596": 0
+              }
+            }
+          ]
+        }
+      ],
+      "total": 15000000,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Description",
+          "type": "text"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Price (VND)",
+          "type": "number",
+          "calculation": {
+            "type": "sum"
+          }
+        },
+        {
+          "id": "custom_1754999920596",
+          "name": "Tiền cọc",
+          "type": "number",
+          "calculation": {
+            "type": "sum"
+          }
+        }
+      ]
+    },
+    {
+      "id": "quote-1753342284283",
+      "sections": [
+        {
+          "id": "section-1753342222661",
+          "name": "Animation product - 3CE",
+          "items": [
+            {
+              "id": "item-1753342284283-0",
+              "description": "Dựng mới model 3D",
+              "unitPrice": 0,
+              "customFields": {
+                "custom_1753342301772": "6",
+                "custom_1753342322824": "1000000"
+              }
+            },
+            {
+              "id": "item-1753342637621-1",
+              "description": "Làm lại material cho model đã có file",
+              "unitPrice": 0,
+              "customFields": {
+                "custom_1753342301772": "7",
+                "custom_1753342322824": "500000"
+              }
+            },
+            {
+              "id": "item-1753342637621-2",
+              "description": "Phối cảnh + animation 5 video",
+              "unitPrice": 0,
+              "customFields": {
+                "custom_1753342301772": "6",
+                "custom_1753342322824": "1500000"
+              }
+            },
+            {
+              "id": "item-1753342637621-3",
+              "description": "Setup light +  Render (1920x1920px) ",
+              "unitPrice": 0,
+              "customFields": {
+                "custom_1753342301772": "6",
+                "custom_1753342322824": "1500000"
+              }
+            },
+            {
+              "id": "item-1753344863913-4",
+              "description": "Editing add poup text 2D - Final video mp4",
+              "unitPrice": 0,
+              "customFields": {
+                "custom_1753342301772": "6",
+                "custom_1753342322824": "500000"
+              }
+            }
+          ]
+        }
+      ],
+      "total": 0,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Description",
+          "type": "text"
+        },
+        {
+          "id": "custom_1753342301772",
+          "name": "Quantity",
+          "type": "number"
+        },
+        {
+          "id": "custom_1753342322824",
+          "name": "Đơn giá",
+          "type": "number"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Price (VND)",
+          "type": "number",
+          "calculation": {
+            "type": "sum"
+          },
+          "rowFormula": "custom_1753342301772*custom_1753342322824"
+        }
+      ],
+      "payments": [
+        {
+          "id": "default-payment",
+          "status": "scheduled",
+          "date": "2025-08-31",
+          "notes": "",
+          "amountType": "percent",
+          "percent": 100
+        }
+      ],
+      "amountPaid": 0
+    },
+    {
+      "id": "quote-1753863101523",
+      "sections": [
+        {
+          "id": "section-1753863028370",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "id": "item-1753863101523-0",
+              "description": "Model & render product",
+              "unitPrice": 0,
+              "customFields": {}
+            }
+          ]
+        }
+      ],
+      "total": 0,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Description",
+          "type": "text"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Price (VND)",
+          "type": "number",
+          "calculation": {
+            "type": "sum"
+          }
+        }
+      ],
+      "status": "draft"
+    },
+    {
+      "id": "quote-1753878749261",
+      "sections": [
+        {
+          "id": "section-1753878578470",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "description": "POSM",
+              "unitPrice": 22000000,
+              "customFields": {},
+              "id": "item-1753878749261-0"
+            }
+          ]
+        }
+      ],
+      "total": 22000000,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Description",
+          "type": "text"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Price (VND)",
+          "type": "number",
+          "calculation": {
+            "type": "sum"
+          }
+        }
+      ],
+      "payments": [
+        {
+          "id": "default-payment",
+          "status": "paid",
+          "notes": "",
+          "amountType": "percent",
+          "percent": 100
+        }
+      ],
+      "amountPaid": 22000000
+    },
+    {
+      "id": "quote-1754111266570",
+      "sections": [
+        {
+          "id": "section-1754110749073",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "id": "item-1754111266570-0",
+              "description": "concept",
+              "unitPrice": 0,
+              "customFields": {
+                "custom_1754110943329": null
+              }
+            },
+            {
+              "id": "item-1754111266570-1",
+              "description": "Model",
+              "unitPrice": 0,
+              "customFields": {
+                "custom_1754110943329": null
+              }
+            },
+            {
+              "id": "item-1754111266570-2",
+              "description": "animation",
+              "unitPrice": 0,
+              "customFields": {
+                "custom_1754110943329": null
+              }
+            },
+            {
+              "id": "item-1754111266570-3",
+              "description": "render",
+              "unitPrice": 0,
+              "customFields": {
+                "custom_1754110943329": null
+              }
+            }
+          ]
+        }
+      ],
+      "total": 0,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Description",
+          "type": "text"
+        },
+        {
+          "id": "custom_1754110943329",
+          "name": "date plan",
+          "type": "date",
+          "dateFormat": "range"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Price (VND)",
+          "type": "number",
+          "calculation": {
+            "type": "sum"
+          }
+        }
+      ]
+    },
+    {
+      "id": "quote-1755010385251",
+      "sections": [
+        {
+          "id": "section-1755010225843",
+          "name": "Animation product Holo Fan 5s",
+          "items": [
+            {
+              "id": "item-1755010385251-0.6689251231844275",
+              "description": "Phối cảnh + Animation",
+              "unitPrice": 2000000,
+              "customFields": {}
+            },
+            {
+              "id": "item-1755010385251-0.4844116785574871",
+              "description": "Lighting & Render 10s (720x720)",
+              "unitPrice": 2000000,
+              "customFields": {}
+            },
+            {
+              "id": "item-1755010385251-0.8162050283543861",
+              "description": "Compositing - Final video mp4",
+              "unitPrice": 1000000,
+              "customFields": {}
+            }
+          ]
+        }
+      ],
+      "total": 0,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Description",
+          "type": "text"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Price (VND)",
+          "type": "number",
+          "calculation": {
+            "type": "sum"
+          }
+        }
+      ],
+      "status": "draft"
+    }
+  ],
+  "collaboratorQuotes": [
+    {
+      "id": "collab-quote-1753986498215-0",
+      "sections": [
+        {
+          "id": "section-1753896995561",
+          "name": "Animation trong máy giặt",
+          "items": [
+            {
+              "id": "collab-item-1753897019168-0-0",
+              "description": "Render 1920x1920",
+              "unitPrice": 16000,
+              "customFields": {
+                "custom_1753897039585": "4",
+                "custom_1753961954241": "16000"
+              }
+            },
+            {
+              "id": "collab-item-1753961905298-0-1",
+              "description": "Render V2+V4",
+              "unitPrice": 0,
+              "customFields": {
+                "custom_1753897039585": "8",
+                "custom_1753961954241": "16000"
+              }
+            },
+            {
+              "id": "collab-item-1753962031068-0-2",
+              "description": "Render V3+5+6",
+              "unitPrice": 0,
+              "customFields": {
+                "custom_1753897039585": "20",
+                "custom_1753961954241": "5000"
+              }
+            }
+          ]
+        }
+      ],
+      "total": 16000,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Description",
+          "type": "text"
+        },
+        {
+          "id": "custom_1753897039585",
+          "name": "Hours",
+          "type": "number"
+        },
+        {
+          "id": "custom_1753961954241",
+          "name": "PPH",
+          "type": "number"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Price (VND)",
+          "type": "number",
+          "calculation": {
+            "type": "sum"
+          },
+          "rowFormula": "custom_1753897039585*custom_1753961954241"
+        }
+      ]
+    },
+    {
+      "id": "collab-quote-1755242387666-0.1676124410135028",
+      "sections": [
+        {
+          "id": "section-1755242341722",
+          "name": "Paid",
+          "items": [
+            {
+              "description": "2D design",
+              "unitPrice": 6550000,
+              "customFields": {},
+              "id": "item-1755242387666-0.04654859015542845"
+            }
+          ]
+        }
+      ],
+      "total": 0,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Description",
+          "type": "text"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Price (VND)",
+          "type": "number",
+          "calculation": {
+            "type": "sum"
+          }
+        }
+      ],
+      "collaboratorId": "collab-1755242332951",
+      "paymentStatus": "pending"
+    },
+    {
+      "id": "collab-quote-1755277861381-0.7023538886179407",
+      "sections": [
+        {
+          "id": "section-1755277842224",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "description": "Render 720*720",
+              "unitPrice": 18000,
+              "customFields": {},
+              "id": "item-1755277861381-0.5810132041365867"
+            }
+          ]
+        }
+      ],
+      "total": 0,
+      "columns": [
+        {
+          "id": "description",
+          "name": "Description",
+          "type": "text"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Price (VND)",
+          "type": "number",
+          "calculation": {
+            "type": "sum"
+          }
+        }
+      ],
+      "collaboratorId": "collab-1752741998151",
+      "paymentStatus": "pending"
+    }
+  ],
+  "clients": [
+    {
+      "id": "client-1751888811457",
+      "name": "BIOCODEX"
+    },
+    {
+      "id": "client-1751890375942",
+      "name": "Chilli 37 degree"
+    },
+    {
+      "id": "client-1751938248726",
+      "name": "MBNY"
+    },
+    {
+      "id": "client-1752477443478",
+      "name": "I-DAC",
+      "type": "agency"
+    },
+    {
+      "id": "client-1753090654816",
+      "name": "Close Up"
+    },
+    {
+      "id": "client-1753338860857",
+      "name": "3CE"
+    },
+    {
+      "id": "client-1753878639671",
+      "name": "Chị Thy"
+    },
+    {
+      "id": "client-1754110822557",
+      "name": "PWNISHER"
+    }
+  ],
+  "collaborators": [
+    {
+      "id": "collab-1752741998151",
+      "name": "PC render"
+    },
+    {
+      "id": "collab-1755242332951",
+      "name": "Mắm"
+    }
+  ],
+  "quoteTemplates": [
+    {
+      "id": "template-1",
+      "name": "Standard 2D Animation",
+      "columns": [
+        {
+          "id": "description",
+          "name": "Item Description",
+          "type": "text"
+        },
+        {
+          "id": "quantity",
+          "name": "Quantity",
+          "type": "number"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Unit Price (VND)",
+          "type": "number"
+        }
+      ],
+      "sections": [
+        {
+          "id": "section-migrated-tpl-template-1",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "description": "Storyboarding",
+              "quantity": 1,
+              "unitPrice": 500000
+            },
+            {
+              "description": "Character Design",
+              "quantity": 1,
+              "unitPrice": 700000
+            },
+            {
+              "description": "Animation (per second)",
+              "quantity": 10,
+              "unitPrice": 100000
+            },
+            {
+              "description": "Sound Design",
+              "quantity": 1,
+              "unitPrice": 300000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "template-2",
+      "name": "Basic 3D Model",
+      "columns": [
+        {
+          "id": "description",
+          "name": "Item Description",
+          "type": "text"
+        },
+        {
+          "id": "quantity",
+          "name": "Quantity",
+          "type": "number"
+        },
+        {
+          "id": "unitPrice",
+          "name": "Unit Price (VND)",
+          "type": "number"
+        },
+        {
+          "id": "custom_1688888888888",
+          "name": "Est. Hours",
+          "type": "number",
+          "sumTotal": true
+        }
+      ],
+      "sections": [
+        {
+          "id": "section-migrated-tpl-template-2",
+          "name": "Untitled Section",
+          "items": [
+            {
+              "description": "Modeling",
+              "quantity": 1,
+              "unitPrice": 1000000,
+              "customFields": {
+                "custom_1688888888888": 10
+              }
+            },
+            {
+              "description": "Texturing & Shading",
+              "quantity": 1,
+              "unitPrice": 800000,
+              "customFields": {
+                "custom_1688888888888": 8
+              }
+            },
+            {
+              "description": "Rigging",
+              "quantity": 1,
+              "unitPrice": 600000,
+              "customFields": {
+                "custom_1688888888888": 6
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat-1",
+      "name": "2D"
+    },
+    {
+      "id": "cat-2",
+      "name": "3D"
+    },
+    {
+      "id": "category-1755777890862",
+      "name": "Others"
+    }
+  ],
+  "appSettings": {
+    "theme": {
+      "primary": "#2A5EE5",
+      "accent": "#ffffff",
+      "background": "#f5f6fa"
+    },
+    "statusColors": {
+      "todo": "#a855f7",
+      "inprogress": "#eab308",
+      "done": "#22c55e",
+      "onhold": "#f97316",
+      "archived": "#64748b"
+    },
+    "stickyNoteColor": {
+      "background": "#9ca7e3",
+      "foreground": "#000000"
+    },
+    "trashAutoDeleteDays": 30,
+    "language": "vi",
+    "currency": "VND",
+    "preferredModelProvider": "google",
+    "googleApiKey": "AIzaSyD-BgRMvuElAje9DJJoISx67dq6u71PFLc",
+    "googleModel": "gemini-2.5-pro",
+    "dashboardColumns": [
+      {
+        "id": "name",
+        "label": "Task",
+        "visible": true
+      },
+      {
+        "id": "client",
+        "label": "Client",
+        "visible": true
+      },
+      {
+        "id": "category",
+        "label": "Category",
+        "visible": true
+      },
+      {
+        "id": "deadline",
+        "label": "Deadline",
+        "visible": true
+      },
+      {
+        "id": "status",
+        "label": "Status",
+        "visible": true
+      },
+      {
+        "id": "priceQuote",
+        "label": "Quote",
+        "visible": false
+      }
+    ],
+    "statusSettings": [
+      {
+        "id": "todo",
+        "label": "Quotes",
+        "subStatuses": []
+      },
+      {
+        "id": "inprogress",
+        "label": "In Progress",
+        "subStatuses": []
+      },
+      {
+        "id": "done",
+        "label": "Done",
+        "subStatuses": [
+          {
+            "id": "sub-1753192831335",
+            "label": "Paid"
+          }
+        ]
+      },
+      {
+        "id": "onhold",
+        "label": "On Hold",
+        "subStatuses": []
+      },
+      {
+        "id": "archived",
+        "label": "Archived",
+        "subStatuses": []
+      }
+    ],
+    "widgets": [
+      {
+        "id": "calculator",
+        "enabled": false,
+        "showInSidebar": false,
+        "colSpan": 1,
+        "rowSpan": 1
+      },
+      {
+        "id": "sticky-notes",
+        "enabled": true,
+        "showInSidebar": true,
+        "colSpan": 2,
+        "rowSpan": 5,
+        "x": 0,
+        "y": 0
+      },
+      {
+        "id": "pomodoro",
+        "enabled": true,
+        "showInSidebar": false,
+        "colSpan": 2,
+        "rowSpan": 2,
+        "x": 2,
+        "y": 0
+      }
+    ],
+    "eisenhowerMaxTasksPerQuadrant": 10,
+    "eisenhowerColorScheme": "colorScheme1",
+    "openaiApiKey": "",
+    "openaiModel": "gpt-4o-mini"
+  },
+  "notes": [],
+  "events": [
+    {
+      "id": "event-1755778183997",
+      "name": "45555",
+      "startTime": "2025-08-20T17:00:00.000Z",
+      "endTime": "2025-08-21T17:00:00.000Z",
+      "taskIds": [
+        "task-1755769435095"
+      ],
+      "links": [],
+      "notes": "",
+      "color": "#F43F5E",
+      "icon": "☕"
+    }
+  ],
+  "workSessions": [],
+  "expenses": [],
+  "fixedCosts": [
+    {
+      "id": "fixed-cost-1755229120701",
+      "name": "Google drive",
+      "amount": 49000,
+      "frequency": "monthly",
+      "startDate": "2025-08-15T00:00:00.000Z",
+      "isActive": true,
+      "createdAt": "2025-08-15T03:38:40.701Z",
+      "updatedAt": "2025-08-15T03:38:40.701Z"
+    },
+    {
+      "id": "fixed-cost-1755229132833",
+      "name": "Youtube",
+      "amount": 106000,
+      "frequency": "monthly",
+      "startDate": "2025-08-15T00:00:00.000Z",
+      "isActive": true,
+      "createdAt": "2025-08-15T03:38:52.833Z",
+      "updatedAt": "2025-08-15T03:40:57.714Z"
+    },
+    {
+      "id": "fixed-cost-1755229166776",
+      "name": "Github copilot",
+      "amount": 390000,
+      "frequency": "monthly",
+      "startDate": "2025-08-15T00:00:00.000Z",
+      "isActive": true,
+      "createdAt": "2025-08-15T03:39:26.776Z",
+      "updatedAt": "2025-08-15T03:39:26.776Z"
+    },
+    {
+      "id": "fixed-cost-1755229186571",
+      "name": "Apple cloud",
+      "amount": 19000,
+      "frequency": "monthly",
+      "startDate": "2025-08-15T00:00:00.000Z",
+      "isActive": true,
+      "createdAt": "2025-08-15T03:39:46.571Z",
+      "updatedAt": "2025-08-15T03:39:46.571Z"
+    },
+    {
+      "id": "fixed-cost-1755229207722",
+      "name": "4G",
+      "amount": 80000,
+      "frequency": "monthly",
+      "startDate": "2025-08-15T00:00:00.000Z",
+      "isActive": true,
+      "createdAt": "2025-08-15T03:40:07.722Z",
+      "updatedAt": "2025-08-15T03:41:44.864Z"
+    },
+    {
+      "id": "fixed-cost-1755229420512",
+      "name": "Adobe",
+      "amount": 1200000,
+      "frequency": "yearly",
+      "startDate": "2025-08-15T00:00:00.000Z",
+      "isActive": true,
+      "createdAt": "2025-08-15T03:43:40.512Z",
+      "updatedAt": "2025-08-15T03:43:40.512Z"
+    }
+  ],
+  "backupCreated": "2025-08-22T12:15:33.284Z"
+}

@@ -7,7 +7,7 @@ import { useWorkTimeData } from '@/hooks/useWorkTimeData';
 import { useActionBuffer } from '@/hooks/useActionBuffer';
 import { initialAppData } from '@/lib/data';
 import { BackupService } from '@/lib/backup-service';
-import type { AppData, AppEvent, AppSettings, Category, Client, Collaborator, Quote, CollaboratorQuote, Task, QuoteTemplate } from '@/lib/types';
+import type { AppData, AppEvent, AppSettings, Category, Client, Collaborator, Quote, CollaboratorQuote, Task, QuoteTemplate, QuoteColumn } from '@/lib/types';
 
 // Create a client once
 const queryClient = new QueryClient();
@@ -118,16 +118,167 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
         setAppData(prev => ({ ...prev, collaboratorQuotes: (prev.collaboratorQuotes || []).map(q => q.id === quoteId ? { ...q, ...updates } : q) }));
     }, [data.appData, setAppData]);
 
-    const handleAddTask = useCallback((task: Omit<Task, 'id'>) => {
+    // Helper: create a Quote object from sections + columns
+    const createQuoteFromSections = (sections: any[] | undefined, columns?: any[]) => {
+        const qid = `quote-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+        const secs = Array.isArray(sections) ? sections : [];
+        const total = secs.reduce((acc: number, s: any) => {
+            const sumItems = (s.items || []).reduce((ai: number, it: any) => {
+                const qty = (it.quantity || 1);
+                const price = Number(it.unitPrice || 0);
+                return ai + (price * qty);
+            }, 0);
+            return acc + sumItems;
+        }, 0);
+        return {
+            id: qid,
+            sections: secs,
+            total,
+            columns: Array.isArray(columns) ? columns : undefined,
+            status: 'draft',
+        } as Quote;
+    };
+
+    const createCollaboratorQuoteFrom = (collabEntry: any, columns?: any[]) => {
+        const id = `collab-quote-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+        const secs = Array.isArray(collabEntry?.sections) ? collabEntry.sections : [];
+        const total = secs.reduce((acc: number, s: any) => {
+            const sumItems = (s.items || []).reduce((ai: number, it: any) => {
+                const qty = (it.quantity || 1);
+                const price = Number(it.unitPrice || 0);
+                return ai + (price * qty);
+            }, 0);
+            return acc + sumItems;
+        }, 0);
+        return {
+            id,
+            collaboratorId: collabEntry?.collaboratorId || '',
+            sections: secs,
+            total,
+            columns: Array.isArray(columns) ? columns : undefined,
+            paymentStatus: 'pending',
+        } as CollaboratorQuote;
+    };
+
+    // Now handle creating a task while also creating/persisting its quote(s)
+    const handleAddTask = useCallback((task: any, quoteColumns?: QuoteColumn[], collaboratorQuoteColumns?: QuoteColumn[]) => {
         const id = `task-${Date.now()}`;
-        setAppData(prev => ({ ...prev, tasks: [...prev.tasks, { ...task, id }] }));
+
+        setAppData(prev => {
+            const newPrev = { ...prev } as any;
+
+            // Create main quote if sections provided
+            let quoteId: string | undefined = undefined;
+            if (task?.sections && Array.isArray(task.sections) && task.sections.length > 0) {
+                const newQuote = createQuoteFromSections(task.sections, quoteColumns);
+                quoteId = newQuote.id;
+                newPrev.quotes = [...(newPrev.quotes || []), newQuote];
+            }
+
+            // Create collaborator quotes
+            const collabMappings: { collaboratorId: string; quoteId: string }[] = [];
+            if (task?.collaboratorQuotes && Array.isArray(task.collaboratorQuotes) && task.collaboratorQuotes.length > 0) {
+                const newCollabQuotes = (task.collaboratorQuotes || []).map((cq: any) => {
+                    const created = createCollaboratorQuoteFrom(cq, collaboratorQuoteColumns);
+                    collabMappings.push({ collaboratorId: cq.collaboratorId || '', quoteId: created.id });
+                    return created;
+                });
+                newPrev.collaboratorQuotes = [...(newPrev.collaboratorQuotes || []), ...newCollabQuotes];
+            }
+
+            // Build the new task entry
+            const newTask: Task = {
+                id,
+                name: task.name || 'New Task',
+                description: task.description || '',
+                startDate: task.startDate || task.dates?.from || new Date(),
+                deadline: task.deadline || task.dates?.to || new Date(),
+                clientId: task.clientId || (newPrev.clients?.[0]?.id || ''),
+                collaboratorIds: task.collaboratorIds || [],
+                categoryId: task.categoryId || (newPrev.categories?.[0]?.id || ''),
+                status: task.status || 'todo',
+                subStatusId: task.subStatusId || '',
+                quoteId: quoteId || (task.quoteId || ''),
+                collaboratorQuotes: collabMappings,
+                briefLink: task.briefLink || [],
+                driveLink: task.driveLink || [],
+                createdAt: new Date().toISOString(),
+            } as Task;
+
+            newPrev.tasks = [...(newPrev.tasks || []), newTask];
+            return newPrev as AppData;
+        });
+
         return id;
     }, [setAppData]);
 
-    const handleEditTask = useCallback((values: Partial<Task>, _quoteColumns?: any[], _collaboratorQuoteColumns?: any[], taskId?: string) => {
+    const handleEditTask = useCallback((values: Partial<Task>, quoteColumns?: any[], collaboratorQuoteColumns?: any[], taskId?: string) => {
         if (taskId || values.id) {
             const id = taskId || (values.id as string);
-            setAppData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === id ? { ...t, ...values } : t) }));
+            setAppData(prev => {
+                const newPrev = { ...prev } as any;
+
+                // Update task
+                newPrev.tasks = newPrev.tasks.map((t: Task) => t.id === id ? { ...t, ...values } : t);
+
+                // If we have an updated sections payload, update the linked quote's sections and total
+                const targetTask = (newPrev.tasks || []).find((t: Task) => t.id === id);
+                if (targetTask) {
+                    // Update main quote sections and columns when provided
+                    if ((values as any).sections && targetTask.quoteId) {
+                        newPrev.quotes = (newPrev.quotes || []).map((q: Quote) => {
+                            if (q.id !== targetTask.quoteId) return q;
+                            const secs = Array.isArray((values as any).sections) ? (values as any).sections : q.sections || [];
+                            const total = secs.reduce((acc: number, s: any) => {
+                                const sumItems = (s.items || []).reduce((ai: number, it: any) => {
+                                    const qty = (it.quantity || 1);
+                                    const price = Number(it.unitPrice || 0);
+                                    return ai + (price * qty);
+                                }, 0);
+                                return acc + sumItems;
+                            }, 0);
+                            return { ...q, sections: secs, total, columns: quoteColumns ?? q.columns };
+                        });
+                    } else if (quoteColumns && targetTask.quoteId) {
+                        newPrev.quotes = (newPrev.quotes || []).map((q: Quote) => q.id === targetTask.quoteId ? { ...q, columns: quoteColumns } : q);
+                    }
+
+                    // Update collaborator quotes: values.collaboratorQuotes is array of { collaboratorId, sections }
+                    if (Array.isArray((values as any).collaboratorQuotes) && (values as any).collaboratorQuotes.length > 0) {
+                        const collabArr = (values as any).collaboratorQuotes as any[];
+                        newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).map((cq: any) => {
+                            // Find mapping entry in task to get collaboratorId associated with this collaborator quote id
+                            const mapping = targetTask.collaboratorQuotes?.find((m: any) => m.quoteId === cq.id) || null;
+                            // If mapping exists, try to find the incoming update by collaboratorId
+                            if (mapping) {
+                                const incoming = collabArr.find(ci => ci.collaboratorId === mapping.collaboratorId);
+                                if (incoming) {
+                                    const secs = Array.isArray(incoming.sections) ? incoming.sections : cq.sections || [];
+                                    const total = secs.reduce((acc: number, s: any) => {
+                                        const sumItems = (s.items || []).reduce((ai: number, it: any) => {
+                                            const qty = (it.quantity || 1);
+                                            const price = Number(it.unitPrice || 0);
+                                            return ai + (price * qty);
+                                        }, 0);
+                                        return acc + sumItems;
+                                    }, 0);
+                                    return { ...cq, sections: secs, total, columns: collaboratorQuoteColumns ?? cq.columns };
+                                }
+                            }
+                            return cq;
+                        });
+                    } else if (collaboratorQuoteColumns && targetTask.collaboratorQuotes) {
+                        // If only columns provided, update columns for mapped collaborator quotes
+                        newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).map((cq: any) => {
+                            const mapping = targetTask.collaboratorQuotes?.find((m: any) => m.quoteId === cq.id);
+                            if (mapping) return { ...cq, columns: collaboratorQuoteColumns };
+                            return cq;
+                        });
+                    }
+                }
+
+                return newPrev as AppData;
+            });
         } else {
             const id = `task-${Date.now()}`;
             setAppData(prev => ({ ...prev, tasks: [...prev.tasks, { id, name: values.name || 'New Task', description: values.description || '', startDate: values.startDate || new Date(), deadline: values.deadline || new Date(), clientId: values.clientId || (prev.clients[0]?.id || ''), categoryId: values.categoryId || (prev.categories[0]?.id || ''), status: values.status || 'todo', quoteId: values.quoteId || (prev.quotes[0]?.id || ''), createdAt: new Date().toISOString() }] as Task[] }));

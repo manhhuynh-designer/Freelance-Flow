@@ -96,6 +96,7 @@ export interface CreateTaskFormRef {
 type CreateTaskFormProps = {
   setOpen: (open: boolean) => void;
   onSubmit: (values: TaskFormValues, quoteColumns: QuoteColumn[], collaboratorQuoteColumns: QuoteColumn[]) => string | void;
+  onStartSaving?: () => void;
   clients: Client[];
   collaborators: Collaborator[];
   categories: Category[];
@@ -107,19 +108,21 @@ type CreateTaskFormProps = {
   onSubmitSuccess?: (newTaskId?: string) => void;
 };
 
-export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>(({ 
-  setOpen, 
-  onSubmit: onFormSubmit, 
-  clients, 
-  collaborators, 
-  categories, 
-  onAddClient, 
-  quoteTemplates, 
-  settings, 
-  defaultDate,
-  onDirtyChange,
-  onSubmitSuccess
-}, ref) => {
+export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>((props, ref) => {
+  const { 
+    setOpen, 
+    onSubmit: onFormSubmit, 
+    onStartSaving,
+    clients, 
+    collaborators, 
+    categories, 
+    onAddClient, 
+    quoteTemplates, 
+    settings, 
+    defaultDate,
+    onDirtyChange,
+    onSubmitSuccess
+  } = props;
   const { toast } = useToast();
   const T = useMemo(() => ({
     ...i18n[settings.language],
@@ -196,6 +199,9 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
   });
   
   const handleFormSubmit = (data: TaskFormValues) => {
+  onStartSaving?.();
+  // debug trace - POST to server so we can observe ordering in node logs
+  try { void fetch('/api/_trace-saving', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ source: 'CreateTaskForm', event: 'onStartSaving', ts: Date.now() }) }); } catch (e) {}
     // Convert dates from form format to task format
     const cleanedData: any = {
       ...data,
@@ -222,6 +228,8 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
   useImperativeHandle(ref, () => ({
     handleSaveDraft() {
       const values = getValues();
+  onStartSaving?.();
+  try { void fetch('/api/_trace-saving', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ source: 'CreateTaskForm', event: 'onStartSaving-draft', ts: Date.now() }) }); } catch (e) {}
       const draftData: any = {
         ...values,
         name: `[Draft] ${values.name || T.untitledTask}`,

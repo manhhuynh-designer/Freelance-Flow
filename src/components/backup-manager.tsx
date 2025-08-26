@@ -16,6 +16,10 @@ import { Switch } from "@/components/ui/switch";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { AppData } from "@/lib/types";
 import { initialAppData } from "@/lib/data";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
+
+// Dynamic import for cloud backup component
+const CloudBackupManager = React.lazy(() => import('./cloud-backup-manager'));
 
 // Supported formats
 type BackupFormat = "json" | "excel";
@@ -35,6 +39,9 @@ export function BackupManager() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fsPermission, setFsPermission] = useState<'granted'|'prompt'|'denied'|'unknown'>('unknown');
   const [page, setPage] = useState(1);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [selectedDeleteName, setSelectedDeleteName] = useState<string | null>(null);
+  const [selectedDeleteTimestamp, setSelectedDeleteTimestamp] = useState<number | null>(null);
 
   const lang = (dashboard as any)?.appData?.appSettings?.language as keyof typeof i18n || 'en';
   const T = (i18n as any)[lang] || i18n.en;
@@ -490,16 +497,38 @@ export function BackupManager() {
   };
 
   const handleDeleteBackupFile = async (name: string) => {
-    const ok = window.confirm(T.deleteBackupConfirm || 'Delete this backup?');
-    if (!ok) return;
-    const success = await LocalBackupService.deleteBackupFile?.(name);
-    if (success) { await refreshFolderFiles(); toast({ title: T.backupDeleted || 'Backup Deleted' }); }
-    else toast({ variant: 'destructive', title: T.deleteFailed || 'Delete Failed' });
+    setSelectedDeleteName(name);
+    setConfirmDeleteOpen(true);
   };
 
+  const performDeleteLocal = async (name: string) => {
+    try {
+      // LocalBackupService exposes deleteBackupFile(name)
+      await LocalBackupService.deleteBackupFile?.(name);
+      refreshBackups();
+      toast({ title: T.deleted || 'Deleted', description: name });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: T.deleteFailed || 'Delete failed', description: err?.message || '' });
+    }
+  };
+  const performDeleteFolderFile = async (name: string) => {
+    try {
+      // There is no deleteFolderFile; use deleteBackupFile as the filesystem removal API
+      await LocalBackupService.deleteBackupFile?.(name);
+      await refreshFolderFiles();
+      toast({ title: T.deleted || 'Deleted', description: name });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: T.deleteFailed || 'Delete failed', description: err?.message || '' });
+    }
+  }
+
   const handleDeleteBackup = (timestamp: number) => {
-    const ok = window.confirm(T.deleteBackupConfirm || 'Delete this backup?');
-    if (!ok) return;
+    setSelectedDeleteTimestamp(timestamp);
+    setSelectedDeleteName(null);
+    setConfirmDeleteOpen(true);
+  }
+
+  const performDeleteBackup = async (timestamp: number) => {
     try {
       BackupService.deleteBackup?.(timestamp);
       refreshBackups();
@@ -753,6 +782,35 @@ export function BackupManager() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Cloud Backup Section */}
+      <React.Suspense fallback={<div className="p-4 text-center text-muted-foreground">Loading cloud backup...</div>}>
+        <CloudBackupManager />
+      </React.Suspense>
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={(open) => setConfirmDeleteOpen(open)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete backup?</AlertDialogTitle>
+            <AlertDialogDescription>Are you sure you want to delete "{selectedDeleteName}"? This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmDeleteOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={async () => {
+              setConfirmDeleteOpen(false);
+              if (selectedDeleteTimestamp !== null) {
+                await performDeleteBackup(selectedDeleteTimestamp);
+                setSelectedDeleteTimestamp(null);
+                return;
+              }
+              if (!selectedDeleteName) return;
+              // prefer deleting local backup entry if available
+              // Delete the file using the local backup API
+              await performDeleteLocal(selectedDeleteName);
+              setSelectedDeleteName(null);
+            }}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

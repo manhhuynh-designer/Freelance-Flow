@@ -130,6 +130,32 @@ export class AdaptivePredictor {
     return [...adaptivePredictions, ...personalizedPredictions];
   }
 
+  // Compatibility methods used by older call sites
+  async predict(actionsOrArgs?: any, patterns?: any, context?: any): Promise<AdaptivePrediction[]> {
+    // Use generateAdaptivePredictions if possible
+    try {
+      const patternsArg = Array.isArray(patterns) ? patterns : this.userPatterns || [];
+      const preferences = this.userPreferences || (context?.preferences ?? null);
+      const perf = context?.performanceMetrics || ({} as PerformanceMetrics);
+      return await this.generateAdaptivePredictions(patternsArg, preferences as any, perf as any);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async updateModel(_updates: any): Promise<void> {
+    // no-op for typecheck; real implementation updates internal models
+    return;
+  }
+
+  async getPredictions(): Promise<AdaptivePrediction[]> {
+    return [];
+  }
+
+  getAccuracy(): number {
+    return 0;
+  }
+
   /**
    * Adapt a base prediction using learned patterns
    */

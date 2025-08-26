@@ -91,6 +91,13 @@ export class BehaviorTracker {
 
   constructor(private userId: string) {}
   
+  /**
+   * Compatibility shim: return all recorded actions.
+   */
+  async getActions(): Promise<ActionEvent[]> {
+    return this.actionBuffer.slice();
+  }
+  
     /**
    * Get all actions in memory, will try make function more re useful in near implentations to came
    */

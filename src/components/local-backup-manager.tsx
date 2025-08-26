@@ -16,6 +16,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import dynamic from 'next/dynamic';
+
+// Load cloud backup manager client-side only
+const CloudBackupManager = dynamic(() => import('./cloud-backup-manager'), { ssr: false });
 
 export function LocalBackupManager() {
   const dashboardContext = useDashboard();
@@ -372,6 +376,11 @@ export function LocalBackupManager() {
                 {currentLanguage === 'vi' ? "Tải về Dữ Liệu" : "Download Data"}
               </Button>
             </div>
+          </div>
+
+          {/* Cloud Backups Manager (authenticated, cloud storage) */}
+          <div className="mt-4">
+            <CloudBackupManager />
           </div>
         </CardContent>
       </Card>

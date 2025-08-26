@@ -6,6 +6,7 @@ import { Inter } from 'next/font/google';
 import { Toaster } from "@/components/ui/toaster";
 import "@/styles/tiptap-content.css";
 import { ThemeProvider } from '@/components/theme-provider';
+import Providers from '@/components/providers';
 import type { AppSettings } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Analytics } from '@vercel/analytics/react';
@@ -46,13 +47,15 @@ export default function RootLayout({
           <meta name="theme-color" content="#111827" media="(prefers-color-scheme: dark)" />
       </head>
       <body className={`${inter.variable} font-body antialiased`} suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {children}
-          <Toaster />
-          {/* Vercel Analytics & Speed Insights */}
-          <Analytics />
-          <SpeedInsights />
-        </ThemeProvider>
+        <Providers>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+            {children}
+            <Toaster />
+            {/* Vercel Analytics & Speed Insights */}
+            <Analytics />
+            <SpeedInsights />
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );

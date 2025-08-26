@@ -1,8 +1,13 @@
+"use client";
 // Component con cho task draggable trong popover, dùng đúng rules of hooks
 import { useDraggable } from '@dnd-kit/core';
 import { Task, AppEvent } from '@/lib/types';
 import type { CalendarDisplayMode } from '../calendar-view';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { useDashboard } from '@/contexts/dashboard-context';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CreateTaskForm, type CreateTaskFormRef } from '@/components/create-task-form-new';
+import { addDays } from 'date-fns';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { TaskCard } from './TaskCard';
@@ -195,6 +200,10 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
   const [showPopover, setShowPopover] = useState(false);
   const [popoverPosition, setPopoverPosition] = useState<'top' | 'bottom'>('bottom');
   const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
+  // Dialog / create task form state
+  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
+  const createTaskFormRef = useRef<CreateTaskFormRef>(null);
+  const { appData, handleAddTask, handleAddClientAndSelect, handleViewTask } = useDashboard();
 
   // Detect overflow: if scrollHeight > clientHeight, then tasks are being cropped
   const isOverflowing = () => {
@@ -294,7 +303,13 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
             e.preventDefault();
             e.stopPropagation();
             setShowPopover(false);
-            if (onDateSelect) onDateSelect(date);
+            // Open central CreateTaskForm dialog and prefill dates
+            setIsTaskFormOpen(true);
+            setTimeout(() => {
+              try {
+                createTaskFormRef.current?.setInitialValues({ dates: { from: date, to: addDays(date, 7) } });
+              } catch (err) {}
+            }, 50);
           }}
         >
           <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -303,6 +318,33 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
           </svg>
         </button>
       )}
+      {/* Create Task Dialog used by calendar add buttons */}
+      <Dialog open={isTaskFormOpen} onOpenChange={setIsTaskFormOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="sr-only">Create Task</DialogTitle>
+            </DialogHeader>
+            <CreateTaskForm
+            ref={createTaskFormRef}
+            setOpen={setIsTaskFormOpen}
+            onStartSaving={() => { /* noop */ }}
+            onSubmit={(values, quoteColumns, collaboratorQuoteColumns) => {
+              return handleAddTask?.(values as any, quoteColumns, collaboratorQuoteColumns);
+            }}
+            clients={appData.clients}
+            onAddClient={handleAddClientAndSelect}
+            quoteTemplates={appData.quoteTemplates}
+            collaborators={appData.collaborators}
+            settings={appData.appSettings}
+            categories={appData.categories}
+            onDirtyChange={() => {}}
+            onSubmitSuccess={(newId) => {
+              setIsTaskFormOpen(false);
+              if (newId) setTimeout(() => handleViewTask?.(newId), 0);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
       {/* Date Number */}
       <div className="text-sm font-medium flex justify-between items-center flex-shrink-0 mb-1">
         <span className={isToday ? styles['calendar-today-number'] : 'font-bold'}>{date.getDate()}</span>
@@ -362,7 +404,10 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
               onClick={e => {
                 e.stopPropagation();
                 setShowPopover(false);
-                if (onDateSelect) onDateSelect(date);
+                setIsTaskFormOpen(true);
+                setTimeout(() => {
+                  try { createTaskFormRef.current?.setInitialValues({ dates: { from: date, to: addDays(date, 7) } }); } catch (err) {}
+                }, 50);
               }}
             >
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -380,7 +425,7 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
               />
           ))}
           {sortedTasks.map((task: Task) => {
-            const statusColor = getStatusColor(task.status, statusColors);
+            const statusColor = getStatusColor(task.status);
             const clientName = clients.find((c: Client) => c.id === task.clientId)?.name;
             const categoryName = categories.find((cat: Category) => cat.id === task.categoryId)?.name;
             return (
