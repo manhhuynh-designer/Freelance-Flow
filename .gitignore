@@ -43,3 +43,4 @@ docs/*
 !docs/
 next-env.d.ts
 .vscode/tasks.json
+/data
