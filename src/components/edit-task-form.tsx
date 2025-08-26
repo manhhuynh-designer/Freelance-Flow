@@ -340,13 +340,9 @@ export function EditTaskForm({
   }, [quote, form, toast, T]);
 
   const onSubmit = useCallback((values: TaskFormValues) => {
-    console.log('Form submitted with values:', values);
-    console.log('Collaborator quotes data:', {
-      collaboratorQuotes: values.collaboratorQuotes,
-      hasCollaboratorQuotes: values.collaboratorQuotes && values.collaboratorQuotes.length > 0,
-      collaboratorIds: values.collaboratorIds
-    });
-    
+    // Always use latest columns/collaboratorColumns from state
+    const currentColumns = columns;
+    const currentCollaboratorColumns = collaboratorColumns;
     if (!taskToEdit) {
       toast({
         title: "Lỗi",
@@ -355,11 +351,8 @@ export function EditTaskForm({
       });
       return;
     }
-
     const filteredBriefLinks = values.briefLink?.filter(link => link.trim() !== "") || [];
     const filteredDriveLinks = values.driveLink?.filter(link => link.trim() !== "") || [];
-
-    // Convert dates from form format to task format
     const filteredValues: any = {
       ...values,
       briefLink: filteredBriefLinks,
@@ -367,18 +360,14 @@ export function EditTaskForm({
       startDate: values.dates.from,
       deadline: values.dates.to,
     };
-
-    // Remove the dates object since backend expects individual fields
     delete filteredValues.dates;
-
-    console.log('Final filtered values being submitted:', filteredValues);
-    onFormSubmit(filteredValues, columns, collaboratorColumns, taskToEdit.id);
+    onFormSubmit(filteredValues, currentColumns, currentCollaboratorColumns, taskToEdit.id);
     if (typeof window !== 'undefined') {
       try {
         window.dispatchEvent(new CustomEvent('task:saved', { detail: { taskId: taskToEdit.id } }));
       } catch {}
     }
-  }, [onFormSubmit, columns, collaboratorColumns, taskToEdit, toast]); 
+  }, [onFormSubmit, columns, collaboratorColumns, taskToEdit, toast]);
 
   const onError = useCallback((errors: FieldErrors<TaskFormValues>) => { 
     console.error('Form validation errors:', errors);
