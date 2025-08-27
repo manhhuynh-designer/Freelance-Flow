@@ -45,9 +45,9 @@ export const PrintableQuote: React.FC<Props> = ({
   const formatNumber = (v: any) => {
     const n = Number(v) || 0;
     try {
-      return n.toLocaleString(lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return n.toLocaleString(lang, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     } catch {
-      return String(n.toFixed(2));
+      return String(n.toFixed(0));
     }
   };
 
