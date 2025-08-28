@@ -32,6 +32,8 @@
       "./node_modules/@types",
       "./src/types"
     ]
+  ,
+  "types": ["node", "react", "react-dom"]
   },
   "include": [
     "**/*.ts",

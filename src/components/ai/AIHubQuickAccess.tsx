@@ -12,15 +12,18 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useDashboard } from '@/contexts/dashboard-context';
 
 export function AIHubQuickAccess() {
   const router = useRouter();
 
+  const { T } = useDashboard() as any;
+
   const features = [
-    { icon: MessageCircle, title: 'AI Chat', desc: 'Conversation with AI' },
-    { icon: Zap, title: 'Predictions', desc: 'Forecasting & insights' },
-    { icon: Briefcase, title: 'Business Intel', desc: 'Analytics & metrics' },
-    { icon: TrendingUp, title: 'Pattern Analysis', desc: 'Behavioral insights' }
+    { icon: MessageCircle, title: T?.aiChat || 'AI Chat', desc: 'Conversation with AI' },
+    { icon: Zap, title: T?.predictionsTab || T?.predictions || 'Productivity', desc: 'Forecasting & insights' },
+    { icon: Briefcase, title: T?.business || 'Business Intel', desc: 'Analytics & metrics' },
+    { icon: TrendingUp, title: T?.patternAnalysis || 'Pattern Analysis', desc: 'Behavioral insights' }
   ];
 
   return (

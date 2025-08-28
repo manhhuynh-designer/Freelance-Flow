@@ -4,6 +4,7 @@ import { createContext, ReactNode, useContext, useCallback, useEffect, useMemo, 
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { useAppData } from '@/hooks/useAppData';
 import { useWorkTimeData } from '@/hooks/useWorkTimeData';
+import { buildWorkTimeStats } from '@/lib/helpers/time-analyzer';
 import { useActionBuffer } from '@/hooks/useActionBuffer';
 import { initialAppData } from '@/lib/data';
 import { BackupService } from '@/lib/backup-service';
@@ -21,6 +22,26 @@ export const DashboardContext = createContext<DashboardContextType | undefined>(
 function DashboardDataProvider({ children }: { children: ReactNode }) {
     const data = useAppData();
     const workTime = useWorkTimeData(data.appData?.workSessions);
+
+    // Derive lightweight aggregated stats for older UI that expects workTime.stats
+    // and ensure sessions persist into the central appData so other consumers (backups, AI) can read them.
+    const derivedWorkTime = (() => {
+        try {
+            const sessions = (workTime && workTime.sessions) || [];
+            // Build a 7-day range ending today for legacy stats consumers
+            const to = new Date();
+            const from = new Date();
+            from.setDate(to.getDate() - 6);
+            const built = buildWorkTimeStats(Array.isArray(sessions) ? sessions : [], from, to) as any;
+            const weeklyTotalHours = built?.totalWorkHours ?? 0;
+            const dailyAverageHours = Number((weeklyTotalHours / 7).toFixed(2));
+            return { ...workTime, stats: { weeklyTotalHours, dailyAverageHours, _raw: built } };
+        } catch (e) {
+            return workTime;
+        }
+    })();
+
+    // NOTE: session persistence effect moved lower after setAppData is defined to avoid hoisting issues.
 
     // Local UI states for managers and dialogs
     const [isClientManagerOpen, setIsClientManagerOpen] = useState(false);
@@ -84,6 +105,10 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
 
     // Data update helpers using setAppData
     const setAppData = data.setAppData as (updater: (prev: AppData) => AppData) => void;
+
+    // NOTE: intentionally not auto-syncing sessions into appData to avoid feedback loops
+    // between the local hook state and global appData. The hook persists to localStorage
+    // and we expose derived stats here for UI consumers.
 
     const updateTask = data.updateTask as (updates: Partial<Task> & { id: string }) => void;
 
@@ -469,7 +494,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
 
     const contextValue: DashboardContextType = {
         ...data,
-        workTime,
+        workTime: derivedWorkTime,
         // UI states
         isClientManagerOpen, setIsClientManagerOpen,
         isCollaboratorManagerOpen, setIsCollaboratorManagerOpen,
