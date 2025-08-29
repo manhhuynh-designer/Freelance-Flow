@@ -20,8 +20,13 @@ export const DashboardContext = createContext<DashboardContextType | undefined>(
 
 // A new inner component that can safely call useAppData because its parent is QueryClientProvider
 function DashboardDataProvider({ children }: { children: ReactNode }) {
-    const data = useAppData();
-    const workTime = useWorkTimeData(data.appData?.workSessions);
+        const data = useAppData();
+        // Debug: log appData.workSessions so we can trace when app-provided sessions arrive
+        try {
+            // Use console.debug to avoid noisy production logs; this only runs client-side
+            if (typeof window !== 'undefined') console.debug('[dashboard] appData.workSessions', data?.appData?.workSessions);
+        } catch {}
+        const workTime = useWorkTimeData(data.appData?.workSessions);
 
     // Derive lightweight aggregated stats for older UI that expects workTime.stats
     // and ensure sessions persist into the central appData so other consumers (backups, AI) can read them.

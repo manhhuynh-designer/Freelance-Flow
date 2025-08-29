@@ -25,8 +25,8 @@ function calculateDurationHours(session: WorkSession): number {
     if (session.type === 'POMODORO_FOCUS' && session.durationMinutes) {
         return session.durationMinutes / 60;
     }
-    if (!session.endTime) return 0; // For active sessions, return 0
-    const end = new Date(session.endTime).getTime();
+    // If session has no endTime (active), use current time so running session counts up-to-now
+    const end = session.endTime ? new Date(session.endTime).getTime() : Date.now();
     return Math.max(0, (end - new Date(session.startTime).getTime()) / MS_PER_HOUR);
 }
 
@@ -76,6 +76,8 @@ export function buildWorkTimeStats(sessions: WorkSession[], startDate: Date, end
         
         dateCursor.setDate(dateCursor.getDate() + 1);
     }
+    // Ensure dailyBreakdown date strings reflect local calendar date (YYYY-MM-DD)
+    const dailyBreakdownLocal = dailyBreakdown.map(d => ({ ...d, date: new Date(d.date).toLocaleDateString('en-CA') }));
 
     return {
         sessions: relevantSessions,
@@ -83,6 +85,6 @@ export function buildWorkTimeStats(sessions: WorkSession[], startDate: Date, end
         totalWorkHours,
         totalFocusHours,
         completedPomodoros,
-        dailyBreakdown,
+        dailyBreakdown: dailyBreakdownLocal,
     };
 }
