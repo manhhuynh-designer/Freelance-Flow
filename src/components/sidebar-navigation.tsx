@@ -31,7 +31,7 @@ export function SidebarNavigation() {
             
             <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === '/dashboard/ai-assistant' || pathname === '/dashboard/chat'}>
-                                        <Link href="/dashboard/ai-hub"><Bot />AI Hub</Link>
+                                        <Link href="/dashboard/ai-hub"><Bot />{T.aiHub}</Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
         </SidebarMenu>

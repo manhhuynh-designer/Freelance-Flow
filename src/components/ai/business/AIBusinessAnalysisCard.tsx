@@ -2,17 +2,45 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Lightbulb, Brain, Loader2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
-interface AIBusinessAnalysisCardProps {
-  analysis: any | null; // Placeholder for AI analysis result
-  onGenerate: () => void;
-  isLoading: boolean;
+interface Insight {
+  category: 'Risk' | 'Opportunity' | 'Optimization';
+  severity: 'low' | 'medium' | 'high';
+  insight: string;
+  suggestion: string;
+  justification: string;
 }
 
-export function AIBusinessAnalysisCard({ analysis, onGenerate, isLoading }: AIBusinessAnalysisCardProps) {
+interface AIBusinessAnalysisResult {
+  summary?: string; // summary is optional now
+  recommendations: string[]; // These are suggestions
+  insights: Insight[]; // Full structured insights
+  raw?: string; // Raw AI response
+}
+
+interface AIBusinessAnalysisCardProps {
+  analysis: AIBusinessAnalysisResult | null; // Use the structured type
+  onGenerate: () => void;
+  isLoading: boolean;
+  analysisTimestamp?: string; // Add timestamp prop
+}
+
+// Helper to determine color based on severity
+const getSeverityColor = (severity: string) => {
+  switch (severity) {
+    case 'high': return 'border-red-500';
+    case 'medium': return 'border-orange-500';
+    case 'low': return 'border-yellow-500';
+    case 'Opportunity': return 'border-green-500';
+    case 'Optimization': return 'border-blue-500';
+    default: return 'border-gray-400';
+  }
+};
+
+export function AIBusinessAnalysisCard({ analysis, onGenerate, isLoading, analysisTimestamp }: AIBusinessAnalysisCardProps) {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
@@ -22,7 +50,11 @@ export function AIBusinessAnalysisCard({ analysis, onGenerate, isLoading }: AIBu
                     <Lightbulb className="w-5 h-5 text-primary" />
                     AI Business Analysis
                 </CardTitle>
-                <CardDescription>Insights, forecasts, and recommendations.</CardDescription>
+                {analysisTimestamp ? (
+                  <CardDescription>Last analyzed: {new Date(analysisTimestamp).toLocaleString()}</CardDescription>
+                ) : (
+                  <CardDescription>Generate insights from your business data.</CardDescription>
+                )}
             </div>
             <Button onClick={onGenerate} disabled={isLoading} size="sm">
                 {isLoading ? (
@@ -45,26 +77,51 @@ export function AIBusinessAnalysisCard({ analysis, onGenerate, isLoading }: AIBu
                 Click "Analyze" to get AI-powered insights for the selected date range.
             </div>
         ) : (
-          <Tabs defaultValue="summary" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="summary">Summary</TabsTrigger>
-              <TabsTrigger value="forecast">Forecast</TabsTrigger>
-              <TabsTrigger value="actions">Actions</TabsTrigger>
-            </TabsList>
-            <TabsContent value="summary" className="mt-4">
-              <p className="text-sm">{analysis.summary}</p>
-            </TabsContent>
-            <TabsContent value="forecast" className="mt-4">
-               <p className="text-sm">AI Forecast placeholder.</p>
-            </TabsContent>
-            <TabsContent value="actions" className="mt-4">
-               <ul className="list-disc pl-5 space-y-2 text-sm">
-                {(analysis.recommendations || []).map((rec: string, i: number) => <li key={i}>{rec}</li>)}
-               </ul>
-            </TabsContent>
-          </Tabs>
+          <div className="space-y-4">
+            {/* Display Summary (if it exists) */}
+            {analysis.summary && (
+              <div>
+                <p className="text-sm">{analysis.summary}</p>
+                <Separator className="my-4" />
+              </div>
+            )}
+            
+            {/* Display Actions/Insights */}
+            <div>
+              <h4 className="font-semibold text-sm mb-2">Insights & Suggestions</h4>
+              <div className="space-y-4">
+                  {(analysis.insights || []).length > 0 ? (
+                      (analysis.insights || []).map((insight: Insight, i: number) => (
+                          <div key={i} className={`border-l-4 pl-3 py-1 ${getSeverityColor(insight.severity)}`}>
+                              <p className="text-xs text-muted-foreground">
+                                  <span className={`font-semibold ${getCategoryColorClass(insight.category)}`}>
+                                      {insight.category}
+                                  </span>
+                                  <span className="ml-2 text-muted-foreground">(Severity: {insight.severity})</span>
+                              </p>
+                              <p className="font-medium text-sm mt-1">{insight.insight}</p>
+                              <p className="text-sm mt-1"><strong>Suggestion:</strong> {insight.suggestion}</p>
+                              <p className="text-xs text-gray-500 mt-1">({insight.justification})</p>
+                          </div>
+                      ))
+                  ) : (
+                      <p className="text-sm text-muted-foreground">No actionable insights generated. Try adjusting your data or the analysis period.</p>
+                  )}
+              </div>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
   );
 }
+
+// Helper to determine color class for category
+const getCategoryColorClass = (category: string) => {
+    switch (category) {
+        case 'Risk': return 'text-red-600';
+        case 'Opportunity': return 'text-green-600';
+        case 'Optimization': return 'text-blue-600';
+        default: return 'text-gray-600';
+    }
+};

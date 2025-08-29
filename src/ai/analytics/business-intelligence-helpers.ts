@@ -2,6 +2,7 @@
 import type { AppData, Task, Quote, CollaboratorQuote, Client, QuoteColumn } from '@/lib/types';
 import { DateRange } from 'react-day-picker';
 import { i18n } from '@/lib/i18n';
+import { analyzeBusinessAction } from '@/app/actions/ai-actions';
 
 // --- STAGE 1: LOCAL CALCULATION HELPERS ---
 
@@ -497,13 +498,41 @@ export function calculateTaskDetails(appData: AppData, dateRange: { from?: Date;
 /**
  * Chuẩn bị context và gọi AI với vai trò là một cố vấn tài chính.
  */
-export async function getAIBusinessAnalysis(financialContext: any, settings: { apiKey: string; modelName: string; language: string }) {
-    // TODO: Implement logic to create prompt and call AI API
-    console.log("AI Analysis called with:", financialContext, settings);
-    return Promise.resolve({
-      summary: "This is a mock AI analysis summary.",
-      recommendations: ["Consider raising prices.", "Focus on marketing."]
-    });
+export async function getAIBusinessAnalysis(financialContext: any, appData: AppData, settings: { apiKey: string; modelName: string; language: string }) {
+    console.log("Calling analyzeBusinessAction with:", { ...settings, financialContext: true, appData: true });
+
+    try {
+        const response = await analyzeBusinessAction({
+            apiKey: settings.apiKey,
+            modelName: settings.modelName,
+            language: settings.language as 'en' | 'vi',
+            appDataSnapshot: appData,
+            financialContext: financialContext
+        });
+
+        if (response.success && response.insights) {
+            return {
+                summary: response.summary, // Pass through summary from server if it exists
+                recommendations: response.insights.map((i: any) => i.suggestion),
+                insights: response.insights,
+                raw: response.raw,
+            };
+        } else {
+            console.error("AI Analysis server action failed:", response.error);
+            return {
+                summary: "AI Analysis failed.",
+                recommendations: [response.error || "An unknown error occurred."],
+                insights: [],
+            };
+        }
+    } catch (error) {
+        console.error("Error calling AI Analysis server action:", error);
+        return {
+            summary: "AI Analysis failed due to network or server error.",
+            recommendations: ["Please try again later."],
+            insights: [],
+        };
+    }
 }
 
 // Additional metrics per spec

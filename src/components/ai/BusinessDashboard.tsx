@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
-
-// Step 2: Import new helper functions
+import { v4 as uuidv4 } from 'uuid';
+import { PouchDBService } from '@/lib/pouchdb-service';
+import { cn } from '@/lib/utils';
 import { 
   calculateFinancialSummary, 
   calculateRevenueBreakdown, 
@@ -13,23 +14,21 @@ import {
   calculateAdditionalFinancials,
   calculateAdditionalTaskDetails,
   getAIBusinessAnalysis,
-  calculateMonthlyFinancials // Import the new function
+  calculateMonthlyFinancials
 } from '@/ai/analytics/business-intelligence-helpers';
-
-// Step 3: Import new card components
 import { FinancialSummaryCard } from './business/FinancialSummaryCard';
-import { FinancialInsightsCard } from './business/FinancialInsightsCard'; // Import the new component
+import { FinancialInsightsCard } from './business/FinancialInsightsCard';
 import { AIBusinessAnalysisCard } from './business/AIBusinessAnalysisCard';
 import { TaskDetailsDialog } from '@/components/task-dialogs/TaskDetailsDialog';
 import { EditTaskForm } from '@/components/edit-task-form';
-import type { Task, Quote, CollaboratorQuote, Client } from '@/lib/types';
+import type { Task, Quote, CollaboratorQuote, Client, AIAnalysis } from '@/lib/types';
 
 export function BusinessDashboard() {
-  const { appData, isDataLoaded, updateTask, handleDeleteTask: deleteTask, updateQuote, updateCollaboratorQuote, handleEditTask: editTask, handleAddClientAndSelect } = useDashboard();
+  const { appData, isDataLoaded, T, updateTask, handleDeleteTask: deleteTask, updateQuote, updateCollaboratorQuote, handleEditTask: editTask, handleAddClientAndSelect } = useDashboard() as any;
   
-  // State lifted up to the main dashboard component
   const [summary, setSummary] = useState<any>(null);
   const [analysis, setAnalysis] = useState<any>(null);
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<string | undefined>(undefined);
   const [taskDetails, setTaskDetails] = useState<any>(null);
   const [additionalFinancials, setAdditionalFinancials] = useState<any>(null);
   const [additionalTaskDetails, setAdditionalTaskDetails] = useState<any>(null);
@@ -41,12 +40,9 @@ export function BusinessDashboard() {
   const selectedQuote = selectedTaskId ? appData?.quotes?.find((q: Quote) => q.id === (appData?.tasks?.find((t: Task) => t.id === selectedTaskId)?.quoteId)) : null;
   const selectedCollaboratorQuotes = selectedTaskId ? appData?.tasks?.find((t: Task) => t.id === selectedTaskId)?.collaboratorQuotes?.map((link: { collaboratorId: string; quoteId: string }) => appData?.collaboratorQuotes?.find((cq: CollaboratorQuote) => cq.id === link.quoteId)).filter(Boolean) as any[] : [];
 
-
-  // Effect to perform calculations when data changes
   useEffect(() => {
     if (!appData) return;
 
-    // Perform local, real-time calculations for ALL TIME by default (only for FinancialSummaryCard)
     const summaryResult = calculateFinancialSummary(appData, {});
     const taskDetailsResult = calculateTaskDetails(appData, {});
     const additionalResult = calculateAdditionalFinancials(appData, {});
@@ -60,27 +56,47 @@ export function BusinessDashboard() {
     setTaskDetails(taskDetailsResult);
     setAdditionalFinancials(additionalResult);
     setAdditionalTaskDetails(additionalTaskDetailsResult);
+
+    if (appData.aiAnalyses && appData.aiAnalyses.length > 0) {
+      const lastAnalysis = appData.aiAnalyses[appData.aiAnalyses.length - 1];
+      setAnalysis(lastAnalysis.analysis);
+      setAnalysisTimestamp(lastAnalysis.timestamp);
+      setIsAnalysisPanelVisible(true);
+    }
   }, [appData]);
 
   const handleAiAnalysis = async () => {
-    if (!summary) return;
+    if (!summary || !appData) return;
 
     setIsAiLoading(true);
-    setIsAnalysisPanelVisible(true); // Show the right panel
+    setIsAnalysisPanelVisible(true);
     try {
-      // Mock settings, replace with real ones from appSettings if available
       const settings = {
         apiKey: appData.appSettings.googleApiKey || '',
         modelName: appData.appSettings.googleModel || 'gemini-pro',
         language: appData.appSettings.language || 'en'
       };
 
-      // Calculate breakdown on demand for AI analysis
       const breakdown = calculateRevenueBreakdown(appData, {});
       const financialContext = { summary, breakdown };
-      const aiResult = await getAIBusinessAnalysis(financialContext, settings);
-      setAnalysis(aiResult);
+      const aiResult = await getAIBusinessAnalysis(financialContext, appData, settings);
 
+      if (aiResult) {
+        const newTimestamp = new Date().toISOString();
+        setAnalysis(aiResult);
+        setAnalysisTimestamp(newTimestamp);
+        
+        const newAnalysisEntry: AIAnalysis = {
+          id: uuidv4(),
+          timestamp: newTimestamp,
+          analysis: aiResult,
+        };
+
+        const existingAnalyses = appData.aiAnalyses || [];
+        const updatedAnalyses = [...existingAnalyses, newAnalysisEntry];
+
+        await PouchDBService.setDocument('aiAnalyses', updatedAnalyses);
+      }
     } catch (error) {
       console.error("AI Analysis failed:", error);
     } finally {
@@ -104,7 +120,6 @@ export function BusinessDashboard() {
   };
 
   const handleTaskFormSubmit = (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => {
-    // Transform form values to task update format
     const taskUpdates = {
       id: taskId,
       name: values.name,
@@ -120,11 +135,8 @@ export function BusinessDashboard() {
       deadline: values.dates.to,
       updatedAt: new Date().toISOString()
     };
-
-    // Update the task
     updateTask(taskUpdates);
 
-    // Update quote if exists
     if (selectedQuote && values.sections) {
       updateQuote(selectedQuote.id, {
         sections: values.sections,
@@ -132,7 +144,6 @@ export function BusinessDashboard() {
       });
     }
 
-    // Update collaborator quotes if exist
     if (values.collaboratorQuotes && selectedCollaboratorQuotes && selectedCollaboratorQuotes.length > 0) {
       values.collaboratorQuotes.forEach((collabQuote: any, index: number) => {
         const existingQuote = selectedCollaboratorQuotes[index];
@@ -145,12 +156,9 @@ export function BusinessDashboard() {
         }
       });
     }
-
     setIsEditDialogOpen(false);
-    // Keep task dialog open to show updated details
   };
 
-  // Get selected task and related data for TaskDetailsDialog
   const selectedTask = selectedTaskId ? appData?.tasks?.find((t: Task) => t.id === selectedTaskId) : null;
   const selectedClient = selectedTask ? appData?.clients?.find((c: Client) => c.id === selectedTask.clientId) : null;
   
@@ -158,21 +166,19 @@ export function BusinessDashboard() {
       return (
           <div className="flex items-center justify-center p-8">
               <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-              <span>Loading Dashboard Data...</span>
+              <span>{T.loadingDashboardData || "Loading Dashboard Data..."}</span>
           </div>
       )
   }
 
   return (
     <div className="space-y-6 overflow-visible">
-  <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Business Dashboard</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">{T.businessDashboardTitle || "Business Dashboard"}</h2>
       </div>
       
-      {/* 2-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-visible">
-        {/* Left Column (Real-time Analytics) */}
-        <div className="lg:col-span-2 space-y-6 overflow-visible">
+      <div className={cn("flex flex-col lg:flex-row gap-6 items-start transition-all duration-500", isAnalysisPanelVisible ? "" : "lg:justify-center")}>
+        <div className={cn("space-y-6 transition-all duration-500", isAnalysisPanelVisible ? "lg:w-[60%]" : "lg:w-[70%] xl:w-[65%] mx-auto")}>
           <FinancialSummaryCard 
             summary={summary}
             currency={appData?.appSettings?.currency || 'USD'}
@@ -188,18 +194,18 @@ export function BusinessDashboard() {
           />
         </div>
         
-        {/* Right Column (AI Analysis) */}
-        <div className="lg:col-span-1">
-           {/* The AI card now manages its own trigger button logic */}
+        <div className={cn("space-y-6 transition-all duration-500 origin-right", isAnalysisPanelVisible ? "lg:w-[40%] opacity-100 translate-x-0" : "lg:w-0 opacity-0 -translate-x-4 pointer-events-none overflow-hidden")}>
+          {(isAiLoading || analysis) && (
            <AIBusinessAnalysisCard 
                 analysis={analysis}
                 isLoading={isAiLoading}
                 onGenerate={handleAiAnalysis}
+                analysisTimestamp={analysisTimestamp}
            />
+          )}
         </div>
       </div>
 
-      {/* TaskDetailsDialog for clicked tasks */}
       {selectedTask && !isEditDialogOpen && (
         <TaskDetailsDialog
           task={selectedTask}
@@ -222,7 +228,6 @@ export function BusinessDashboard() {
         />
       )}
 
-      {/* EditTaskForm dialog for editing tasks */}
       {selectedTask && isEditDialogOpen && (
         <Dialog 
           open={isEditDialogOpen} 
@@ -230,7 +235,7 @@ export function BusinessDashboard() {
         >
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Task</DialogTitle>
+              <DialogTitle>{T.editTaskTitle || 'Edit Task'}</DialogTitle>
             </DialogHeader>
             <EditTaskForm
               setOpen={setIsEditDialogOpen}

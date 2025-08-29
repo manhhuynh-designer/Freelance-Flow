@@ -9,12 +9,13 @@ export function PageTitle() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const T = i18n[appData.appSettings.language];
+  const lang = (appData?.appSettings?.language ?? 'en') as keyof typeof i18n;
+  const T = i18n[lang];
   const view = searchParams.get('view');
 
   // Enhanced page title logic with more specific titles
   if (pathname === '/dashboard/ai-hub') {
-    return <>AI Hub</>;
+    return <>{T.aiHub}</>;
   }
   if (pathname === '/dashboard/chat') {
     return <>AI Chat</>;

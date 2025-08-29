@@ -21,7 +21,7 @@ async function getDb(): Promise<PouchDB.Database> {
 export type DocumentID =
   | 'appSettings' | 'tasks' | 'clients' | 'collaborators' | 'categories'
   | 'quotes' | 'collaboratorQuotes' | 'quoteTemplates' | 'notes' | 'events' | 'workSessions'
-  | 'fixedCosts' | 'expenses';
+  | 'fixedCosts' | 'expenses' | 'aiAnalyses' | 'aiProductivityAnalyses'; // ADDED
 
 // Keep a utility to hard-reset the DB when explicitly requested by the app (not used automatically).
 async function destroyAndRecreateDb(): Promise<PouchDB.Database> {
@@ -65,7 +65,7 @@ export const PouchDBService = {
       const ids: DocumentID[] = [
         'appSettings', 'tasks', 'clients', 'collaborators', 'categories',
         'quotes', 'collaboratorQuotes', 'quoteTemplates', 'notes', 'events', 'workSessions',
-        'fixedCosts', 'expenses'
+        'fixedCosts', 'expenses', 'aiAnalyses', 'aiProductivityAnalyses' // ADDED
       ];
 
       // Migration: copy data from legacy snake_case IDs to new camelCase IDs if needed
@@ -104,7 +104,7 @@ export const PouchDBService = {
       }
 
       // Fetch all documents explicitly by ID to avoid key-order bugs
-  const [appSettingsDoc, tasksDoc, clientsDoc, collaboratorsDoc, categoriesDoc, quotesDoc, collaboratorQuotesDoc, quoteTemplatesDoc, notesDoc, eventsDoc, workSessionsDoc, fixedCostsDoc, expensesDoc] = await Promise.all(ids.map(id => this.getDocument(id)));
+      const [appSettingsDoc, tasksDoc, clientsDoc, collaboratorsDoc, categoriesDoc, quotesDoc, collaboratorQuotesDoc, quoteTemplatesDoc, notesDoc, eventsDoc, workSessionsDoc, fixedCostsDoc, expensesDoc, aiAnalysesDoc, aiProductivityAnalysesDoc] = await Promise.all(ids.map(id => this.getDocument(id)));
 
       const loadedData: AppData = {
           appSettings: (appSettingsDoc as any)?.data ?? initialAppData.appSettings,
@@ -120,6 +120,8 @@ export const PouchDBService = {
           workSessions: (workSessionsDoc as any)?.data ?? [],
           fixedCosts: (fixedCostsDoc as any)?.data ?? [],
           expenses: (expensesDoc as any)?.data ?? [],
+          aiAnalyses: (aiAnalysesDoc as any)?.data ?? [], // ADDED
+          aiProductivityAnalyses: (aiProductivityAnalysesDoc as any)?.data ?? [], // ADDED
       };
       console.log("[DEBUG] loadAppData finished. Task count:", loadedData.tasks.length);
       return loadedData;

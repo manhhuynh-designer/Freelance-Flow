@@ -727,7 +727,7 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
               <h3 className={cn(
                 "font-medium",
                 isQuickChat ? "text-sm" : ""
-              )}>AI Hub</h3>
+              )}>{T.aiHub}</h3>
               <p className={cn(
                 "text-muted-foreground",
                 isQuickChat ? "text-xs" : "text-xs"

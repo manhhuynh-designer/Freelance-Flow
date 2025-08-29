@@ -278,6 +278,20 @@ export type FilterPreset = {
   createdAt: string;
 };
 
+// NEW: For saving AI analysis results
+export type AIAnalysis = {
+  id: string;
+  timestamp: string; // ISO string
+  analysis: any; // The full analysis object from getAIBusinessAnalysis
+};
+
+// NEW: For saving Productivity AI analysis results
+export type AIProductivityAnalysis = {
+  id: string;
+  timestamp: string; // ISO string
+  insights: any[]; // The structured insights
+};
+
 export type AppData = {
   tasks: Task[];
   events: AppEvent[];
@@ -293,4 +307,6 @@ export type AppData = {
   filterPresets?: FilterPreset[]; // Add filter presets to export data
   expenses?: GeneralExpense[]; // <-- Bổ sung theo Spec
   fixedCosts?: FixedCost[]; // Chi phí cố định
+  aiAnalyses?: AIAnalysis[]; // NEW
+  aiProductivityAnalyses?: AIProductivityAnalysis[]; // NEW
 };

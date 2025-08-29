@@ -189,7 +189,7 @@ pomodoroSettingsDesc: 'Điều chỉnh thời gian làm việc và nghỉ.',
 pomodoroWorkMinutes: 'Làm việc (phút)',
 pomodoroBreakMinutes: 'Nghỉ (phút)',
 // AI Hub translations
-aiHub: 'AI Hub',
+aiHub: 'AI hub & Phân tích',
 aiIntelligenceHub: 'Trung tâm Trí tuệ AI',
 unifiedAiExperience: 'Trải nghiệm AI thống nhất - Chat, Thông minh & Phân tích trong một nơi',
 aiChat: 'Chat AI',

@@ -4,8 +4,10 @@ import { chatWithAI, type ChatRequest } from '@/ai/simple-ai';
 import type { AskAboutTasksInput, AskAboutTasksOutput } from '@/lib/ai-types';
 import { z } from 'zod';
 import { PouchDBService } from '@/lib/pouchdb-service';
+import { indexTasks, queryTasks } from '@/lib/vector-db/tasks-indexer';
 import { buildWorkTimeStats, WorkSession } from '@/lib/helpers/time-analyzer';
-import type { AppData } from '@/lib/types';
+import type { AppData, AppSettings, FixedCost, Quote, Task } from '@/lib/types'; // Add types for better error checking
+import { ModelFallbackManager } from '@/ai/utils/gemini-models'; // NEW IMPORT
 
 // --- Placeholders ---
 export async function askAboutTasksAction(input: AskAboutTasksInput): Promise<AskAboutTasksOutput> { return { text: "...", action: null}; }
@@ -55,7 +57,7 @@ export async function writingAssistantAction(input: WritingAssistantInput): Prom
     
     if (result.success) {
       try {
-        // Find and parse the JSON object from the response string
+        // Find and parse the JSON object from the response string (take first match)
         const jsonString = result.message.content.match(/\{[\s\S]*\}/)?.[0];
         if (!jsonString) throw new Error("No valid JSON object found in AI response.");
         const parsedResult = JSON.parse(jsonString);
@@ -84,135 +86,178 @@ const AnalyzeBusinessInputSchema = z.object({
   apiKey: z.string().optional(),
   modelName: z.string().optional(),
   rangeDays: z.number().int().positive().optional(),
-  includeDetails: z.boolean().optional(),
+  // includeDetails: z.boolean().optional(), // Removed as not used directly in this server action
+  financialContext: z.any().optional(), // Added for detailed analysis
+  language: z.enum(['en', 'vi']).optional(), // Add language to schema
   // Optional client-side snapshot fallback if server cannot access PouchDB
   appDataSnapshot: z.any().optional(),
 });
 
 type AnalyzeBusinessInput = z.infer<typeof AnalyzeBusinessInputSchema>;
 
-export async function analyzeBusinessAction(input: AnalyzeBusinessInput): Promise<{ success: boolean; insights?: any[]; raw?: string; error?: string }> {
+export async function analyzeBusinessAction(input: AnalyzeBusinessInput): Promise<{ success: boolean; summary?: string; insights?: any[]; raw?: string; error?: string }> {
   try {
     const parsed = AnalyzeBusinessInputSchema.safeParse(input);
     if (!parsed.success) return { success: false, error: 'Invalid input.' };
-    const { apiKey, modelName, rangeDays = 30, includeDetails = false, appDataSnapshot } = parsed.data;
+    // Destructure financialContext
+    const { apiKey, modelName, rangeDays = 30, appDataSnapshot, financialContext, language = 'en' } = parsed.data; // DESTRUCTURING language here
 
-    // Try to load appData from PouchDB (best-effort). If not available (server env), use snapshot.
     let appData: AppData | null = null;
-    try {
-      appData = await PouchDBService.loadAppData();
-    } catch (e) {
-      // Fallback to provided snapshot
-      if (appDataSnapshot) {
+    if (appDataSnapshot) { // PRIORITIZE SNAPSHOT
         appData = appDataSnapshot as AppData;
-      } else {
-        return { success: false, error: 'Unable to load app data from PouchDB and no snapshot provided.' };
-      }
+    } else { // FALLBACK TO PouchDB
+        try {
+            appData = await PouchDBService.loadAppData();
+        } catch (e) {
+            return { success: false, error: 'Unable to load app data from PouchDB and no snapshot provided.' };
+        }
     }
+
+    if (!appData) return { success: false, error: 'App data is not available.' };
+
+    // Determine API key and model for AI chat AND embeddings
+    let finalApiKey = apiKey;
+    if (!finalApiKey) finalApiKey = appData?.appSettings?.googleApiKey || '';
+
+    // Use ModelFallbackManager for chat model
+    const finalChatModel = ModelFallbackManager.getPreferredModel(modelName || appData?.appSettings?.googleModel); 
+    // For embeddings, use preferred model from settings or a sensible default embedding model.
+    const finalEmbedModel = ModelFallbackManager.getPreferredModel(appData?.appSettings?.googleModel || 'text-embedding-004'); // Assuming text-embedding-004 is a fallback embedding model, otherwise it needs to be fetched from an available Gemini model, like an embedded Flash version.
+
+    const hasApiKeyForEmbeddings = !!finalApiKey;
+
+    let relevantDocumentsContext = '';
+
+    if (hasApiKeyForEmbeddings && appData.tasks) { // Proceed with embeddings if API key is available
+      console.log('🤖 AI: Checking/generating embeddings for tasks...');
+      try {
+        // Index all current tasks to ensure embeddings exist. `indexTasks` internally checks for missing embeddings.
+        await indexTasks(appData.tasks, { apiKey: finalApiKey, model: finalEmbedModel });
+
+        // IMPORTANT: Reload appData after indexing to ensure updated task vectors are loaded into memory.
+        // For server actions, the PouchDB instance needs to be refreshed if external persistence was updated.
+        // A more sophisticated solution would have `indexTasks` return the updated appData,
+        // or ensure `PouchDBService` has a caching mechanism that invalidates.
+        appData = (await PouchDBService.loadAppData()) || appData;
+        
+        console.log('🤖 AI: Performing vector search...');
+        const queryText = `Financial analysis for ${financialContext?.summary?.profit > 0 ? 'profitability' : 'losses'} related to clients: ${financialContext?.breakdown?.map((b:any)=>b.name).join(', ')}. Details: ${JSON.stringify(financialContext)}`;
+        const relatedDocs = await queryTasks(queryText, 5, { apiKey: finalApiKey, model: finalEmbedModel });
+
+        if (relatedDocs && relatedDocs.length > 0) {
+          relevantDocumentsContext = `\n\n--- RELEVANT PROJECT DETAILS (from vector search) ---\n` +
+            relatedDocs.map(d => `Task ID: ${d.id.replace('task:','')}, Score: ${d.score.toFixed(3)}, Text: "${d.text}"`).join('\n') +
+            `\n--- END RELEVANT DOCUMENTS ---`;
+        }
+        console.log(`🤖 AI: Found ${relatedDocs.length} relevant documents.`);
+      } catch (embeddingError: any) {
+        console.error('AI: Error during embedding generation or vector search, proceeding without contextual documents:', embeddingError.message);
+        relevantDocumentsContext = `\n\n--- NOTE --- \n(Contextual documents could not be retrieved due to an error: ${embeddingError?.message || 'unknown error'}).`;
+      }
+    } else if (!hasApiKeyForEmbeddings) {
+      console.warn('AI: No API key for embeddings, skipping vector search. Analysis will be based only on aggregated KPIs.');
+      relevantDocumentsContext = '\n\n--- NOTE --- \n(Contextual documents were skipped due to missing API key).';
+    }
+
 
     // Aggregate minimal KPIs (KISS): revenue, costs, netProfit, margin, topClients, costStructure, cashTrend
-    // Heuristics: revenue from quotes with status 'paid' OR quotes.total; costs from expenses + fixedCosts
-    const now = new Date();
-    const fromDate = new Date(now.getTime() - rangeDays * 24 * 60 * 60 * 1000);
-
-    const quotes = Array.isArray((appData as any).quotes) ? (appData as any).quotes : [];
-    const expenses = Array.isArray((appData as any).expenses) ? (appData as any).expenses : [];
-    const fixedCosts = Array.isArray((appData as any).fixedCosts) ? (appData as any).fixedCosts : [];
-    const tasks = Array.isArray((appData as any).tasks) ? (appData as any).tasks : [];
-    const clients = Array.isArray((appData as any).clients) ? (appData as any).clients : [];
-
-    // Revenue: sum of quotes.total where createdAt within range OR status paid and date within range
-    let revenue = 0;
-    for (const q of quotes) {
-      const date = q?.createdAt ? new Date(q.createdAt) : null;
-      const inRange = !date || date >= fromDate;
-      const amount = Number(q?.total || 0) || 0;
-      if (inRange) revenue += amount;
-    }
-
-    const costSum = (expenses.reduce((s:any,e:any)=> s + (Number(e.amount)||0), 0) + fixedCosts.reduce((s:any,f:any)=> s + (Number(f.amount)||0), 0));
-    const netProfit = revenue - costSum;
+    // Using financialContext for key aggregates to simplify server-side logic and reuse client-side calculations
+    const revenue = financialContext?.summary?.revenue || 0;
+    const costs = financialContext?.summary?.costs || 0;
+    const netProfit = financialContext?.summary?.profit || 0;
     const marginPercent = revenue > 0 ? Math.round((netProfit / revenue) * 10000) / 100 : 0;
+    
+    // Top clients from financialContext.breakdown
+    const topClientsRaw = Array.isArray(financialContext?.breakdown) ? financialContext.breakdown : [];
+    const totalRevenue = revenue || 1; 
+    const topClients: Array<{ id: string; amt: number; name: string }> = topClientsRaw.map((c: { name: string; value: number }) => ({ // FIXED type here
+        id: c.name, // Use name as ID since client objects not here
+        amt: c.value,
+        name: c.name,
+    }));
+    topClients.sort((a: { amt: number }, b: { amt: number }) => b.amt - a.amt); // FIXED type here
+    const topClientsPct = topClients.slice(0,3).map((c: { id: string; amt: number; name: string }) => ({ ...c, pct: Math.round((c.amt / totalRevenue) * 10000)/100 })); // FIXED type here
 
-    // Top clients by revenue (match quotes.clientId)
-    const clientMap = new Map<string, number>();
-    for (const q of quotes) {
-      const cid = q?.clientId || 'unknown';
-      const amt = Number(q?.total || 0) || 0;
-      clientMap.set(cid, (clientMap.get(cid) || 0) + amt);
-    }
-  const topClients = Array.from(clientMap.entries()).map(([id, amt]) => ({ id, amt, name: ((clients as any[]).find((c:any)=>c.id===id)?.name || id) }));
-    topClients.sort((a,b)=> b.amt - a.amt);
-    const totalRevenue = revenue || 1;
-    const topClientsPct = topClients.slice(0,3).map(c => ({ ...c, pct: Math.round((c.amt / totalRevenue) * 10000)/100 }));
-
-    // Cost structure by category (from expenses)
+    // Cost structure by category (from expenses and fixed costs) - still aggregate server-side but fixed fixedCosts.type issue
+    // Using the 'appData' (either from snapshot or PouchDB load) directly now
+    const expenses = Array.isArray(appData.expenses) ? appData.expenses : [];
+    const fixedCosts = Array.isArray(appData.fixedCosts) ? appData.fixedCosts : [];
     const costMap = new Map<string, number>();
+    const currentCostSum = (expenses.reduce((s: number, e: { amount: number }) => s + (Number(e.amount)||0), 0) + fixedCosts.reduce((s: number, f: FixedCost) => s + (Number(f.amount)||0), 0)); // FIXED type here
+
     for (const e of expenses) {
       const cat = e?.category || 'Other';
       costMap.set(cat, (costMap.get(cat)||0) + (Number(e.amount)||0));
     }
     for (const f of fixedCosts) {
-      const cat = f?.type || 'Fixed';
+      const cat = f?.name || 'Fixed'; // FIXED: use name or default
       costMap.set(cat, (costMap.get(cat)||0) + (Number(f.amount)||0));
     }
-    const costStructure = Array.from(costMap.entries()).map(([k,v]) => ({ category: k, amount: v, pct: Math.round((v / (costSum||1)) * 10000)/100 }));
+    const costStructure = Array.from(costMap.entries()).map(([k,v]) => ({ category: k, amount: v, pct: Math.round((v / (currentCostSum||1)) * 10000)/100 }));
 
-    // Cash trend: naive compare revenue last period vs this period
-    const prevFrom = new Date(fromDate.getTime() - rangeDays * 24 * 60 * 60 * 1000);
-    const prevRevenue = quotes.reduce((s:any,q:any)=> s + ((q?.createdAt && new Date(q.createdAt) >= prevFrom && new Date(q.createdAt) < fromDate) ? (Number(q.total)||0) : 0), 0);
-    const cashTrendSign = revenue > prevRevenue ? 'up' : revenue < prevRevenue ? 'down' : 'flat';
 
-    // Pareto detection
-    const top1 = topClients[0];
-    const top1Pct = top1 ? Math.round((top1.amt / totalRevenue) * 10000)/100 : 0;
-    const top3Total = topClients.slice(0,3).reduce((s,a)=> s + (a.amt||0), 0);
+    // Cash trend: naive compare revenue last period vs this period - adapted for financialContext data where possible, or kept simpler
+    // This part requires original `quotes` with `createdAt`, which we decided to skip for now.
+    // So, this is a simplified calculation: just use 'flat' for now if we can't reliably calculate trend.
+    // Or, remove for now and explicitly mention it. Given this is optional and problematic, simplifying it to rely less on deep historical raw data here.
+    const cashTrendSign = (financialContext?.summary?.profitTrend || 'flat'); // Placeholder/simplified
+
+
+    // Pareto detection - Fixed
+    const top1Item = topClients.length > 0 ? topClients[0] : null; // FIXED
+    const top1Pct = top1Item ? Math.round((top1Item.amt / totalRevenue) * 10000)/100 : 0;
+    const top3Total = topClientsPct.slice(0,3).reduce((s: number, a: { amt: number }) => s + (a.amt||0), 0); // FIXED type here
     const top3Pct = Math.round((top3Total / totalRevenue) * 10000)/100;
     const alerts: any[] = [];
-    if (top1Pct >= 50) alerts.push({ id: 'pareto-top1', type: 'pareto', severity: 'high', message: `${top1Pct}% revenue from ${top1?.name || 'a single client'}` });
+    if (top1Pct >= 50) alerts.push({ id: 'pareto-top1', type: 'pareto', severity: 'high', message: `${top1Pct}% revenue from ${top1Item?.name || 'a single client'}` });
     else if (top3Pct >= 80) alerts.push({ id: 'pareto-top3', type: 'pareto', severity: 'medium', message: `Top 3 clients contribute ${top3Pct}% of revenue` });
 
     // Build a compact context JSON to send to AI (keep minimal)
     const context = {
       periodDays: rangeDays,
       revenue: Math.round(revenue*100)/100,
-      costs: Math.round(costSum*100)/100,
+      costs: Math.round(costs*100)/100, // FIXED: use costs from summary
       netProfit: Math.round(netProfit*100)/100,
       marginPercent,
-      topClients: topClientsPct.map(c=> ({ name: c.name, pct: c.pct, amount: Math.round(c.amt*100)/100 })),
+      topClients: topClientsPct.map((c: { name: string; pct: number; amt: number })=> ({ name: c.name, pct: c.pct, amount: Math.round(c.amt*100)/100 })), // FIXED type here
       costStructure: costStructure.slice(0,6),
       alerts,
       cashTrendSign,
+      // Add a summary of the client-side financial context for the prompt
+      clientSideFinancialSummary: financialContext?.summary,
+      clientSideRevenueBreakdown: financialContext?.breakdown,
     };
 
+    const targetLanguageName = language === 'vi' ? 'Vietnamese' : 'English';
     // Build AI prompt with strict JSON array output requirement (3 insights)
-    const prompt = `You are a senior freelance business analyst. Given the JSON CONTEXT below, produce an array of 1-3 actionable insights for a freelancer. Each insight must be a JSON object with keys: category (one of ['Risk','Opportunity','Optimization']), severity ('low'|'medium'|'high'), insight (short sentence), suggestion (imperative, one clear action), and justification (one-line numeric justification). Respond ONLY with a JSON array. Do not include any extra text.\n\nCONTEXT=${JSON.stringify(context)}`;
+    const basePrompt = `You are a senior freelance business analyst. Given the JSON CONTEXT below, produce an array of 1-3 actionable insights for a freelancer and a summary of the whole analysis. Each insight must be a JSON object with keys: category (one of ['Risk','Opportunity','Optimization']), severity ('low'|'medium'|'high'), insight (short sentence), suggestion (imperative, one clear action), and justification (one-line numeric justification). Respond ONLY with a JSON object with keys "summary" (a 2-3 sentence summary of the main findings) and "insights" (an array of insight objects). Do not include any extra text. All text in your response MUST be in ${targetLanguageName}.`; // ADDED summary instruction and changed response format
+    
+    // Combine base prompt, relevant documents context, and main context
+    const finalPrompt = `${basePrompt}${relevantDocumentsContext}\n\nMAIN CONTEXT=${JSON.stringify(context)}`;
+    
+    // Call chatWithAI with the augmented prompt
+    const response = await chatWithAI({ messages: [{ role: 'user', content: finalPrompt, timestamp: new Date() }], apiKey: finalApiKey, modelName: finalChatModel });
+ 
+    if (!response.success) return { success: false, error: response.error || 'AI call failed', raw: response.message?.content }; // FIXED
 
-    // Determine API key and model
-    let finalApiKey = apiKey;
-    let finalModel = modelName || (appData?.appSettings?.googleModel || 'gemini-1.0');
-    if (!finalApiKey) finalApiKey = appData?.appSettings?.googleApiKey || '';
-    if (!finalApiKey) return { success: false, error: 'No API key provided or configured in app settings.' };
-
-    const response = await chatWithAI({ messages: [{ role: 'user', content: prompt, timestamp: new Date() }], apiKey: finalApiKey, modelName: finalModel });
-
-    if (!response.success) return { success: false, error: response.error || 'AI call failed', raw: response.message.content };
-
-    // Parse JSON array from response
-    let insights: any[] = [];
+    // Parse JSON object from response
+    let parsedResponse: { summary?: string; insights?: any[] } = {};
     try {
-      const cleaned = (response.message.content || '').replace(/```/g, '').trim();
-      const firstBracket = cleaned.indexOf('[');
-      const lastBracket = cleaned.lastIndexOf(']');
-      const jsonText = firstBracket !== -1 && lastBracket !== -1 ? cleaned.substring(firstBracket, lastBracket + 1) : cleaned;
+      const cleaned = (response.message.content || '').replace(/```json/g, '').replace(/```/g, '').trim();
+      const firstBrace = cleaned.indexOf('{');
+      const lastBrace = cleaned.lastIndexOf('}');
+      const jsonText = firstBrace !== -1 && lastBrace !== -1 ? cleaned.substring(firstBrace, lastBrace + 1) : cleaned;
       const parsedJson = JSON.parse(jsonText);
-      if (Array.isArray(parsedJson)) insights = parsedJson;
-      else return { success: false, error: 'AI response not an array', raw: response.message.content };
+      if (parsedJson && typeof parsedJson === 'object' && Array.isArray(parsedJson.insights)) {
+        parsedResponse = parsedJson;
+      } else {
+        return { success: false, error: 'AI response is not a valid object with an insights array', raw: response.message?.content };
+      }
     } catch (e:any) {
-      return { success: false, error: 'Failed to parse AI response', raw: response.message.content };
+      return { success: false, error: 'Failed to parse AI response', raw: response.message?.content };
     }
 
-    return { success: true, insights, raw: response.message.content };
+    return { success: true, summary: parsedResponse.summary, insights: parsedResponse.insights, raw: response.message?.content };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Server error' };
   }

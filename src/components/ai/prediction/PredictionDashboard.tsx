@@ -21,8 +21,11 @@ import { EnhancedWorkTimeStatsCard } from './EnhancedWorkTimeStatsCard';
 import { TaskAnalyticsCard } from './TaskAnalyticsCard';
 import { DeadlineAlertsCard } from './DeadlineAlertsCard';
 import { AIInsightsList } from './AIInsightsList';
-import type { StructuredInsight } from './types';
+import type { StructuredInsight, AIProductivityAnalysis } from './types'; // Import AIProductivityAnalysis
 import { DateRange } from 'react-day-picker';
+import { GeminiModel, ModelFallbackManager } from '@/ai/utils/gemini-models'; // NEW IMPORT
+import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique IDs
+import { PouchDBService } from '@/lib/pouchdb-service'; // Import PouchDBService
 
 interface PredictionDashboardProps {
   className?: string;
@@ -32,6 +35,7 @@ export function PredictionDashboard({ className = '' }: PredictionDashboardProps
   // Simplified state structure - removed productivity metrics
   const [deadlineMetrics, setDeadlineMetrics] = useState<DeadlineIntelligenceMetrics | null>(null);
   const [aiInsights, setAiInsights] = useState<StructuredInsight[]>([]); // structured insights
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [isEditingTask, setIsEditingTask] = useState(false);
@@ -78,10 +82,18 @@ export function PredictionDashboard({ className = '' }: PredictionDashboardProps
 
   // Initialize on mount and when tasks change
   React.useEffect(() => {
-    if (tasks.length > 0) {
+    if (appData && tasks.length > 0) {
       initializeDeadlineMetrics();
+
+      // Load last AI analysis from PouchDB
+      if (appData.aiProductivityAnalyses && appData.aiProductivityAnalyses.length > 0) {
+        const lastAnalysis = appData.aiProductivityAnalyses[appData.aiProductivityAnalyses.length - 1];
+        setAiInsights(lastAnalysis.insights);
+        setAnalysisTimestamp(lastAnalysis.timestamp);
+        setShowAnalysisPanel(true); // show the panel if there's a saved analysis
+      }
     }
-  }, [tasks]);
+  }, [appData, tasks]);
 
   // Collect cross-card analytics for AI context (lightweight placeholders for now)
   const prepareAIContext = () => {
@@ -116,10 +128,14 @@ export function PredictionDashboard({ className = '' }: PredictionDashboardProps
 
   const runFullAnalysis = async () => {
     // Check if API key is configured
-    const { googleApiKey: hasApiKey, googleModel, language='en' } = appData?.appSettings || {};
+    const { googleApiKey, googleModel, language='en' } = appData?.appSettings || {};
+    const finalApiKey = googleApiKey;
+    const hasApiKey = !!finalApiKey; // Redefine hasApiKey using finalApiKey
+    const finalModelName = ModelFallbackManager.getPreferredModel(googleModel); // Use the manager
+
     console.log('🔍 PredictionDashboard - runFullAnalysis called:', {
-      hasApiKey: !!hasApiKey,
-      apiKeyLength: hasApiKey?.length || 0,
+      hasApiKey: hasApiKey,
+      apiKeyLength: finalApiKey?.length || 0,
       appSettingsPresent: !!appData?.appSettings,
       tasksCount: tasks.length,
       clientsCount: clients.length,
@@ -144,7 +160,8 @@ export function PredictionDashboard({ className = '' }: PredictionDashboardProps
       
       // Clear previous results
       setDeadlineMetrics(null);
-  setAiInsights([]);
+      setAiInsights([]);
+      setAnalysisTimestamp(null);
 
       // Step 2: Run deadline intelligence analysis only
       const userId = 'user-1'; // TODO: Get from auth context
@@ -161,9 +178,9 @@ export function PredictionDashboard({ className = '' }: PredictionDashboardProps
       setDeadlineMetrics(dMetrics);
 
       // Step 3: Prepare context for AI
-  const context = prepareAIContext();
-  const responseLanguage = language === 'vi' ? 'Vietnamese' : 'English';
-  const prompt = `You are a senior productivity & workflow analyst AI.
+      const context = prepareAIContext();
+      const responseLanguage = language === 'vi' ? 'Vietnamese' : 'English';
+      const prompt = `You are a senior productivity & workflow analyst AI.
 CONTEXT_JSON = ${JSON.stringify(context)}
 INSTRUCTIONS:
 1. Analyze the selected date range only.
@@ -176,10 +193,10 @@ INSTRUCTIONS:
 OUTPUT:
 Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":"...","severity":"...","insight":"...","suggestion":"..."}] with text in ${responseLanguage}. No markdown, no commentary.`;
       try {
-        if (!hasApiKey || !googleModel) throw new Error('Missing API config');
+        if (!finalApiKey || !finalModelName) throw new Error('Missing API config'); // Use finalApiKey and finalModelName
         const response = await chatWithAI({
-          apiKey: hasApiKey,
-            modelName: googleModel,
+          apiKey: finalApiKey,
+            modelName: finalModelName, // Use finalModelName
           messages: [{ role: 'user', content: prompt, timestamp: new Date() }]
         });
         if (response.success) {
@@ -210,6 +227,21 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
             const valid = parsed.filter(p => p && p.category && p.severity && p.insight && p.suggestion);
             if (!valid.length) throw new Error('No valid insight objects');
             setAiInsights(valid);
+            
+            // Save to PouchDB
+            const newTimestamp = new Date().toISOString();
+            setAnalysisTimestamp(newTimestamp);
+            const newAnalysisEntry: AIProductivityAnalysis = {
+              id: uuidv4(),
+              timestamp: newTimestamp,
+              insights: valid,
+            };
+
+            const existingAnalyses = appData.aiProductivityAnalyses || [];
+            const updatedAnalyses = [...existingAnalyses, newAnalysisEntry];
+
+            await PouchDBService.setDocument('aiProductivityAnalyses', updatedAnalyses);
+
           } catch (pe) {
             const snippet = typeof cleaned === 'string' && cleaned
               ? cleaned.slice(0, 500)
@@ -237,7 +269,7 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
   };
 
   // Check if API key is configured for main UI
-  const hasApiKey = appData?.appSettings?.googleApiKey;
+  const hasApiKeyInSettings = appData?.appSettings?.googleApiKey; // Changed variable name to avoid conflict with runFullAnalysis scope
 
   const handleTaskClick = (taskId: string) => {
     const task = tasks.find((t: any) => t.id === taskId);
@@ -309,7 +341,7 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
         <div className="flex items-center gap-3">
           <Button
             onClick={runFullAnalysis}
-            disabled={isLoading || !hasApiKey}
+            disabled={isLoading || !hasApiKeyInSettings} // Use hasApiKeyInSettings
             className="flex items-center gap-2 shadow-sm"
           >
             {isLoading ? (
@@ -324,7 +356,7 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
               </>
             )}
           </Button>
-          {!hasApiKey && (
+          {!hasApiKeyInSettings && ( // Use hasApiKeyInSettings
             <Button variant="outline" size="sm" asChild>
               <a href="/dashboard/settings" className="flex items-center gap-1"><Settings className="w-3 h-3" />Settings</a>
             </Button>
@@ -333,7 +365,7 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
       </div>
 
       {/* API Key Warning */}
-      {!hasApiKey && (
+      {!hasApiKeyInSettings && ( // Use hasApiKeyInSettings
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
@@ -374,6 +406,7 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
             <Card className="transition-opacity duration-500">
               <CardHeader className="pb-2 pt-4 px-6">
                 <h3 className="text-sm font-semibold flex items-center gap-2"><Brain className="w-4 h-4 text-primary" />{T?.aiInsights || 'AI Insights'}</h3>
+                {analysisTimestamp && <p className="text-xs text-muted-foreground">Last updated: {new Date(analysisTimestamp).toLocaleString()}</p>}
               </CardHeader>
               <CardContent className="pt-0">
                 {isLoading && aiInsights.length === 0 && (

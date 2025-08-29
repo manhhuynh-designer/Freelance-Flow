@@ -35,7 +35,7 @@ export function AIHubQuickAccess() {
             <Brain className="w-5 h-5 text-primary" />
           </div>
           <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-            AI Hub
+            {T.aiHub}
           </Badge>
         </div>
         <CardTitle className="text-xl">AI Assistant Intelligence</CardTitle>
@@ -62,7 +62,7 @@ export function AIHubQuickAccess() {
           onClick={() => router.push('/dashboard/ai-assistant')}
           className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white gap-2"
         >
-          Open AI Hub
+          Open {T.aiHub}
           <ArrowRight className="w-4 h-4" />
         </Button>
       </CardContent>

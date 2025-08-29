@@ -23,7 +23,7 @@ pomodoroSettingsDesc: 'Adjust your work and break intervals.',
 pomodoroWorkMinutes: 'Work (minutes)',
 pomodoroBreakMinutes: 'Break (minutes)',
 // AI Hub translations
-aiHub: 'AI Hub',
+aiHub: 'AI hub & Analyze',
 aiIntelligenceHub: 'AI Intelligence Hub',
 unifiedAiExperience: 'Unified AI experience - Chat, Intelligence & Analytics in one place',
 aiChat: 'AI Chat',

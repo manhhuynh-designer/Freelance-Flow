@@ -4,3 +4,9 @@ export type StructuredInsight = {
   insight: string;
   suggestion: string;
 };
+
+export type AIProductivityAnalysis = {
+  id: string;
+  timestamp: string; // ISO string
+  insights: StructuredInsight[]; // The structured insights
+};
