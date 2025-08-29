@@ -8,6 +8,7 @@ import { buildWorkTimeStats } from '@/lib/helpers/time-analyzer';
 import { useActionBuffer } from '@/hooks/useActionBuffer';
 import { initialAppData } from '@/lib/data';
 import { BackupService } from '@/lib/backup-service';
+import { PouchDBService } from '@/lib/pouchdb-service';
 import type { AppData, AppEvent, AppSettings, Category, Client, Collaborator, Quote, CollaboratorQuote, Task, QuoteTemplate, QuoteColumn } from '@/lib/types';
 
 // Create a client once
@@ -195,7 +196,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
         const id = `task-${Date.now()}`;
 
         setAppData(prev => {
-            const newPrev = { ...prev } as any;
+            const newPrev = { ...prev } as AppData;
 
             // Create main quote if sections provided
             let quoteId: string | undefined = undefined;
@@ -223,7 +224,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                 description: task.description || '',
                 startDate: task.startDate || task.dates?.from || new Date(),
                 deadline: task.deadline || task.dates?.to || new Date(),
-                clientId: task.clientId || (newPrev.clients?.[0]?.id || ''),
+                clientId: task.clientId || (newPrev.clients?.[0]?.id || ''), 
                 collaboratorIds: task.collaboratorIds || [],
                 categoryId: task.categoryId || (newPrev.categories?.[0]?.id || ''),
                 status: task.status || 'todo',
@@ -236,140 +237,136 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
             } as Task;
 
             newPrev.tasks = [...(newPrev.tasks || []), newTask];
-            return newPrev as AppData;
+            return newPrev;
         });
 
         return id;
     }, [setAppData]);
 
-    const handleEditTask = useCallback((values: Partial<Task>, quoteColumns?: any[], collaboratorQuoteColumns?: any[], taskId?: string) => {
-        if (taskId || values.id) {
-            const id = taskId || (values.id as string);
-            setAppData(prev => {
-                const newPrev = { ...prev } as any;
+    const handleEditTask = useCallback((values: Partial<Task> & {id: string}, quoteColumns?: any[], collaboratorQuoteColumns?: any[], taskId?: string) => {
+        const idToEdit = taskId || values.id;
+        if (!idToEdit) return;
+        
+        setAppData(prev => {
+            const newPrev = { ...prev } as AppData;
 
-                // Update task
-                newPrev.tasks = newPrev.tasks.map((t: Task) => t.id === id ? { ...t, ...values } : t);
+            // Update task
+            newPrev.tasks = newPrev.tasks.map((t: Task) => t.id === idToEdit ? { ...t, ...values } : t);
 
-                // If we have an updated sections payload, update the linked quote's sections and total
-                const targetTask = (newPrev.tasks || []).find((t: Task) => t.id === id);
-                if (targetTask) {
-                    // Update main quote sections and columns when provided
-                    if ((values as any).sections && targetTask.quoteId) {
-                        newPrev.quotes = (newPrev.quotes || []).map((q: Quote) => {
-                            if (q.id !== targetTask.quoteId) return q;
-                            const secs = Array.isArray((values as any).sections) ? (values as any).sections : q.sections || [];
-                            const total = secs.reduce((acc: number, s: any) => {
-                                const sumItems = (s.items || []).reduce((ai: number, it: any) => {
-                                    const qty = (it.quantity || 1);
-                                    const price = Number(it.unitPrice || 0);
-                                    return ai + (price * qty);
-                                }, 0);
-                                return acc + sumItems;
+            // If we have an updated sections payload, update the linked quote's sections and total
+            const targetTask = (newPrev.tasks || []).find((t: Task) => t.id === idToEdit);
+            if (targetTask) {
+                // Update main quote sections and columns when provided
+                if ((values as any).sections && targetTask.quoteId) {
+                    newPrev.quotes = (newPrev.quotes || []).map((q: Quote) => {
+                        if (q.id !== targetTask.quoteId) return q;
+                        const secs = Array.isArray((values as any).sections) ? (values as any).sections : q.sections || [];
+                        const total = secs.reduce((acc: number, s: any) => {
+                            const sumItems = (s.items || []).reduce((ai: number, it: any) => {
+                                const qty = (it.quantity || 1);
+                                const price = Number(it.unitPrice || 0);
+                                return ai + (price * qty);
                             }, 0);
-                            return { ...q, sections: secs, total, columns: quoteColumns ?? q.columns };
-                        });
-                    } else if (quoteColumns && targetTask.quoteId) {
-                        newPrev.quotes = (newPrev.quotes || []).map((q: Quote) => q.id === targetTask.quoteId ? { ...q, columns: quoteColumns } : q);
-                    }
-
-                    // Update collaborator quotes: values.collaboratorQuotes is array of { collaboratorId, sections }
-                    if (Array.isArray((values as any).collaboratorQuotes) && (values as any).collaboratorQuotes.length > 0) {
-                        const collabArr = (values as any).collaboratorQuotes as any[];
-                        newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).map((cq: any) => {
-                            // Find mapping entry in task to get collaboratorId associated with this collaborator quote id
-                            const mapping = targetTask.collaboratorQuotes?.find((m: any) => m.quoteId === cq.id) || null;
-                            // If mapping exists, try to find the incoming update by collaboratorId
-                            if (mapping) {
-                                const incoming = collabArr.find(ci => ci.collaboratorId === mapping.collaboratorId);
-                                if (incoming) {
-                                    const secs = Array.isArray(incoming.sections) ? incoming.sections : cq.sections || [];
-                                    const total = secs.reduce((acc: number, s: any) => {
-                                        const sumItems = (s.items || []).reduce((ai: number, it: any) => {
-                                            const qty = (it.quantity || 1);
-                                            const price = Number(it.unitPrice || 0);
-                                            return ai + (price * qty);
-                                        }, 0);
-                                        return acc + sumItems;
-                                    }, 0);
-                                    return { ...cq, sections: secs, total, columns: collaboratorQuoteColumns ?? cq.columns };
-                                }
-                            }
-                            return cq;
-                        });
-                    } else if (collaboratorQuoteColumns && targetTask.collaboratorQuotes) {
-                        // If only columns provided, update columns for mapped collaborator quotes
-                        newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).map((cq: any) => {
-                            const mapping = targetTask.collaboratorQuotes?.find((m: any) => m.quoteId === cq.id);
-                            if (mapping) return { ...cq, columns: collaboratorQuoteColumns };
-                            return cq;
-                        });
-                    }
+                            return acc + sumItems;
+                        }, 0);
+                        return { ...q, sections: secs, total, columns: quoteColumns ?? q.columns };
+                    });
+                } else if (quoteColumns && targetTask.quoteId) {
+                    newPrev.quotes = (newPrev.quotes || []).map((q: Quote) => q.id === targetTask.quoteId ? { ...q, columns: quoteColumns } : q);
                 }
 
-                return newPrev as AppData;
-            });
-        } else {
-            const id = `task-${Date.now()}`;
-            setAppData(prev => ({ ...prev, tasks: [...prev.tasks, { id, name: values.name || 'New Task', description: values.description || '', startDate: values.startDate || new Date(), deadline: values.deadline || new Date(), clientId: values.clientId || (prev.clients[0]?.id || ''), categoryId: values.categoryId || (prev.categories[0]?.id || ''), status: values.status || 'todo', quoteId: values.quoteId || (prev.quotes[0]?.id || ''), createdAt: new Date().toISOString() }] as Task[] }));
-        }
+                // Update collaborator quotes: values.collaboratorQuotes is array of { collaboratorId, sections }
+                if (Array.isArray((values as any).collaboratorQuotes) && (values as any).collaboratorQuotes.length > 0) {
+                    const collabArr = (values as any).collaboratorQuotes as any[];
+                    newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).map((cq: any) => {
+                        // Find mapping entry in task to get collaboratorId associated with this collaborator quote id
+                        const mapping = targetTask.collaboratorQuotes?.find((m: any) => m.quoteId === cq.id) || null;
+                        // If mapping exists, try to find the incoming update by collaboratorId
+                        if (mapping) {
+                            const incoming = collabArr.find(ci => ci.collaboratorId === mapping.collaboratorId);
+                            if (incoming) {
+                                const secs = Array.isArray(incoming.sections) ? incoming.sections : cq.sections || [];
+                                const total = secs.reduce((acc: number, s: any) => {
+                                    const sumItems = (s.items || []).reduce((ai: number, it: any) => {
+                                        const qty = (it.quantity || 1);
+                                        const price = Number(it.unitPrice || 0);
+                                        return ai + (price * qty);
+                                    }, 0);
+                                    return acc + sumItems;
+                                }, 0);
+                                return { ...cq, sections: secs, total, columns: collaboratorQuoteColumns ?? cq.columns };
+                            }
+                        }
+                        return cq;
+                    });
+                } else if (collaboratorQuoteColumns && targetTask.collaboratorQuotes) {
+                    newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).map((cq: any) => {
+                        const mapping = targetTask.collaboratorQuotes?.find((m: any) => m.quoteId === cq.id);
+                        if (mapping) return { ...cq, columns: collaboratorQuoteColumns };
+                        return cq;
+                    });
+                }
+            }
+            return newPrev;
+        });
     }, [setAppData]);
 
+
     const handleTaskStatusChange = useCallback((taskId: string, status: Task['status'], subStatusId?: string) => {
-        setAppData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === taskId ? { ...t, status, subStatusId } : t) }));
+        setAppData((prev: AppData) => ({ ...prev, tasks: prev.tasks.map(t => t.id === taskId ? { ...t, status, subStatusId } : t) }));
     }, [setAppData]);
 
     const handleDeleteTask = data.handleDeleteTask as (taskId: string) => void;
 
     const handleRestoreTask = useCallback((taskId: string) => {
-        setAppData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === taskId ? ({ ...t, deletedAt: undefined }) : t) }));
+        setAppData((prev: AppData) => ({ ...prev, tasks: prev.tasks.map(t => t.id === taskId ? ({ ...t, deletedAt: undefined }) : t) }));
     }, [setAppData]);
 
     const handlePermanentDeleteTask = useCallback((taskId: string) => {
-        setAppData(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== taskId) }));
+        setAppData((prev: AppData) => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== taskId) }));
     }, [setAppData]);
 
     const handleEmptyTrash = useCallback(() => {
-        setAppData(prev => ({ ...prev, tasks: prev.tasks.filter(t => !t.deletedAt) }));
+        setAppData((prev: AppData) => ({ ...prev, tasks: prev.tasks.filter(t => !t.deletedAt) }));
     }, [setAppData]);
 
     const handleAddClientAndSelect = useCallback((dataToAdd: Omit<Client, 'id'>) => {
         const id = `client-${Date.now()}`;
         const client: Client = { id, ...dataToAdd };
-        setAppData(prev => ({ ...prev, clients: [...prev.clients, client] }));
+        setAppData((prev: AppData) => ({ ...prev, clients: [...prev.clients, client] }));
         return client;
     }, [setAppData]);
     const handleEditClient = useCallback((id: string, dataToUpdate: Omit<Client, 'id'>) => {
-        setAppData(prev => ({ ...prev, clients: prev.clients.map(c => c.id === id ? { id, ...dataToUpdate } as Client : c) }));
+        setAppData((prev: AppData) => ({ ...prev, clients: prev.clients.map(c => c.id === id ? { id, ...dataToUpdate } as Client : c) }));
     }, [setAppData]);
     const handleDeleteClient = useCallback((id: string) => {
-        setAppData(prev => ({ ...prev, clients: prev.clients.filter(c => c.id !== id) }));
+        setAppData((prev: AppData) => ({ ...prev, clients: prev.clients.filter(c => c.id !== id) }));
     }, [setAppData]);
 
     const handleAddCollaborator = useCallback((collab: Omit<Collaborator, 'id'>) => {
         const id = `collab-${Date.now()}`;
-        setAppData(prev => ({ ...prev, collaborators: [...prev.collaborators, { id, ...collab }] }));
+        setAppData((prev: AppData) => ({ ...prev, collaborators: [...prev.collaborators, { id, ...collab }] }));
     }, [setAppData]);
     const handleEditCollaborator = useCallback((id: string, collab: Omit<Collaborator, 'id'>) => {
-        setAppData(prev => ({ ...prev, collaborators: prev.collaborators.map(c => c.id === id ? { id, ...collab } : c) }));
+        setAppData((prev: AppData) => ({ ...prev, collaborators: prev.collaborators.map(c => c.id === id ? { id, ...collab } : c) }));
     }, [setAppData]);
     const handleDeleteCollaborator = useCallback((id: string) => {
-        setAppData(prev => ({ ...prev, collaborators: prev.collaborators.filter(c => c.id !== id) }));
+        setAppData((prev: AppData) => ({ ...prev, collaborators: prev.collaborators.filter(c => c.id !== id) }));
     }, [setAppData]);
 
     const handleAddCategory = useCallback((cat: Omit<Category, 'id'>) => {
         const id = `category-${Date.now()}`;
-        setAppData(prev => ({ ...prev, categories: [...prev.categories, { id, ...cat }] }));
+        setAppData((prev: AppData) => ({ ...prev, categories: [...prev.categories, { id, ...cat }] }));
     }, [setAppData]);
     const handleEditCategory = useCallback((id: string, cat: Omit<Category, 'id'>) => {
-        setAppData(prev => ({ ...prev, categories: prev.categories.map(c => c.id === id ? { id, ...cat } : c) }));
+        setAppData((prev: AppData) => ({ ...prev, categories: prev.categories.map(c => c.id === id ? { id, ...cat } : c) }));
     }, [setAppData]);
     const handleDeleteCategory = useCallback((id: string) => {
-        setAppData(prev => ({ ...prev, categories: prev.categories.filter(c => c.id !== id) }));
+        setAppData((prev: AppData) => ({ ...prev, categories: prev.categories.filter(c => c.id !== id) }));
     }, [setAppData]);
 
     const updateTaskEisenhowerQuadrant = useCallback((taskId: string, quadrant: Task['eisenhowerQuadrant']) => {
-        setAppData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === taskId ? { ...t, eisenhowerQuadrant: quadrant } : t) }));
+        setAppData((prev: AppData) => ({ ...prev, tasks: prev.tasks.map(t => t.id === taskId ? { ...t, eisenhowerQuadrant: quadrant } : t) }));
     }, [setAppData]);
     const reorderTasksInQuadrant = useCallback((_quadrant: NonNullable<Task['eisenhowerQuadrant']>, _orderedTaskIds: string[]) => {
         // No persistent order field for Eisenhower; no-op placeholder
@@ -378,18 +375,60 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
         // Optionally assign sequential kanbanOrder here if needed
     }, []);
     const updateKanbanSettings = useCallback((updates: Partial<Pick<AppSettings, 'kanbanColumnOrder' | 'kanbanColumnVisibility' | 'kanbanSubStatusMode'>>) => {
-        setAppData(prev => ({ ...prev, appSettings: { ...prev.appSettings, ...updates } }));
+        setAppData((prev: AppData) => ({ ...prev, appSettings: { ...prev.appSettings, ...updates } }));
     }, [setAppData]);
 
     // Clear only main data (keep backups)
     const handleClearOnlyData = useCallback(() => {
         setAppData(() => ({ ...initialAppData } as AppData));
+        // Also clear persisted docs and legacy localStorage AI blocks so cards show cleared state
+        (async () => {
+            try {
+                await PouchDBService.removeDocument('aiAnalyses');
+                await PouchDBService.removeDocument('aiProductivityAnalyses');
+                await PouchDBService.removeDocument('fixedCosts');
+                await PouchDBService.removeDocument('expenses');
+            } catch (err) {
+                console.warn('Failed to clear PouchDB docs during clear-only-data', err);
+            }
+            try {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('freelance-flow-ai-persistent-data');
+                    localStorage.removeItem('ai-writing-presets');
+                    localStorage.removeItem('ai-writing-history');
+                    localStorage.removeItem('ai-writing-versions');
+                    localStorage.removeItem('freelance-flow-filter-presets');
+                }
+            } catch (err) { console.warn('Failed to clear localStorage AI keys', err); }
+        })();
     }, [setAppData]);
 
     // Clear main data and backups together
     const handleClearDataAndBackups = useCallback(() => {
         setAppData(() => ({ ...initialAppData } as AppData));
         try { BackupService.clearAllBackups?.(); } catch {}
+        // Ensure persisted documents and legacy local keys are cleared as well
+        (async () => {
+            try {
+                await PouchDBService.removeDocument('aiAnalyses');
+                await PouchDBService.removeDocument('aiProductivityAnalyses');
+                await PouchDBService.removeDocument('fixedCosts');
+                await PouchDBService.removeDocument('expenses');
+            } catch (err) {
+                console.warn('Failed to clear PouchDB docs during clear-data-and-backups', err);
+            }
+            try {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('freelance-flow-ai-persistent-data');
+                    localStorage.removeItem('ai-writing-presets');
+                    localStorage.removeItem('ai-writing-history');
+                    localStorage.removeItem('ai-writing-versions');
+                    localStorage.removeItem('freelance-flow-filter-presets');
+                    localStorage.removeItem('freelance-flow-last-backup');
+                    localStorage.removeItem('freelance-flow-default-export-format');
+                }
+            } catch (err) { console.warn('Failed to clear localStorage keys during clear-data-and-backups', err); }
+        })();
     }, [setAppData]);
 
     // Backwards-compatible alias (previous behavior now clears both)
@@ -401,8 +440,8 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
             try {
                 const json = JSON.parse(String(reader.result)) as Partial<AppData>;
                 // Persist imported data via saveAppData when available
-                if ((data as any).saveAppData) {
-                    (data as any).saveAppData(json);
+                if (data.saveAppData) {
+                    data.saveAppData(json);
                 } else {
                     setAppData(prev => ({ ...prev, ...json } as AppData));
                 }
@@ -411,7 +450,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
             }
         };
         reader.readAsText(file);
-    }, [setAppData]);
+    }, [setAppData, data.saveAppData]);
 
     // Backup export/status (used by header)
     const [backupStatusText, setBackupStatusText] = useState<string>(() => {
@@ -422,7 +461,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
     
     // Default export format - can be changed by user preference
     const [defaultExportFormat, setDefaultExportFormat] = useState<'json' | 'excel'>(() => {
-        if (typeof window === 'undefined') return 'excel';
+        if (typeof window !== 'undefined') return 'excel';
         const saved = localStorage.getItem('freelance-flow-default-export-format');
         return (saved as 'json' | 'excel') || 'excel';
     });
@@ -451,7 +490,10 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                 // Ensure new financial arrays exist
                 expenses: (appData as any).expenses || [],
                 fixedCosts: (appData as any).fixedCosts || [],
-                // Attach AI/local-only data blocks so Excel export can include them
+                // Attach centralized AI analyses (preferred) so backups include persisted aiAnalyses
+                ...(appData.aiAnalyses ? { aiAnalyses: appData.aiAnalyses } : {}),
+                ...(appData.aiProductivityAnalyses ? { aiProductivityAnalyses: appData.aiProductivityAnalyses } : {}), // Include aiProductivityAnalyses in export
+                // Keep legacy local-only AI/preset blocks for backward compatibility
                 ...(aiPersistentData ? { aiPersistentData } : {}),
                 ...(aiWritingPresets ? { aiWritingPresets } : {}),
                 ...(aiWritingHistory ? { aiWritingHistory } : {}),
@@ -491,7 +533,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
         } catch (e) {
             console.error('Export failed', e);
         }
-    }, [data.appData, defaultExportFormat]);
+    }, [data.appData, defaultExportFormat, data.saveAppData]);
     useEffect(() => {
         const ts = typeof window !== 'undefined' ? localStorage.getItem('freelance-flow-last-backup') : null;
         if (ts) setBackupStatusText(new Date(ts).toLocaleString());
@@ -546,7 +588,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
     handleClearDataAndBackups,
     deleteBackupByTimestamp: (ts: number) => { try { BackupService.deleteBackup?.(ts); } catch {} },
     handleFileUpload,
-    saveAppData: (data as any).saveAppData,
+    saveAppData: data.saveAppData,
     // Backup
     backupStatusText,
     handleExport,

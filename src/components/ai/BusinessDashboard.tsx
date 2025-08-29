@@ -3,10 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Brain, Settings, AlertTriangle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { PouchDBService } from '@/lib/pouchdb-service';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
 import { 
   calculateFinancialSummary, 
   calculateRevenueBreakdown, 
@@ -24,7 +27,7 @@ import { EditTaskForm } from '@/components/edit-task-form';
 import type { Task, Quote, CollaboratorQuote, Client, AIAnalysis } from '@/lib/types';
 
 export function BusinessDashboard() {
-  const { appData, isDataLoaded, T, updateTask, handleDeleteTask: deleteTask, updateQuote, updateCollaboratorQuote, handleEditTask: editTask, handleAddClientAndSelect } = useDashboard() as any;
+  const { appData, isDataLoaded, T, updateTask, handleDeleteTask: deleteTask, updateQuote, updateCollaboratorQuote, handleEditTask: editTask, handleAddClientAndSelect, setAppData } = useDashboard() as any;
   
   const [summary, setSummary] = useState<any>(null);
   const [analysis, setAnalysis] = useState<any>(null);
@@ -87,6 +90,7 @@ export function BusinessDashboard() {
         setAnalysisTimestamp(newTimestamp);
         
         const newAnalysisEntry: AIAnalysis = {
+          userId: appData.user?.id || 'user-1', // Assuming appData has user.id or provide a default
           id: uuidv4(),
           timestamp: newTimestamp,
           analysis: aiResult,
@@ -96,6 +100,12 @@ export function BusinessDashboard() {
         const updatedAnalyses = [...existingAnalyses, newAnalysisEntry];
 
         await PouchDBService.setDocument('aiAnalyses', updatedAnalyses);
+        // Update in-memory appData so UI consumers see the new entry immediately
+        try {
+          if (typeof setAppData === 'function') {
+            setAppData((prev: any) => ({ ...prev, aiAnalyses: updatedAnalyses }));
+          }
+        } catch (e) { console.warn('Failed to update in-memory appData with new aiAnalyses', e); }
       }
     } catch (error) {
       console.error("AI Analysis failed:", error);
@@ -162,6 +172,9 @@ export function BusinessDashboard() {
   const selectedTask = selectedTaskId ? appData?.tasks?.find((t: Task) => t.id === selectedTaskId) : null;
   const selectedClient = selectedTask ? appData?.clients?.find((c: Client) => c.id === selectedTask.clientId) : null;
   
+  // Check if API key is configured for main UI
+  const hasApiKeyInSettings = appData?.appSettings?.googleApiKey; // Changed variable name to avoid conflict with runFullAnalysis scope
+
   if (!isDataLoaded) {
       return (
           <div className="flex items-center justify-center p-8">
@@ -173,9 +186,46 @@ export function BusinessDashboard() {
 
   return (
     <div className="space-y-6 overflow-visible">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">{T.businessDashboardTitle || "Business Dashboard"}</h2>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={handleAiAnalysis}
+            disabled={isAiLoading || !hasApiKeyInSettings}
+            className="flex items-center gap-2 shadow-sm"
+          >
+            {isAiLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <Brain className="w-4 h-4" />
+                {T?.analyzeWithAI || 'Analyze with AI'}
+              </>
+            )}
+          </Button>
+          {!hasApiKeyInSettings && (
+            <Button variant="outline" size="sm" asChild>
+              <a href="/dashboard/settings" className="flex items-center gap-1"><Settings className="w-3 h-3" />Settings</a>
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* API Key Warning */}
+      {!hasApiKeyInSettings && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            {T?.apiKeyRequiredDesc || 'API key required for AI analysis'} 
+            <Button variant="link" className="p-0 h-auto ml-1" asChild>
+              <a href="/dashboard/settings">Configure API key in Settings</a>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
       
       <div className={cn("flex flex-col lg:flex-row gap-6 items-start transition-all duration-500", isAnalysisPanelVisible ? "" : "lg:justify-center")}>
         <div className={cn("space-y-6 transition-all duration-500", isAnalysisPanelVisible ? "lg:w-[60%]" : "lg:w-[70%] xl:w-[65%] mx-auto")}>
@@ -199,7 +249,7 @@ export function BusinessDashboard() {
            <AIBusinessAnalysisCard 
                 analysis={analysis}
                 isLoading={isAiLoading}
-                onGenerate={handleAiAnalysis}
+                // onGenerate={handleAiAnalysis} // Remove this, as the button is now outside
                 analysisTimestamp={analysisTimestamp}
            />
           )}

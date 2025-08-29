@@ -23,7 +23,7 @@ interface AIBusinessAnalysisResult {
 
 interface AIBusinessAnalysisCardProps {
   analysis: AIBusinessAnalysisResult | null; // Use the structured type
-  onGenerate: () => void;
+  onGenerate?: () => void; // Make onGenerate optional
   isLoading: boolean;
   analysisTimestamp?: string; // Add timestamp prop
 }
@@ -40,41 +40,43 @@ const getSeverityColor = (severity: string) => {
   }
 };
 
+// Helper to determine color class for category
+const getCategoryColorClass = (category: string) => {
+  switch (category) {
+    case 'Risk': return 'text-red-600';
+    case 'Opportunity': return 'text-green-600';
+    case 'Optimization': return 'text-blue-600';
+    default: return 'text-gray-600';
+  }
+};
+
 export function AIBusinessAnalysisCard({ analysis, onGenerate, isLoading, analysisTimestamp }: AIBusinessAnalysisCardProps) {
   return (
-    <Card className="h-full flex flex-col">
+    <div className="space-y-4">
+      {/* Removed the internal Analyze button from here */}
+
+      {/* Main Analysis Card */}
+      <Card className="h-full flex flex-col pt-6">
       <CardHeader>
         <div className="flex justify-between items-start">
-            <div>
-                <CardTitle className="flex items-center gap-2">
-                    <Lightbulb className="w-5 h-5 text-primary" />
-                    AI Business Analysis
-                </CardTitle>
-                {analysisTimestamp ? (
-                  <CardDescription>Last analyzed: {new Date(analysisTimestamp).toLocaleString()}</CardDescription>
-                ) : (
-                  <CardDescription>Generate insights from your business data.</CardDescription>
-                )}
-            </div>
-            <Button onClick={onGenerate} disabled={isLoading} size="sm">
-                {isLoading ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Analyzing...
-                    </>
-                ) : (
-                    <>
-                        <Brain className="mr-2 h-4 w-4" />
-                        Analyze
-                    </>
-                )}
-            </Button>
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-primary" />
+              AI Business Analysis
+            </CardTitle>
+            {analysisTimestamp ? (
+              <CardDescription>Last analyzed: {new Date(analysisTimestamp).toLocaleString()}</CardDescription>
+            ) : (
+              <CardDescription>Generate insights from your business data.</CardDescription>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="flex-grow">
         {!analysis ? (
             <div className="text-center text-sm text-muted-foreground h-full flex flex-col items-center justify-center">
-                Click "Analyze" to get AI-powered insights for the selected date range.
+                {/* Changed text, as the button is now external */}
+                No analysis generated. Click "Analyze" to get AI-powered insights for the selected date range.
             </div>
         ) : (
           <div className="space-y-4">
@@ -112,16 +114,7 @@ export function AIBusinessAnalysisCard({ analysis, onGenerate, isLoading, analys
           </div>
         )}
       </CardContent>
-    </Card>
-  );
+      </Card>
+    </div>
+    );
 }
-
-// Helper to determine color class for category
-const getCategoryColorClass = (category: string) => {
-    switch (category) {
-        case 'Risk': return 'text-red-600';
-        case 'Opportunity': return 'text-green-600';
-        case 'Optimization': return 'text-blue-600';
-        default: return 'text-gray-600';
-    }
-};

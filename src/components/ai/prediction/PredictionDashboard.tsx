@@ -56,7 +56,7 @@ export function PredictionDashboard({ className = '' }: PredictionDashboardProps
     riskAssessments: [],
     performanceHistory: [],
     personalPatterns: {
-      userId: 'user-1',
+      userId: 'user-1', // Placeholder or get from auth context
       patternType: 'consistent',
       averageDeadlineAccuracy: 75,
       optimalBufferTime: 60,
@@ -71,7 +71,7 @@ export function PredictionDashboard({ className = '' }: PredictionDashboardProps
   // Initialize deadline metrics immediately without waiting for AI analysis
   const initializeDeadlineMetrics = async () => {
     try {
-      const userId = 'user-1'; // TODO: Get from auth context
+      const userId = appData.user?.id || 'user-1'; // TODO: Get from auth context, now using appData
       const di = new PersonalDeadlineIntelligence(userId);
       const dMetrics = await di.getDeadlineIntelligenceMetrics(tasks, appData.actions || []);
       setDeadlineMetrics(dMetrics);
@@ -164,7 +164,7 @@ export function PredictionDashboard({ className = '' }: PredictionDashboardProps
       setAnalysisTimestamp(null);
 
       // Step 2: Run deadline intelligence analysis only
-      const userId = 'user-1'; // TODO: Get from auth context
+      const userId = appData.user?.id || 'user-1'; // Use userId from appData
       
       const di = new PersonalDeadlineIntelligence(userId);
       const dMetrics = await di.getDeadlineIntelligenceMetrics(tasks, appData.actions || []);
@@ -232,6 +232,7 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
             const newTimestamp = new Date().toISOString();
             setAnalysisTimestamp(newTimestamp);
             const newAnalysisEntry: AIProductivityAnalysis = {
+              userId: userId, // Add userId
               id: uuidv4(),
               timestamp: newTimestamp,
               insights: valid,

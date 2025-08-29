@@ -204,7 +204,7 @@ export function BackupManager() {
       const saveAppData = (dashboard as any).saveAppData as (u: Partial<AppData>) => Promise<void>;
       if (restoreMode === 'replace') {
         // Build a full AppData snapshot and run collaborator sync for consistency
-        const fullReplace: AppData = {
+  const fullReplace: AppData = {
           tasks: (imported as any).tasks || [],
           quotes: (imported as any).quotes || [],
           collaboratorQuotes: (imported as any).collaboratorQuotes || [],
@@ -218,12 +218,13 @@ export function BackupManager() {
           workSessions: (imported as any).workSessions || [],
           expenses: (imported as any).expenses || [],
           fixedCosts: (imported as any).fixedCosts || [],
+          aiAnalyses: (imported as any).aiAnalyses || [],
         } as AppData;
         const synced = CollaboratorDataService.processImportedData(fullReplace as any);
         await saveAppData(synced as any);
       } else {
         const current = ((dashboard as any).appData || {}) as Partial<AppData> & Record<string, any>;
-        const joined: AppData = {
+  const joined: AppData = {
           tasks: mergeById<any>(current.tasks || [], (imported as any).tasks || []) as any,
           quotes: mergeById<any>(current.quotes || [], (imported as any).quotes || []) as any,
           collaboratorQuotes: mergeById<any>(current.collaboratorQuotes || [], (imported as any).collaboratorQuotes || []) as any,
@@ -237,6 +238,7 @@ export function BackupManager() {
           workSessions: mergeById<any>(current.workSessions || [], (imported as any).workSessions || []) as any,
           expenses: mergeById<any>(current.expenses || [], (imported as any).expenses || []) as any,
           fixedCosts: mergeById<any>(current.fixedCosts || [], (imported as any).fixedCosts || []) as any,
+          aiAnalyses: mergeById<any>(current.aiAnalyses || [], (imported as any).aiAnalyses || []) as any,
         } as AppData;
         const syncedJoined = CollaboratorDataService.syncCollaboratorData(joined as any, true);
         await saveAppData(syncedJoined as any);

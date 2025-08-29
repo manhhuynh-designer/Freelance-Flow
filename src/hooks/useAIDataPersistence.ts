@@ -1,6 +1,7 @@
-'use client';
+ 'use client';
 
 import { useState, useEffect } from 'react';
+import { PouchDBService } from '@/lib/pouchdb-service';
 
 interface PersistentAIData {
   conversationHistory: any[];
@@ -27,9 +28,29 @@ export function useAIDataPersistence() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Load data on mount
+  // Load data on mount. Prefer PouchDB app documents when available (server-synced).
   useEffect(() => {
-    loadAIData();
+    (async () => {
+      // Try to load AI persistent data from PouchDB first
+      try {
+        const doc = await PouchDBService.getDocument('aiAnalyses');
+        if (doc && (doc as any).data) {
+          // If aiAnalyses doc exists, we can map it into financialInsights for backwards compatibility
+          const docData = (doc as any).data;
+          setPersistentData(prev => ({ ...prev, financialInsights: Array.isArray(docData) ? docData : prev.financialInsights }));
+          console.log('🔄 AI data loaded from PouchDB aiAnalyses document');
+        } else {
+          // Fallback to localStorage
+          loadAIData();
+        }
+      } catch (err) {
+        console.warn('⚠️ PouchDB aiAnalyses not available, falling back to localStorage', err);
+        loadAIData();
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-save every 30 seconds
@@ -82,16 +103,19 @@ export function useAIDataPersistence() {
         lastUpdateTime: new Date().toISOString()
       };
 
-      // Save to localStorage
-      localStorage.setItem(AI_STORAGE_KEY, JSON.stringify(dataToSave));
-      
-      // Create backup
-      const currentData = localStorage.getItem(AI_STORAGE_KEY);
-      if (currentData) {
-        localStorage.setItem(AI_BACKUP_KEY, currentData);
+      // Prefer saving into PouchDB app documents so AI data is part of appData backups.
+      try {
+        // Save as 'aiAnalyses' document (this keeps historical analyses accessible to other users/devices)
+        await PouchDBService.setDocument('aiAnalyses', dataToSave.financialInsights || []);
+        console.log('💾 AI data saved to PouchDB aiAnalyses document');
+      } catch (pErr) {
+        console.warn('⚠️ Could not save AI data to PouchDB, falling back to localStorage', pErr);
+        // Save to localStorage as fallback
+        localStorage.setItem(AI_STORAGE_KEY, JSON.stringify(dataToSave));
+        // Create backup
+        const currentData = localStorage.getItem(AI_STORAGE_KEY);
+        if (currentData) localStorage.setItem(AI_BACKUP_KEY, currentData);
       }
-
-      console.log('💾 AI data saved successfully');
     } catch (error) {
       console.error('❌ Error saving AI data:', error);
       throw error;

@@ -189,6 +189,8 @@ export class ExcelBackupService {
 
       // Add AI/local-only data as JSON strings in a dedicated sheet
       const aiDataRows: any[] = [];
+      // Prefer including centralized `aiAnalyses` when available (stored in appData / PouchDB)
+      if (anyData.aiAnalyses) aiDataRows.push({ Key: 'aiAnalyses', JSON: JSON.stringify(anyData.aiAnalyses) });
       if (anyData.aiPersistentData) aiDataRows.push({ Key: 'freelance-flow-ai-persistent-data', JSON: JSON.stringify(anyData.aiPersistentData) });
       if (anyData.aiWritingPresets) aiDataRows.push({ Key: 'ai-writing-presets', JSON: JSON.stringify(anyData.aiWritingPresets) });
       if (anyData.aiWritingHistory) aiDataRows.push({ Key: 'ai-writing-history', JSON: JSON.stringify(anyData.aiWritingHistory) });
@@ -336,7 +338,8 @@ export class ExcelBackupService {
             try { map[row.Key] = JSON.parse(row.JSON); } catch { /* ignore */ }
           }
         });
-        if (map['freelance-flow-ai-persistent-data']) (importedData as any).aiPersistentData = map['freelance-flow-ai-persistent-data'];
+  if (map['aiAnalyses']) (importedData as any).aiAnalyses = map['aiAnalyses'];
+  if (map['freelance-flow-ai-persistent-data']) (importedData as any).aiPersistentData = map['freelance-flow-ai-persistent-data'];
         if (map['ai-writing-presets']) (importedData as any).aiWritingPresets = map['ai-writing-presets'];
         if (map['ai-writing-history']) (importedData as any).aiWritingHistory = map['ai-writing-history'];
         if (map['ai-writing-versions']) (importedData as any).aiWritingVersions = map['ai-writing-versions'];

@@ -56,6 +56,22 @@ export const PouchDBService = {
       throw err;
     }
   },
+async removeDocument(id: DocumentID): Promise<void> {
+    const db = await getDb();
+    try {
+      const doc = await this.getDocument(id);
+      if (doc) {
+        await db.remove(doc._id, doc._rev);
+      }
+    } catch (err) {
+      console.error(`[PouchDB] removeDocument failed for '${id}':`, err);
+      // Don't throw if document doesn't exist, as this is expected for optional docs.
+      // Re-throw for other errors.
+      if (! (err instanceof Error && err.name === 'not_found') ) {
+          throw err;
+      }
+    }
+  },
 
   async loadAppData(): Promise<AppData> {
       console.log("[DEBUG] loadAppData starting...");

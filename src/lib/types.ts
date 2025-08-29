@@ -281,6 +281,7 @@ export type FilterPreset = {
 // NEW: For saving AI analysis results
 export type AIAnalysis = {
   id: string;
+  userId: string; // NEW: Associate with user
   timestamp: string; // ISO string
   analysis: any; // The full analysis object from getAIBusinessAnalysis
 };
@@ -288,6 +289,7 @@ export type AIAnalysis = {
 // NEW: For saving Productivity AI analysis results
 export type AIProductivityAnalysis = {
   id: string;
+  userId: string; // NEW: Associate with user
   timestamp: string; // ISO string
   insights: any[]; // The structured insights
 };
