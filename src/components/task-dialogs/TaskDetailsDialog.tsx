@@ -33,6 +33,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { STATUS_INFO } from '@/lib/data';
 import { useToast } from "@/hooks/use-toast";
+import { useDashboard } from '@/contexts/dashboard-context';
 import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -50,6 +51,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+// IMPORT NEW COMPONENT
+import { TimelineCreatorTab } from "@/components/task-dialogs/TimelineCreatorTab";
+
 export interface TaskDetailsDialogProps {
   task: Task;
   client?: Client;
@@ -57,6 +61,7 @@ export interface TaskDetailsDialogProps {
   collaborators: Collaborator[];
   categories: Category[];
   quote?: Quote;
+  quotes?: Quote[]; // All quotes for intelligent timeline sync
   collaboratorQuotes?: Quote[]; // Changed to array to handle multiple collaborator quotes
   settings: AppSettings;
   isOpen: boolean;
@@ -67,6 +72,7 @@ export interface TaskDetailsDialogProps {
   onUpdateCollaboratorQuote?: (quoteId: string, updates: Partial<Quote>) => void;
   // Optional: parent can handle quick status updates
   onChangeStatus?: (taskId: string, statusId: string) => void;
+  onUpdateTask?: (updatedTask: Partial<Task> & { id: string }) => void;
 }
 
 // Date parsing utility
@@ -334,6 +340,7 @@ export function TaskDetailsDialog({
   collaborators,
   categories,
   quote,
+  quotes,
   collaboratorQuotes,
   settings,
   isOpen,
@@ -343,8 +350,27 @@ export function TaskDetailsDialog({
   onUpdateQuote,
   onUpdateCollaboratorQuote,
   onChangeStatus,
+  onUpdateTask, // Added for timeline functionality
 }: TaskDetailsDialogProps) {
-  const [selectedNav, setSelectedNav] = useState<'timeline' | 'price' | 'collaborator' | 'payment'>('timeline');
+  // Dashboard context fallback for updateTask persistence when parent doesn't pass onUpdateTask
+  const dashboard = useDashboard();
+  const contextUpdateTask = (dashboard && (dashboard.updateTask as any)) || undefined;
+  
+  // Stable update handler to prevent infinite loops in child components
+  const stableUpdateTaskHandler = useCallback((updatedTask: Partial<Task> & { id: string }) => {
+    console.log('TaskDetailsDialog: Saving task update', {
+      taskId: updatedTask.id,
+      milestonesCount: updatedTask.milestones?.length
+    });
+    
+    const handler = onUpdateTask ?? contextUpdateTask;
+    if (handler) {
+      handler(updatedTask);
+    } else {
+      console.warn('TaskDetailsDialog: No update handler available');
+    }
+  }, [onUpdateTask, contextUpdateTask]);
+  const [selectedNav, setSelectedNav] = useState<'timeline' | 'price' | 'collaborator' | 'payment' | 'timelineCreator'>('timeline');
   const [showAllBriefLinks, setShowAllBriefLinks] = useState(false);
   const [showAllDriveLinks, setShowAllDriveLinks] = useState(false);
   const { toast } = useToast();
@@ -505,22 +531,22 @@ export function TaskDetailsDialog({
       result: number | string;
       type: ColumnCalculationType;
     }> = [];
-
+ 
     // Process each column with calculations
     (quote.columns || defaultColumns).filter(col => 
       col.calculation && col.calculation.type && col.calculation.type !== 'none' && col.type === 'number'
     ).forEach(col => {
       if (!col.calculation) return; // Type guard
-
+ 
       const allValues = quote.sections!.flatMap((section) => 
         (section.items || []).map((item) => calculateRowValue(item, col, quote.columns || defaultColumns))
           .filter((v: number) => !isNaN(v))
       );
-
+ 
       let result: number | string = 0;
       let calculation = '';
       const calcType = col.calculation.type;
-
+ 
       switch (calcType) {
         case 'sum':
           result = allValues.reduce((acc, val) => acc + val, 0);
@@ -555,7 +581,7 @@ export function TaskDetailsDialog({
         default:
           return;
       }
-
+ 
       results.push({
         id: col.id,
         name: col.name,
@@ -564,10 +590,10 @@ export function TaskDetailsDialog({
         type: calcType
       });
     });
-
+ 
     return results;
   }, [quote, defaultColumns, calculateRowValue, T]);
-
+ 
   // Enhanced collaborator calculation results for all collaborator quotes
   const collaboratorCalculationResults = useMemo(() => {
     if (!taskCollaboratorQuotes || taskCollaboratorQuotes.length === 0) return [];
@@ -579,7 +605,7 @@ export function TaskDetailsDialog({
       result: number | string;
       type: ColumnCalculationType;
     }> = [];
-
+ 
     // Aggregate calculations across all collaborator quotes
     taskCollaboratorQuotes.forEach((collabQuote) => {
       if (!collabQuote?.sections) return;
@@ -588,16 +614,16 @@ export function TaskDetailsDialog({
         col.calculation && col.calculation.type && col.calculation.type !== 'none' && col.type === 'number'
       ).forEach((col: any) => {
         if (!col.calculation) return;
-
+ 
         const allValues = collabQuote.sections!.flatMap((section: any) => 
           (section.items || []).map((item: any) => calculateRowValue(item, col, collabQuote.columns || defaultColumns))
             .filter((v: number) => !isNaN(v))
         );
-
+ 
         let result: number | string = 0;
         let calculation = '';
         const calcType = col.calculation.type;
-
+ 
         switch (calcType) {
           case 'sum':
             result = allValues.reduce((acc: any, val: any) => acc + val, 0);
@@ -631,7 +657,7 @@ export function TaskDetailsDialog({
           default:
             return;
         }
-
+ 
         // Only add unique column results (avoid duplicates across collaborator quotes)
         const existingResult = results.find(r => r.id === col.id);
         if (!existingResult) {
@@ -650,7 +676,7 @@ export function TaskDetailsDialog({
         }
       });
     });
-
+ 
     return results;
   }, [taskCollaboratorQuotes, defaultColumns, calculateRowValue, T]);
 
@@ -819,7 +845,28 @@ export function TaskDetailsDialog({
                       }
 
                       let formattedValue: string = '';
-                      if (typeof displayValue === 'number') {
+                      
+                      // Special handling for timeline column
+                      if (col.id === 'timeline' && displayValue) {
+                        try {
+                          let timelineData: any = displayValue;
+                          
+                          // Handle both object and JSON string formats
+                          if (typeof timelineData === 'string') {
+                            timelineData = JSON.parse(timelineData);
+                          }
+                          
+                          if (timelineData && typeof timelineData === 'object' && timelineData.start && timelineData.end) {
+                            const start = new Date(timelineData.start).toLocaleDateString(settings.language === 'vi' ? 'vi-VN' : 'en-US');
+                            const end = new Date(timelineData.end).toLocaleDateString(settings.language === 'vi' ? 'vi-VN' : 'en-US');
+                            formattedValue = `${start} - ${end}`;
+                          } else {
+                            formattedValue = 'No timeline set';
+                          }
+                        } catch (e) {
+                          formattedValue = 'Invalid timeline data';
+                        }
+                      } else if (typeof displayValue === 'number') {
                         formattedValue = displayValue.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US');
                       } else {
                         formattedValue = String(displayValue);
@@ -943,7 +990,7 @@ export function TaskDetailsDialog({
             )}
             onClick={() => setSelectedNav('timeline')}
             type="button"
-          >{T.overview ?? 'Overview'}</button>
+          >{(T as any).overview ?? 'Overview'}</button>
           <button
             className={cn(
               "px-4 py-2 rounded-t text-sm font-medium transition border-b-2",
@@ -970,11 +1017,21 @@ export function TaskDetailsDialog({
             type="button"
             disabled={!quote && (!taskCollaboratorQuotes || taskCollaboratorQuotes.length === 0)}
           >{T.paymentSummary ?? 'Payments'}</button>
+           <button
+            className={cn(
+              "px-4 py-2 rounded-t text-sm font-medium transition border-b-2",
+              selectedNav === 'timelineCreator' ? 'border-primary text-primary bg-muted' : 'border-transparent text-muted-foreground hover:text-primary'
+            )}
+            onClick={() => setSelectedNav('timelineCreator')}
+            type="button"
+          >
+            {(T as any).timelineCreator || 'Timeline Creator'}
+          </button>
         </nav>
 
         {/* --- MAIN CONTENT: Scrollable, flush left --- */}
     <div className="flex-1 min-h-0 max-h-full overflow-y-auto pr-2 scrollbar-gutter-stable">
-          {/* Timeline Section */}
+          {/* Overview Section */}
           {selectedNav === 'timeline' && (
             <div className="space-y-4">
               {/* Overview Card with Progress Bar */}
@@ -1112,8 +1169,7 @@ export function TaskDetailsDialog({
                         </div>
                       </div>
                     </div>
-                  </div
->
+                  </div>
                     {calculationResults.length > 0 && (
                       <div className="mt-4">
                         <div className="text-xs text-muted-foreground mb-2">{(T as any).sumByColumn || 'Calculations'}</div>
@@ -1191,8 +1247,18 @@ export function TaskDetailsDialog({
               />
             </div>
           )}
+          {/* Timeline Creator Section */}
+          {selectedNav === 'timelineCreator' && (
+            <TimelineCreatorTab
+              task={task}
+              quote={quote}
+              quotes={quotes}
+              settings={settings}
+              onUpdateTask={stableUpdateTaskHandler}
+              onUpdateQuote={onUpdateQuote}
+            />
+          )}
         </div>
-
         {/* Actions (Delete/Duplicate/Edit) - always visible below main content */}
         <div className="flex justify-between items-center pt-4 border-t mt-6">
           <div className="flex items-center gap-2">
@@ -1242,9 +1308,9 @@ export function TaskDetailsDialog({
                   description: task.description || '',
                   briefLink: Array.isArray(task.briefLink) ? [...task.briefLink] : [],
                   driveLink: Array.isArray(task.driveLink) ? [...task.driveLink] : [],
-                  clientId: task.clientId || (clients.length > 0 ? clients[0]?.id : ''), // fallback to first client id if available
+                  clientId: task.clientId || (clients.length > 0 ? clients[0].id : ''), // fallback to first client id if available
                   collaboratorIds: Array.isArray(task.collaboratorIds) ? [...task.collaboratorIds] : [],
-                  categoryId: task.categoryId || (categories.length > 0 ? categories[0]?.id : ''), // fallback to first category id if available
+                  categoryId: task.categoryId || (categories.length > 0 ? categories[0].id : ''), // fallback to first category id if available
                   status: task.status,
                   subStatusId: task.subStatusId || '',
                   dates: {

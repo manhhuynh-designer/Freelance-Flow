@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { SmartContextPrioritizer, type ContextPriority } from '@/ai/context/smart-prioritizer';
+import { browserLocal } from '@/lib/browser';
 
 export interface ContextMemoryEntry {
   id: string;
@@ -51,7 +52,7 @@ export function useContextMemory(): UseContextMemoryReturn {
   // Load memory from localStorage on init
   useEffect(() => {
     try {
-      const savedMemory = localStorage.getItem(CONTEXT_MEMORY_KEY);
+      const savedMemory = browserLocal.getItem(CONTEXT_MEMORY_KEY);
       if (savedMemory) {
         const parsed = JSON.parse(savedMemory);
         const memoryWithDates = parsed.map((entry: any) => ({
@@ -61,7 +62,7 @@ export function useContextMemory(): UseContextMemoryReturn {
         setMemoryEntries(memoryWithDates);
       }
 
-      const savedPatterns = localStorage.getItem(CONTEXT_PATTERNS_KEY);
+      const savedPatterns = browserLocal.getItem(CONTEXT_PATTERNS_KEY);
       if (savedPatterns) {
         const parsed = JSON.parse(savedPatterns);
         const patternsWithDates = parsed.map((pattern: any) => ({
@@ -77,20 +78,10 @@ export function useContextMemory(): UseContextMemoryReturn {
 
   // Save memory to localStorage when it changes
   useEffect(() => {
-    try {
-      localStorage.setItem(CONTEXT_MEMORY_KEY, JSON.stringify(memoryEntries));
-    } catch (error) {
-      console.error('Failed to save context memory:', error);
-    }
+    try { browserLocal.setItem(CONTEXT_MEMORY_KEY, JSON.stringify(memoryEntries)); } catch (error) { console.error('Failed to save context memory:', error); }
   }, [memoryEntries]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(CONTEXT_PATTERNS_KEY, JSON.stringify(contextPatterns));
-    } catch (error) {
-      console.error('Failed to save context patterns:', error);
-    }
-  }, [contextPatterns]);
+  useEffect(() => { try { browserLocal.setItem(CONTEXT_PATTERNS_KEY, JSON.stringify(contextPatterns)); } catch (error) { console.error('Failed to save context patterns:', error); } }, [contextPatterns]);
 
   const addMemoryEntry = useCallback((entry: Omit<ContextMemoryEntry, 'id' | 'timestamp'>) => {
     const newEntry: ContextMemoryEntry = {
@@ -192,8 +183,7 @@ export function useContextMemory(): UseContextMemoryReturn {
   const clearMemory = useCallback(() => {
     setMemoryEntries([]);
     setContextPatterns([]);
-    localStorage.removeItem(CONTEXT_MEMORY_KEY);
-    localStorage.removeItem(CONTEXT_PATTERNS_KEY);
+  try { browserLocal.removeItem(CONTEXT_MEMORY_KEY); browserLocal.removeItem(CONTEXT_PATTERNS_KEY); } catch {}
     console.log('Context memory cleared');
   }, []);
 

@@ -43,6 +43,27 @@ import { ToastAction } from "@/components/ui/toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { vi, en } from "@/lib/i18n";
 
+// Helper function to create valid timeline data for new items
+const createInitialTimelineData = (startDate?: Date, endDate?: Date, itemIndex = 0, totalItems = 1) => {
+  const defaultStart = startDate || new Date();
+  const defaultEnd = endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+  
+  const totalDays = Math.ceil((defaultEnd.getTime() - defaultStart.getTime()) / (1000 * 60 * 60 * 24));
+  const itemDuration = Math.max(1, Math.floor(totalDays / totalItems));
+  
+  const startOffset = itemIndex * itemDuration;
+  const endOffset = Math.min(startOffset + itemDuration, totalDays);
+  
+  const itemStart = new Date(defaultStart.getTime() + startOffset * 24 * 60 * 60 * 1000);
+  const itemEnd = new Date(defaultStart.getTime() + endOffset * 24 * 60 * 60 * 1000);
+  
+  return JSON.stringify({
+    start: itemStart.toISOString(),
+    end: itemEnd.toISOString(),
+    color: `hsl(${(itemIndex * 60) % 360}, 60%, 55%)`
+  });
+};
+
 type QuoteManagerProps = {
   control: any;
   form: any;
@@ -57,6 +78,8 @@ type QuoteManagerProps = {
   onApplySuggestion?: (items: any[]) => void;
   onCopyFromQuote?: (e?: React.MouseEvent) => void;
   showCopyFromQuote?: boolean;
+  taskStartDate?: Date;
+  taskEndDate?: Date;
 };
 
 export const QuoteManager = ({
@@ -73,6 +96,8 @@ export const QuoteManager = ({
   onApplySuggestion,
   onCopyFromQuote,
   showCopyFromQuote = false,
+  taskStartDate,
+  taskEndDate,
 }: QuoteManagerProps) => {
   // Áp dụng cách lấy ngôn ngữ đúng theo cấu trúc i18n.ts mới
   const T = settings.language === 'en' ? en : vi;
@@ -433,7 +458,13 @@ export const QuoteManager = ({
     appendSection({
       id: `section-${Date.now()}`,
       name: T.untitledSection || "Untitled Section",
-      items: [{ description: "", unitPrice: 0, customFields: {} }]
+      items: [{ 
+        description: "", 
+        unitPrice: 0, 
+        customFields: { 
+          timeline: createInitialTimelineData(taskStartDate, taskEndDate, 0, 1)
+        } 
+      }]
     });
   };
 
@@ -874,8 +905,11 @@ export const QuoteManager = ({
 
       if (mode === 'replace') {
         // For replace: remap based on column indices rather than IDs
-        patchedItems = newItems.map((item) => {
+        patchedItems = newItems.map((item, itemIndex) => {
           const newItem: any = { description: '', unitPrice: 0, customFields: {} };
+          
+          // Always add timeline data for new items
+          newItem.customFields.timeline = createInitialTimelineData(taskStartDate, taskEndDate, itemIndex, newItems.length);
           
           // Always use description from parsed item
           newItem.description = item.description || '';
@@ -897,13 +931,18 @@ export const QuoteManager = ({
       } else if (mode === 'add-columns') {
         // For add-columns: map new column data correctly
         
-        patchedItems = newItems.map((item) => {
+        patchedItems = newItems.map((item, itemIndex) => {
           // Keep empty description and unitPrice for add-columns mode
           const newItem: any = { description: '', unitPrice: 0, customFields: {} };
+          
+          // Always add timeline data for new items
+          newItem.customFields.timeline = createInitialTimelineData(taskStartDate, taskEndDate, itemIndex, newItems.length);
 
           // Initialize all existing columns with default values first
           finalColumns.slice(1).forEach(finalCol => {
-            newItem.customFields[finalCol.id] = getDefaultValue(finalCol.type);
+            if (finalCol.id !== 'timeline') { // Don't overwrite timeline
+              newItem.customFields[finalCol.id] = getDefaultValue(finalCol.type);
+            }
           });
 
           // Map all pasted columns data to the newly added columns
@@ -934,11 +973,16 @@ export const QuoteManager = ({
         patchedItems = newItems.map((item, itemIdx) => {
           const newItem: any = { description: '', unitPrice: 0, customFields: {} };
           
+          // Always add timeline data for new items
+          newItem.customFields.timeline = createInitialTimelineData(taskStartDate, taskEndDate, itemIdx, newItems.length);
+          
           // Map description
           newItem.description = item.description || '';
           
           // Map to existing columns by index (same as replace logic)
           finalColumns.slice(1).forEach((finalCol, finalColIdx) => {
+            if (finalCol.id === 'timeline') return; // Skip timeline as it's already set
+            
             // Find corresponding column in parsed data by index
             const originalColIdx = finalColIdx + 1; // +1 because we skip description
             const originalCol = newColumns[originalColIdx];
@@ -1315,6 +1359,8 @@ export const QuoteManager = ({
                 onUpdateColumnCalculation={handleUpdateColumnCalculation}
                 onAddColumn={handleAddColumn}
                 onPaste={handlePasteInSection}
+                taskStartDate={taskStartDate}
+                taskEndDate={taskEndDate}
               />
             ))}
             

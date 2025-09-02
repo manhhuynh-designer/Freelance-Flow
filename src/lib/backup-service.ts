@@ -6,6 +6,7 @@
 
 import type { AppData } from './types';
 import { ExcelBackupService } from './excel-backup-service';
+import { browserLocal } from '@/lib/browser';
 
 export class BackupService {
   private static readonly BACKUP_KEY = 'freelance-flow-backup';
@@ -19,12 +20,12 @@ export class BackupService {
    */
   static autoBackup(data: AppData): void {
     try {
-      const lastBackup = localStorage.getItem(this.AUTO_BACKUP_KEY);
+  const lastBackup = browserLocal.getItem(this.AUTO_BACKUP_KEY);
       const now = Date.now();
       
       if (!lastBackup || (now - parseInt(lastBackup)) > this.BACKUP_FREQUENCY) {
         this.createBackup(data);
-        localStorage.setItem(this.AUTO_BACKUP_KEY, now.toString());
+  browserLocal.setItem(this.AUTO_BACKUP_KEY, now.toString());
       }
     } catch (error) {
       console.error('Auto backup failed:', error);
@@ -42,7 +43,7 @@ export class BackupService {
     
     // Cập nhật last backup timestamp (tương thích với hệ thống cũ)
     const now = new Date();
-    localStorage.setItem(this.LAST_BACKUP_KEY, now.toISOString());
+  browserLocal.setItem(this.LAST_BACKUP_KEY, now.toISOString());
     
     if (format === 'excel') {
       // Return Excel data cho download
@@ -75,7 +76,7 @@ export class BackupService {
         existingBackups.splice(this.MAX_BACKUPS);
       }
 
-      localStorage.setItem(this.BACKUP_KEY, JSON.stringify(existingBackups));
+  browserLocal.setItem(this.BACKUP_KEY, JSON.stringify(existingBackups));
     } catch (error) {
       console.error('Create backup failed:', error);
     }
@@ -86,8 +87,8 @@ export class BackupService {
    */
   static getBackups(): any[] {
     try {
-      const backups = localStorage.getItem(this.BACKUP_KEY);
-      return backups ? JSON.parse(backups) : [];
+  const backupsRaw = browserLocal.getItem(this.BACKUP_KEY);
+  return backupsRaw ? JSON.parse(backupsRaw) : [];
     } catch (error) {
       console.error('Get backups failed:', error);
       return [];
@@ -113,7 +114,7 @@ export class BackupService {
    */
   static checkAndRestore(): AppData | null {
     try {
-      const mainData = localStorage.getItem('freelance-flow-data');
+  const mainData = browserLocal.getItem('freelance-flow-data');
       
       // Nếu dữ liệu chính bị mất hoặc rỗng
       if (!mainData || mainData === '{}') {
@@ -121,7 +122,7 @@ export class BackupService {
         if (backups.length > 0) {
           console.log('Main data lost, attempting restore from backup...');
           // Set flag để hiển thị notification
-          sessionStorage.setItem('data-was-restored', 'true');
+          try { if (typeof window !== 'undefined') sessionStorage.setItem('data-was-restored', 'true'); } catch {}
           return backups[0].data; // Restore từ backup mới nhất
         }
       }
@@ -142,26 +143,30 @@ export class BackupService {
       
       if (format === 'excel') {
         const { blob, filename } = await ExcelBackupService.exportAllBackupsAsExcel(backups);
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+            if (typeof window !== 'undefined') {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.download = filename;
+              link.href = url;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+            }
       } else {
         // Legacy JSON export
         const jsonString = JSON.stringify(backups, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = `freelance-flow-all-backups-${new Date().toISOString().split('T')[0]}.json`;
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        if (typeof window !== 'undefined') {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = `freelance-flow-all-backups-${new Date().toISOString().split('T')[0]}.json`;
+          link.href = url;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }
       }
     } catch (error) {
       console.error('Export all backups failed:', error);
@@ -173,11 +178,11 @@ export class BackupService {
    */
   static clearOldBackups(): void {
     try {
-      const backups = this.getBackups();
+  const backups = this.getBackups();
       const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
       
       const recentBackups = backups.filter(backup => backup.timestamp > oneWeekAgo);
-      localStorage.setItem(this.BACKUP_KEY, JSON.stringify(recentBackups));
+  browserLocal.setItem(this.BACKUP_KEY, JSON.stringify(recentBackups));
     } catch (error) {
       console.error('Clear old backups failed:', error);
     }
@@ -188,8 +193,7 @@ export class BackupService {
    */
   static clearAllBackups(): void {
     try {
-      localStorage.removeItem(this.BACKUP_KEY);
-      localStorage.removeItem(this.LAST_BACKUP_KEY);
+      try { browserLocal.removeItem(this.BACKUP_KEY); browserLocal.removeItem(this.LAST_BACKUP_KEY); } catch {}
     } catch (error) {
       console.error('Clear all backups failed:', error);
     }
@@ -202,7 +206,7 @@ export class BackupService {
     try {
       const backups = this.getBackups();
       const next = backups.filter(b => b.timestamp !== timestamp);
-      localStorage.setItem(this.BACKUP_KEY, JSON.stringify(next));
+  browserLocal.setItem(this.BACKUP_KEY, JSON.stringify(next));
     } catch (error) {
       console.error('Delete backup failed:', error);
     }

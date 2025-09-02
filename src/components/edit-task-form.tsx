@@ -138,6 +138,27 @@ const safeParseDate = (date: any, fallback: Date | null = null): Date | undefine
   return fallback ?? undefined;
 };
 
+// Helper function to create valid timeline data for new items
+const createInitialTimelineData = (startDate?: Date, endDate?: Date, itemIndex = 0, totalItems = 1) => {
+  const defaultStart = startDate || new Date();
+  const defaultEnd = endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+  
+  const totalDays = Math.ceil((defaultEnd.getTime() - defaultStart.getTime()) / (1000 * 60 * 60 * 24));
+  const itemDuration = Math.max(1, Math.floor(totalDays / totalItems));
+  
+  const startOffset = itemIndex * itemDuration;
+  const endOffset = Math.min(startOffset + itemDuration, totalDays);
+  
+  const itemStart = new Date(defaultStart.getTime() + startOffset * 24 * 60 * 60 * 1000);
+  const itemEnd = new Date(defaultStart.getTime() + endOffset * 24 * 60 * 60 * 1000);
+  
+  return JSON.stringify({
+    start: itemStart.toISOString(),
+    end: itemEnd.toISOString(),
+    color: `hsl(${(itemIndex * 60) % 360}, 60%, 55%)`
+  });
+};
+
 
 export function EditTaskForm({
   setOpen,
@@ -231,16 +252,29 @@ export function EditTaskForm({
       return quote.sections;
     }
     const fallbackId = taskToEdit?.id || `edit-${Date.now()}`;
+    const taskStart = safeParseDate(taskToEdit?.startDate, defaultDate);
+    const taskEnd = safeParseDate(taskToEdit?.deadline, defaultDate);
+    
     return [{
       id: `section-edit-${fallbackId}`,
       name: T.untitledSection,
-      items: [{ id: `item-edit-${fallbackId}-0`, description: "", unitPrice: 0, customFields: {} }]
+      items: [{ 
+        id: `item-edit-${fallbackId}-0`, 
+        description: "", 
+        unitPrice: 0, 
+        customFields: { 
+          timeline: createInitialTimelineData(taskStart, taskEnd, 0, 1)
+        } 
+      }]
     }];
   };
 
   const getInitialCollaboratorQuotes = () => {
     if (collaboratorQuotes && collaboratorQuotes.length > 0 && taskToEdit?.collaboratorQuotes) {
       // Filter out invalid/undefined quotes and ensure IDs are set for each item within sections
+      const taskStart = safeParseDate(taskToEdit?.startDate, defaultDate);
+      const taskEnd = safeParseDate(taskToEdit?.deadline, defaultDate);
+      
       return (collaboratorQuotes
         .map(cq => {
           // Find the actual collaborator ID using task.collaboratorQuotes for mapping
@@ -252,10 +286,12 @@ export function EditTaskForm({
             sections: cq.sections?.map(s => ({
               ...s,
               id: s.id || `section-${Date.now()}-${Math.random()}`,
-              items: s.items?.map(item => ({
+              items: s.items?.map((item, itemIndex) => ({
                 ...item,
                 id: item.id || `item-${Date.now()}-${Math.random()}`,
-                customFields: item.customFields || {},
+                customFields: item.customFields || (item.customFields?.timeline ? item.customFields : {
+                  timeline: createInitialTimelineData(taskStart, taskEnd, itemIndex, s.items?.length || 1)
+                }),
               })) || [],
             })) || [],
           };
@@ -450,11 +486,16 @@ export function EditTaskForm({
   );
 
   const handleApplySuggestion = useCallback((items: SuggestQuoteOutput['suggestedItems']) => {
-    const newItems = items.map((item: { description: string; unitPrice: number }) => ({
+    const taskStart = safeParseDate(taskToEdit?.startDate, defaultDate);
+    const taskEnd = safeParseDate(taskToEdit?.deadline, defaultDate);
+    
+    const newItems = items.map((item: { description: string; unitPrice: number }, index) => ({
         description: item.description,
         unitPrice: item.unitPrice,
         id: `item-sugg-${Date.now()}-${Math.random()}`,
-        customFields: {},
+        customFields: {
+          timeline: createInitialTimelineData(taskStart, taskEnd, index, items.length)
+        },
     }));
     form.setValue('sections', [{ id: 'section-ai-1', name: T.untitledSection, items: newItems }]);
     setColumns(defaultColumns);
@@ -792,6 +833,8 @@ export function EditTaskForm({
             taskDescription={watchedDescription || ''}
             taskCategory={categoryName}
             onApplySuggestion={handleApplySuggestion}
+            taskStartDate={form.getValues('dates').from}
+            taskEndDate={form.getValues('dates').to}
           />
 
           {/* Collaborator Section */}
@@ -885,6 +928,8 @@ export function EditTaskForm({
                         settings={settings}
                         onCopyFromQuote={() => handleCopyFromQuote(index)}
                         showCopyFromQuote={true}
+                        taskStartDate={form.getValues('dates').from}
+                        taskEndDate={form.getValues('dates').to}
                       />
                     </div>
                   ))}

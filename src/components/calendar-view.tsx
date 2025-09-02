@@ -143,10 +143,12 @@ export function CalendarView({
           task={selectedTask} client={clients.find(c => c.id === selectedTask.clientId)}
           clients={clients} collaborators={collaborators} categories={categories}
           quote={quotes.find(q => q.id === selectedTask.quoteId)}
+          quotes={quotes}
           collaboratorQuotes={selectedTask.collaboratorQuotes?.map(cq => collaboratorQuotes.find(q => q.id === cq.quoteId)).filter(Boolean) as Quote[] ?? []}
           settings={settings} isOpen={isTaskDetailsOpen} onClose={() => setIsTaskDetailsOpen(false)}
           onEdit={handleEditFromDetails} onDelete={handleTaskDelete}
           onChangeStatus={(taskId, statusId) => updateTask({ id: taskId, status: statusId as any })}
+          onUpdateTask={updateTask}
         />
       )}
 

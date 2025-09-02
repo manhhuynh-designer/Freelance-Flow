@@ -8,10 +8,11 @@ export type AppNotification = {
 }
 
 const KEY = 'ff:notifications'
+import { browserLocal } from './browser'
 
 export function getNotifications(): AppNotification[] {
   try {
-    const raw = localStorage.getItem(KEY)
+    const raw = browserLocal.getItem(KEY);
     if (!raw) return []
     return JSON.parse(raw) as AppNotification[]
   } catch (e) {
@@ -28,9 +29,9 @@ export function emitNotification(n: Omit<AppNotification, 'id' | 'time'>) {
       ...n,
     }
     const next = [item, ...existing].slice(0, 50)
-    localStorage.setItem(KEY, JSON.stringify(next))
-    // dispatch a storage event-like custom event so UI can listen if needed
-    window.dispatchEvent(new CustomEvent('ff:notification', { detail: item }))
+    browserLocal.setItem(KEY, JSON.stringify(next))
+    // dispatch a storage event-like custom event so UI can listen if needed (guarded)
+    try { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ff:notification', { detail: item })) } catch {}
   } catch (e) {
     // ignore
   }

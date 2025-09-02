@@ -1,0 +1,1088 @@
+/* Timeline Container - Main wrapper */
+.timelineContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 600px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  overflow: hidden;
+  /* Unified layout variables to keep left/right columns aligned */
+  --section-header-h: 40px;       /* exact header block height */
+  --section-header-mb: 2px;       /* spacing below header, inside section */
+  --section-group-mb: 2px;        /* spacing below the entire section group */
+  --row-height: 35px;             /* row height used by grid background */
+}
+
+.timelineContainer.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  min-height: 100vh;
+  border-radius: 0;
+  background: hsl(var(--background));
+  box-shadow: none;
+}
+
+/* Timeline Header - Fixed at top, outside scroll area */
+.timelineHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: hsl(var(--muted) / 0.1);
+  border-bottom: 1px solid hsl(var(--border));
+  flex-shrink: 0;
+  min-height: 40px;
+}
+
+/* Timeline Content Area - Shared scroll container for both columns */
+.timelineContent {
+  flex: 1;
+  position: relative;
+  overflow-y: auto; /* Enable shared scroll for both columns */
+  overflow-x: hidden;
+}
+
+/* Two Column Layout - Inside shared scroll container */
+.twoColumnLayout {
+  display: flex;
+  height: 100%;
+  min-height: 100%;
+}
+
+/* Left Column - Milestone List */
+.leftColumn {
+  width: 150px;
+  min-width: 140px;
+  max-width: 200px;
+  display: flex;
+  flex-direction: column;
+  overflow: visible; /* Remove separate scroll, use shared scroll */
+}
+
+/* Ensure milestone list containers don't create separate scrollbars */
+.leftColumn .milestoneList,
+.leftColumn .sectionGroup,
+.leftColumn .sectionMilestones {
+  overflow: visible !important;
+  margin-top: 2px;
+}
+
+/* Right Column - Timeline */
+.rightColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: visible; /* Remove separate scroll, use shared scroll */
+  min-width: 0; /* Allow shrinking */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .twoColumnLayout {
+    flex-direction: column;
+  }
+  
+  .leftColumn {
+    width: 100%;
+    max-width: none;
+    min-height: 200px;
+    /* Remove max-height to allow shared scroll to work */
+  }
+  
+  .rightColumn {
+    flex: 1;
+    min-height: 400px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .leftColumn {
+    width: 175px; /* Reduced from 350px to maintain compact layout */
+    max-width: 225px; /* Reduced from 450px */
+  }
+}
+
+/* Timeline Toolbar - Minimal */
+.timelineToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: hsl(var(--muted) / 0.1);
+  border-bottom: 1px solid hsl(var(--border));
+  flex-shrink: 0;
+  min-height: 40px;
+}
+
+.toolbarSection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.viewModeGroup {
+  display: flex;
+  background: hsl(var(--muted));
+  border-radius: var(--radius);
+  padding: 1px;
+}
+
+.toolbarBtn {
+  padding: 0.375rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  border-radius: calc(var(--radius) - 1px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 2rem;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbarBtn:hover {
+  background: hsl(var(--muted-foreground) / 0.1);
+  color: hsl(var(--foreground));
+}
+
+.toolbarBtn.active {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 1px 3px hsl(var(--shadow) / 0.2);
+}
+
+.toolbarBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.zoomControls {
+  display: flex;
+  background: hsl(var(--muted));
+  border-radius: var(--radius);
+  padding: 1px;
+}
+
+/* Simple Header - Contains Reload and Fullscreen buttons */
+.simpleHeader {
+  padding: 0.5rem;
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  min-height: 48px; /* Match dateHeader height */
+  align-items: center;
+  gap: 0.5rem; /* Add spacing between buttons */
+}
+
+.fullscreenBtn {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  color: hsl(var(--foreground));
+  padding: 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+}
+
+.fullscreenBtn:hover {
+  background: hsl(var(--muted));
+  border-color: hsl(var(--primary));
+}
+
+/* Status Messages */
+.statusMessage {
+  padding: 0.25rem;
+  margin: 0.25rem;
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.noQuoteMessage {
+  background: hsl(var(--muted) / 0.5);
+  color: hsl(var(--muted-foreground));
+  padding: 0.375rem;
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px dashed hsl(var(--border));
+}
+
+.outOfSyncMessage {
+  background: hsl(var(--destructive) / 0.1);
+  color: hsl(var(--destructive));
+  padding: 0.375rem;
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px solid hsl(var(--destructive) / 0.3);
+}
+
+.createTimelineMessage {
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  padding: 0.375rem;
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px solid hsl(var(--primary) / 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.createTimelineBtn {
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.createTimelineBtn:hover {
+  background: hsl(var(--primary) / 0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px hsl(var(--shadow) / 0.1);
+}
+
+/* Compact Controls in Sidebar Header */
+.compactControls {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  justify-content: center;
+}
+
+.compactControls .toolbarBtn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  min-width: 1.75rem;
+}
+
+/* Milestone Count */
+.milestoneCount {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Sync Status */
+.syncStatus {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: hsl(var(--primary));
+  font-weight: 500;
+}
+
+.syncText {
+  font-size: 9px;
+}
+
+/* Quote Info */
+.quoteInfo {
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  color: hsl(var(--muted-foreground));
+  font-weight: 400;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.sectionCount, .itemCount {
+  padding: 2px 6px;
+  background: hsl(var(--muted));
+  border-radius: 4px;
+  font-size: 9px;
+}
+
+/* Milestone List */
+.milestoneList {
+  flex: 1;
+  overflow: visible; /* Remove separate scroll - use shared scroll */
+  padding: 0 0.5rem 0.5rem 0.5rem;
+  position: relative;
+}
+
+/* Milestone Item in Sidebar - Use relative positioning for better section alignment */
+.milestoneItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem; /* Reduced gap for smaller width */
+  padding: 8px 4px; /* Reduced padding for compact layout */
+  margin: 0px 8px; /* Consistent margin */
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: calc(var(--radius) - 2px);
+  transition: all 0.15s ease;
+  height: 35px; /* Fixed height to match timeline bars (rowHeight) */
+  box-sizing: border-box;
+}
+
+.milestoneItem:hover {
+  border-color: hsl(var(--primary) / 0.4);
+  box-shadow: 0 1px 3px hsl(var(--shadow) / 0.1);
+}
+
+.milestoneColor {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.milestoneInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.milestoneName {
+  font-size: 0.7rem; /* Reduced for compact layout */
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.milestoneDates {
+  font-size: 0.6rem; /* Reduced for compact layout */
+  color: hsl(var(--muted-foreground));
+  font-weight: 400;
+}
+
+.colorBtn {
+  width: 16px; /* Reduced for compact layout */
+  height: 16px; /* Reduced for compact layout */
+  border: 1px solid rgba(255,255,255,0.2);
+  background: hsl(var(--muted)); /* Fallback color */
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px; /* Reduced font size */
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.colorBtn:hover {
+  transform: scale(1.1);
+  border-color: rgba(255,255,255,0.4);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Sidebar Container */
+.sidebarContainer {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.milestoneList {
+  flex: 1;
+  overflow: visible; /* Use shared scroll from parent container */
+  padding: 0.25rem;
+}
+
+/* Color definitions for milestone indicators */
+.milestoneColor[data-color="#3b82f6"] { background-color: #3b82f6; }
+.milestoneColor[data-color="#10b981"] { background-color: #10b981; }
+.milestoneColor[data-color="#f59e0b"] { background-color: #f59e0b; }
+.milestoneColor[data-color="#ef4444"] { background-color: #ef4444; }
+.milestoneColor[data-color="#8b5cf6"] { background-color: #8b5cf6; }
+.milestoneColor[data-color="#64748b"] { background-color: #64748b; }
+
+/* Main Timeline Area */
+.mainTimelineArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: hsl(var(--card));
+}
+
+/* Container / sheet */
+.container {
+  background-color: #f1f5f9;
+  font-family: "Be Vietnam Pro", sans-serif;
+}
+.sheet {
+  background: #fff;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+}
+.milestoneContainer {
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  /* Remove border, margin, background to eliminate the red frame */
+}
+.dateHeader {
+  position: sticky;
+  top: 0;
+  background: hsl(var(--muted) / 0.5);
+  border-bottom: 1px solid hsl(var(--border));
+  display: flex;
+  flex-direction: row;
+  height: 48px;
+  box-sizing: border-box;
+  z-index: 60;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.dateHeader::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: hsl(var(--border));
+  pointer-events: none;
+}
+.dayCell {
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  border-right: 1px solid hsl(var(--border));
+  box-sizing: border-box;
+  line-height: 40px;
+  overflow: hidden;
+}
+
+.milestoneBar, .milestone-bar {
+  position: relative;
+  height: 30px; /* Slightly smaller than milestoneRow (35px) to allow for spacing */
+  margin-bottom: 0; /* Avoid double-spacing; spacing handled by .milestoneRow */
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  padding: 0 14px 0 12px;
+  font-size: 0.875rem; /* Slightly smaller font */
+  color: white;
+  overflow: visible;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px hsl(var(--shadow) / 0.1);
+  box-sizing: border-box;
+  /* Use margin-left for base positioning, let transform handle drag positioning */
+  margin-left: var(--left, 0px);
+  width: var(--width, 140px);
+  background: var(--ms-bg, hsl(var(--primary)));
+  will-change: transform, width, opacity;
+  cursor: grab;
+  z-index: 10;
+  margin-top: 10px;
+}
+
+/* Ensure text inside milestone bars is white regardless of global .milestoneName color */
+.milestoneBar .milestoneName,
+.milestone-bar .milestoneName {
+  color: #ffffff;
+}
+
+.milestoneBar:hover, .milestone-bar:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 20px hsl(var(--shadow) / 0.2);
+  z-index: 80;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Add smooth hover transition for milestone bars */
+.milestoneBar, .milestone-bar {
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1),
+              width 150ms cubic-bezier(0.4, 0, 0.2, 1),
+              filter 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced hover states for resize handles */
+.resize-handle-left:hover, .resize-handle-right:hover {
+  background: rgba(255,255,255,0.3);
+  transform: scale(1.1);
+  transition: all 0.15s ease;
+}
+
+/* Drag state - disable transitions during drag for smooth movement */
+.milestone-bar.isDragging,
+.milestoneBar.isDragging {
+  transition: none !important;
+  cursor: grabbing !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px hsl(var(--shadow) / 0.25);
+  z-index: 100 !important;
+}
+
+.is-dragging, .isDragging {
+  cursor: grabbing;
+  transition: none !important;
+  /* Allow transforms during drag but disable other transitions */
+}
+
+/* Enhanced drag preview effects */
+.dragPreview {
+  animation: dragPulse 0.6s ease-in-out infinite alternate;
+  /* Disable transitions during drag to prevent jittery behavior */
+  transition: none !important;
+  /* Add glow effect during drag */
+  filter: brightness(1.1) drop-shadow(0 0 8px rgba(59, 130, 246, 0.4));
+}
+
+/* Disable transitions on all child elements during drag */
+.dragPreview * {
+  transition: none !important;
+}
+
+/* Add hover animation for milestones ready to drag */
+.milestone-bar:not(.dragPreview):hover {
+  cursor: grab;
+  filter: brightness(1.05);
+}
+
+.milestone-bar:active {
+  cursor: grabbing;
+}
+
+@keyframes snapPulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes todayPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scaleX(1.5);
+  }
+}
+
+@keyframes dragPulse {
+  from {
+    filter: brightness(1);
+  }
+  to {
+    filter: brightness(1.1);
+  }
+}
+
+/* Container states */
+.dragging {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.dragging .milestone-bar:not(.is-dragging) {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+/* Today marker */
+.todayMarker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--today-position, 0);
+  width: 2px;
+  background: linear-gradient(to bottom, 
+    hsl(var(--destructive)) 0%, 
+    hsl(var(--destructive) / 0.8) 50%, 
+    hsl(var(--destructive)) 100%);
+  z-index: 50;
+  pointer-events: none;
+  animation: todayPulse 2s ease-in-out infinite;
+}
+
+.todayMarker::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -3px;
+  width: 8px;
+  height: 8px;
+  background: hsl(var(--destructive));
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px hsl(var(--card)), 0 0 8px hsl(var(--destructive) / 0.5);
+}
+
+/* Enhanced grid lines */
+.timelineScroller::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  /* Use explicit width so we can draw the final right-edge line exactly at the end */
+  width: var(--timeline-width, 100%);
+  top: 48px;
+  bottom: 0;
+  /* 1) vertical day lines, 2) horizontal row lines, 3) right-edge final vertical line */
+  background-image:
+    linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
+  linear-gradient(to bottom, hsl(var(--border) / 0.3) 1px, transparent 1px),
+    linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px);
+  background-size:
+  var(--day-width, 48px) 100%,
+  1px calc(var(--row-height, 35px) + 8px),
+    1px 100%;
+  background-position:
+    0 0,
+    0 0,
+    calc(var(--timeline-width, 100%) - 1px) 0; /* stick a 1px line to the far right edge */
+  background-repeat:
+    repeat,
+    repeat,
+    no-repeat;
+  z-index: 10;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+/* Enhanced grid during drag operations */
+.timelineScroller.dragging::before {
+  background-image:
+    linear-gradient(to right, hsl(var(--primary) / 0.6) 1px, transparent 1px),
+  linear-gradient(to bottom, hsl(var(--primary) / 0.2) 1px, transparent 1px),
+    linear-gradient(to right, hsl(var(--primary) / 0.6) 1px, transparent 1px);
+  background-size:
+  var(--day-width, 48px) 100%,
+  1px calc(var(--row-height, 35px) + 8px),
+    1px 100%;
+  background-position:
+    0 0,
+    0 0,
+  calc(var(--timeline-width, 100%) - 1px) 0;
+  background-repeat:
+    repeat,
+    repeat,
+    no-repeat;
+  opacity: 0.8;
+}
+
+/* Snap indicators */
+.timelineScroller.dragging::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 48px;
+  bottom: 0;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent,
+    transparent calc(var(--day-width, 48px) - 1px),
+    hsl(var(--primary) / 0.4) var(--day-width, 48px)
+  );
+  z-index: 11;
+  pointer-events: none;
+  animation: snapPulse 1.5s ease-in-out infinite;
+}
+.outside-label {
+  position: absolute;
+  left: calc(var(--width, 140px) + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  color: hsl(var(--foreground));
+  font-weight: 700;
+  white-space: nowrap;
+  z-index: 72;
+  display: none;
+}
+
+.milestoneName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 6px;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  pointer-events: none;
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 4px 12px hsl(var(--shadow) / 0.15);
+  /* position controlled via CSS variables set from JS for smooth updates */
+  left: var(--timeline-tooltip-left, 0px);
+  top: var(--timeline-tooltip-top, 0px);
+}
+
+.tooltipHidden {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 120ms ease, transform 120ms ease;
+  pointer-events: none;
+}
+
+.tooltipVisible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 80ms ease, transform 80ms ease;
+}
+.resizeHandle {
+  width: 16px;
+  height: 16px;
+  cursor: ew-resize;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.2);
+  display: inline-block;
+  box-sizing: border-box;
+}
+.resize-handle-left {
+  position: absolute;
+  left: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 24px;
+  cursor: ew-resize;
+  z-index: 75;
+}
+.resize-handle-right {
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 24px;
+  cursor: ew-resize;
+  z-index: 75;
+}
+.resize-handle-left:hover, .resize-handle-right:hover {
+  background: rgba(255,255,255,0.2);
+}
+.rowList {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  padding-top: 48px;
+  box-sizing: border-box;
+  border-right: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / 0.3);
+}
+.rowLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  height: 40px; /* match row height */
+}
+.rowLabel, .rowColorBtn {
+  color: hsl(var(--foreground)); /* Restore original text color for color column */
+}
+.rowColorBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  cursor: pointer;
+  box-shadow: 0 2px 4px hsl(var(--shadow) / 0.1);
+  transition: all 0.2s ease;
+}
+
+.rowColorBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px hsl(var(--shadow) / 0.15);
+}
+
+.rowBtnInteractive {
+  display: inline-block;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Controls row (used for the refresh button container) */
+.controlsRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+/* Color tooltip palette */
+.colorPalette {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  padding: 8px;
+  background: hsl(var(--card));
+  border-radius: 6px;
+  box-shadow: 0 4px 12px hsl(var(--shadow) / 0.2);
+  min-width: 200px;
+}
+
+/* Override pointer-events for color tooltip specifically */
+#color-tooltip {
+  pointer-events: auto !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  left: unset !important;
+  top: unset !important;
+}
+
+.colorSwatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.colorSwatch:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px hsl(var(--shadow) / 0.4);
+}
+
+/* Define all color swatches including the missing ones */
+.colorSwatch[data-color="#3b82f6"] { background-color: #3b82f6; }
+.colorSwatch[data-color="#10b981"] { background-color: #10b981; }
+.colorSwatch[data-color="#f59e0b"] { background-color: #f59e0b; }
+.colorSwatch[data-color="#ef4444"] { background-color: #ef4444; }
+.colorSwatch[data-color="#8b5cf6"] { background-color: #8b5cf6; }
+.colorSwatch[data-color="#64748b"] { background-color: #64748b; }
+.colorSwatch[data-color="#06b6d4"] { background-color: #06b6d4; }
+.colorSwatch[data-color="#84cc16"] { background-color: #84cc16; }
+.colorSwatch[data-color="#f97316"] { background-color: #f97316; }
+.colorSwatch[data-color="#ec4899"] { background-color: #ec4899; }
+.colorSwatch[data-color="#6366f1"] { background-color: #6366f1; }
+.colorSwatch[data-color="#14b8a6"] { background-color: #14b8a6; }
+.timelineArea {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  background: hsl(var(--card));
+  position: relative;
+}
+
+.milestoneRow { 
+  height: 35px; /* Match milestoneItem height in left column exactly (35px) */
+  margin-bottom: 8px; /* Keep per-row spacing consistent */
+  display: flex;
+  align-items: flex-start; /* Align to top to match left column alignment */
+  position: relative;
+}
+
+/* Section spacing in timeline area to match left column section headers */
+.timelineSectionSpacer {
+  height: var(--section-header-h);
+  margin-bottom: var(--section-header-mb);
+  background: transparent;
+}
+
+/* Bottom spacer per section in the timeline to match left column spacing */
+.timelineSectionBottomSpacer {
+  height: var(--section-group-mb);
+}
+
+/* Container for milestone bars - offset to align with left column */
+.milestoneBarsContainer {
+  margin-top: -48px; /* Align bars with left column content; equals sticky date header height */
+  position: relative;
+  z-index:50; /* Ensure bars appear above date header */
+}
+
+.timelineScroller {
+  overflow-x: auto;
+  position: relative;
+}
+
+.timelineScroller::-webkit-scrollbar {
+  height: 8px;
+}
+
+.timelineScroller::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+.timelineScroller::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground));
+  border-radius: 4px;
+}
+
+.timelineScroller::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--foreground) / 0.8);
+}
+
+/* (removed duplicate simple grid rule; unified above) */
+
+/* Section Grouping Styles */
+.sectionGroup {
+  margin-bottom: var(--section-group-mb);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  background: hsl(var(--muted) / 0.5);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-user-select: none;
+  user-select: none;
+  height: var(--section-header-h);
+  box-sizing: border-box;
+  margin-bottom: var(--section-header-mb);
+}
+
+.sectionHeader:hover {
+  background: hsl(var(--muted) / 0.8);
+}
+
+.expandBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-right: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: hsl(var(--muted-foreground));
+}
+
+.sectionName {
+  font-size: 0.8rem; /* Reduced size */
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  flex: 1;
+  min-width: 0; /* Allow shrinking */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap; /* Prevent line breaks */
+}
+
+.milestoneCount {
+  font-size: 0.7rem; /* Smaller count text */
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted));
+  padding: 2px 6px;
+  border-radius: 12px;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.sectionMilestones {
+  padding-left: 16px;
+  /* Container for relative positioned milestones */
+}
+
+/* When a section is collapsed, its milestone container shouldn't add any extra spacing */
+.sectionGroup.isCollapsed .sectionMilestones {
+  display: none;
+}
+
+.sectionMilestones .milestoneItem {
+  /* All milestones within sections use natural flow */
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  margin-bottom: 8px;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Section header spacer to align timeline with left column */
+.sectionHeaderSpacer {
+  height: var(--section-header-h);
+  margin-bottom: var(--section-header-mb);
+}
+
+/* Timeline Section Separators */
+.sectionSeparator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: hsl(var(--border));
+  z-index: 5;
+}
+
+.sectionLabel {
+  position: absolute;
+  left: 8px;
+  background: hsl(var(--background));
+  padding: 2px 6px;
+  font-size: 10px;
+  color: hsl(var(--muted-foreground));
+  border-radius: 3px;
+  z-index: 6;
+}
+
+/* Section Milestones Container - Use relative positioning for absolute children */
+.sectionMilestones {
+  position: relative;
+  min-height: 40px; /* Ensure container has height */
+}
+
+/* Today marker positioning */
+.todayMarker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: hsl(var(--destructive));
+  z-index: 10;
+  left: var(--today-position);
+}
+
+/* No milestones message */
+.noMilestonesMessage {
+  padding: 2rem;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+}
+
+.noMilestonesMessage p {
+  margin: 0;
+}
+
+.noMilestonesMessage p:last-child {
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}

@@ -37,6 +37,7 @@ type TaskListProps = {
     onPermanentDeleteTask: (taskId: string) => void;
     quoteTemplates: QuoteTemplate[];
     settings: AppSettings;
+  onViewTask: (taskId: string) => void;
 };
 
 export function TaskList({ 
@@ -55,6 +56,7 @@ export function TaskList({
     onPermanentDeleteTask,
     quoteTemplates,
     settings,
+  onViewTask,
 }: TaskListProps) {
   const T = i18n[settings.language];
   const visibleColumns = useMemo(() => (settings.dashboardColumns || []).filter(col => col.visible), [settings.dashboardColumns]);
@@ -62,7 +64,7 @@ export function TaskList({
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-x-auto md:sticky-header">
-        <div className="relative w-full">
+  <div className="relative w-full">
           <table className="w-full caption-bottom text-sm">
             <thead className="hidden md:table-header-group">
               {view === 'active' ? (
@@ -94,18 +96,12 @@ export function TaskList({
                           key={task.id}
                           task={task}
                           client={clients.find(c => c.id === task.clientId)}
-                          clients={clients}
                           collaborators={collaborators}
-                          categories={categories}
+                          category={categories.find(c => c.id === task.categoryId)}
                           quote={quotes.find(q => q.id === task.quoteId)}
-                          collaboratorQuotes={
-                              task.collaboratorQuotes 
-                                  ? task.collaboratorQuotes.map(cq => collaboratorQuotes.find(q => q.id === cq.quoteId)).filter(Boolean) as Quote[]
-                                  : (task as any).collaboratorQuoteId 
-                                      ? [collaboratorQuotes.find(q => q.id === (task as any).collaboratorQuoteId)].filter(Boolean) as Quote[]
-                                      : []
-                          }
+                          
                           status={STATUS_INFO.find(s => s.id === task.status)}
+                          onViewTask={onViewTask}
                           onEditTask={onEditTask}
                           onTaskStatusChange={onTaskStatusChange}
                           onDeleteTask={onDeleteTask}

@@ -127,6 +127,15 @@ export type Task = {
   progress?: number; // 0-100, tiến độ hoàn thành nhiệm vụ
   dependencies?: string[]; // mảng các task ID mà nhiệm vụ này phụ thuộc vào
   createdAt?: string; // Ngày thêm task
+  milestones?: Milestone[]; // Dữ liệu các mốc thời gian của task
+};
+export type Milestone = {
+  id: string;
+  name: string;
+  startDate: Date | string;
+  endDate: Date | string;
+  color?: string; // Optional color for the milestone bar
+  content?: string; // Additional details for the milestone
 };
 
 export type AppEvent = {

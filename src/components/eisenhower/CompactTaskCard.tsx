@@ -24,31 +24,31 @@ interface CompactTaskCardProps {
   task: Task;
   onClearQuadrant: (taskId: string) => void;
   variant?: 'matrix' | 'uncategorized';
-  // Props drilled down
-  settings: AppSettings;
-  clients: Client[];
-  collaborators: Collaborator[];
-  categories: Category[];
-  quoteTemplates: QuoteTemplate[];
-  quotes: Quote[];
-  collaboratorQuotes: Quote[];
-  handleEditTask: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
-  handleDeleteTask: (taskId: string) => void;
+  // Props drilled down (optional for usages that don't provide them)
+  settings?: AppSettings;
+  clients?: Client[];
+  collaborators?: Collaborator[];
+  categories?: Category[];
+  quoteTemplates?: QuoteTemplate[];
+  quotes?: Quote[];
+  collaboratorQuotes?: Quote[];
+  handleEditTask?: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
+  handleDeleteTask?: (taskId: string) => void;
 }
 
 export function CompactTaskCard({ 
     task, 
     onClearQuadrant, 
     variant = 'matrix',
-    settings,
-    clients,
-    collaborators,
-    categories,
-    quoteTemplates,
-    quotes,
-    collaboratorQuotes,
-    handleEditTask,
-    handleDeleteTask,
+  settings,
+  clients = [],
+  collaborators = [],
+  categories = [],
+  quoteTemplates = [],
+  quotes = [],
+  collaboratorQuotes = [],
+  handleEditTask,
+  handleDeleteTask,
 }: CompactTaskCardProps) {
   const containerId = task.eisenhowerQuadrant || 'uncategorized';
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ 
@@ -74,7 +74,7 @@ export function CompactTaskCard({
     onClearQuadrant(task.id);
   };
   
-  const language = settings.language;
+  const language = settings?.language ?? 'en';
   const T = language === 'vi' ? vi : en;
 
   const style = {
@@ -174,6 +174,7 @@ export function CompactTaskCard({
           collaborators={collaborators}
           categories={categories}
           quote={taskQuote}
+          quotes={quotes}
           collaboratorQuotes={taskCollaboratorQuotes}
           settings={settings}
           isOpen={isDetailsOpen}
@@ -266,6 +267,7 @@ export function CompactTaskCard({
         collaborators={collaborators}
         categories={categories}
         quote={taskQuote}
+        quotes={quotes}
         collaboratorQuotes={taskCollaboratorQuotes}
         settings={settings}
         isOpen={isDetailsOpen}

@@ -44,34 +44,34 @@ const eisenhowerSchemes = {
 
 interface KanbanTaskCardProps {
   task: Task;
-  // Drilled Props
-  clients: Client[];
-  categories: Category[];
-  quotes: Quote[];
-  collaboratorQuotes: Quote[];
-  collaborators: Collaborator[];
-  appSettings: AppSettings;
+  // Drilled Props (optional)
+  clients?: Client[];
+  categories?: Category[];
+  quotes?: Quote[];
+  collaboratorQuotes?: Quote[];
+  collaborators?: Collaborator[];
+  appSettings?: AppSettings;
   handleTaskStatusChange?: (taskId: string, status: Task['status'], subStatusId?: string) => void;
-  handleDeleteTask: (taskId: string) => void;
-  handleEditTask: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
-  handleAddClientAndSelect: (data: Omit<Client, 'id'>) => Client;
-  quoteTemplates: QuoteTemplate[];
+  handleDeleteTask?: (taskId: string) => void;
+  handleEditTask?: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
+  handleAddClientAndSelect?: (data: Omit<Client, 'id'>) => Client;
+  quoteTemplates?: QuoteTemplate[];
 }
 
-export function KanbanTaskCard({ 
+export const KanbanTaskCard: React.FC<Partial<KanbanTaskCardProps>> = ({ 
     task, 
-    clients, 
-    categories, 
-    quotes, 
-    collaboratorQuotes,
-    collaborators, 
-    appSettings, 
+    clients = [], 
+    categories = [], 
+    quotes = [], 
+    collaboratorQuotes = [],
+    collaborators = [], 
+    appSettings,
     handleDeleteTask,
     handleEditTask,
     handleAddClientAndSelect,
-  quoteTemplates,
+  quoteTemplates = [],
   handleTaskStatusChange
-}: KanbanTaskCardProps) {
+}) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
   
   const scheme = appSettings?.eisenhowerColorScheme || 'colorScheme1';
@@ -87,7 +87,8 @@ export function KanbanTaskCard({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const T = i18n[appSettings.language];
+  const language = appSettings?.language ?? 'en';
+  const T = i18n[language];
 
   const category = categories.find(c => c.id === task.categoryId);
   const client = clients.find(c => c.id === task.clientId);
@@ -175,6 +176,7 @@ export function KanbanTaskCard({
           collaborators={collaborators}
           categories={categories}
           quote={quote}
+          quotes={quotes}
           collaboratorQuotes={taskCollaboratorQuotes}
           settings={appSettings}
           isOpen={isDetailsOpen}

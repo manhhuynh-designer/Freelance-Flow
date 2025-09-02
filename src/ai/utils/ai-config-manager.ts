@@ -5,6 +5,7 @@
 
 import type { AppSettings } from '@/lib/types';
 import { GeminiModel, ModelFallbackManager } from './gemini-models';
+import { browserLocal } from '@/lib/browser';
 
 export interface AIConfig {
   geminiApiKey: string | null;
@@ -50,11 +51,11 @@ export class AIConfigManager {
     }
 
     // Priority 2: Local storage (legacy support)
-    if (typeof window !== 'undefined') {
-      const localStorageKey = localStorage.getItem('gemini-api-key');
-      if (localStorageKey) {
-        return localStorageKey;
-      }
+    try {
+      const localStorageKey = browserLocal.getItem('gemini-api-key');
+      if (localStorageKey) return localStorageKey;
+    } catch (e) {
+      // ignore
     }
 
     // Priority 3: Environment variables (development/testing)

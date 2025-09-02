@@ -44,19 +44,37 @@ export const PouchDBService = {
 
   async setDocument(id: DocumentID, data: any): Promise<void> {
     const db = await getDb();
-    try {
-      const doc = await this.getDocument(id);
-      if (doc && (doc as any)._rev) {
-        await db.put({ _id: id, _rev: (doc as any)._rev, data });
-      } else {
-        await db.put({ _id: id, data });
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (attempts < maxAttempts) {
+      try {
+        const doc = await this.getDocument(id);
+        if (doc && (doc as any)._rev) {
+          await db.put({ _id: id, _rev: (doc as any)._rev, data });
+        } else {
+          await db.put({ _id: id, data });
+        }
+        return; // Success, exit the loop
+      } catch (err: any) {
+        attempts++;
+        
+        // Handle conflicts by refetching the latest revision
+        if (err.name === 'conflict' && attempts < maxAttempts) {
+          console.warn(`[PouchDB] Conflict detected for document '${id}', retrying... (attempt ${attempts}/${maxAttempts})`);
+          // Wait a brief moment before retrying
+          await new Promise(resolve => setTimeout(resolve, 50 * attempts));
+          continue;
+        }
+        
+        // For other errors or max attempts reached, throw the error
+        console.error(`[PouchDB] setDocument failed for '${id}' after ${attempts} attempts:`, err);
+        throw err;
       }
-    } catch (err) {
-      console.error(`[PouchDB] setDocument failed for '${id}':`, err);
-      throw err;
     }
   },
-async removeDocument(id: DocumentID): Promise<void> {
+
+  async removeDocument(id: DocumentID): Promise<void> {
     const db = await getDb();
     try {
       const doc = await this.getDocument(id);
@@ -73,9 +91,57 @@ async removeDocument(id: DocumentID): Promise<void> {
     }
   },
 
+  // Recovery method to handle severe database conflicts
+  async recoverFromConflicts(): Promise<void> {
+    console.warn("[PouchDB] Attempting database conflict recovery...");
+    const database = await getDb();
+    
+    try {
+      // Get all documents and resolve any conflicts
+      const result = await database.allDocs({ include_docs: true, conflicts: true });
+      
+      for (const row of result.rows) {
+        if (row.doc && (row.doc as any)._conflicts) {
+          console.warn(`[PouchDB] Resolving conflict for document: ${row.id}`);
+          
+          // For each conflicted document, keep the latest revision and delete conflicts
+          const conflicts = (row.doc as any)._conflicts;
+          for (const conflictRev of conflicts) {
+            try {
+              await database.remove(row.id, conflictRev);
+              console.log(`[PouchDB] Removed conflicted revision ${conflictRev} for ${row.id}`);
+            } catch (err) {
+              console.warn(`[PouchDB] Could not remove conflict revision:`, err);
+            }
+          }
+        }
+      }
+      
+      console.log("[PouchDB] Conflict recovery completed successfully");
+    } catch (err) {
+      console.error("[PouchDB] Conflict recovery failed:", err);
+      throw err;
+    }
+  },
+
   async loadAppData(): Promise<AppData> {
       console.log("[DEBUG] loadAppData starting...");
-      const database = await getDb();
+      
+      let database: PouchDB.Database;
+      let recoveryAttempted = false;
+      
+      try {
+        database = await getDb();
+      } catch (err: any) {
+        if (err.name === 'conflict' && !recoveryAttempted) {
+          console.warn("[PouchDB] Conflict detected during database initialization, attempting recovery...");
+          await this.recoverFromConflicts();
+          database = await getDb();
+          recoveryAttempted = true;
+        } else {
+          throw err;
+        }
+      }
 
       // Known document IDs (camelCase) for stability
       const ids: DocumentID[] = [
@@ -112,7 +178,34 @@ async removeDocument(id: DocumentID): Promise<void> {
           if (!existing) {
             const docData = (initialAppData as any)[id] ?? (Array.isArray((initialAppData as any)[id]) ? [] : (id === 'appSettings' ? (initialAppData as any).appSettings : []));
             console.log(`[DEBUG] Missing doc '${id}'. Initializing with defaults...`);
-            await database.put({ _id: id, data: docData });
+            
+            // Use conflict-resistant initialization
+            let initAttempts = 0;
+            const maxInitAttempts = 3;
+            
+            while (initAttempts < maxInitAttempts) {
+              try {
+                await database.put({ _id: id, data: docData });
+                break; // Success, exit the loop
+              } catch (initErr: any) {
+                initAttempts++;
+                
+                if (initErr.name === 'conflict' && initAttempts < maxInitAttempts) {
+                  console.warn(`[PouchDB] Conflict during initialization of '${id}', retrying... (attempt ${initAttempts}/${maxInitAttempts})`);
+                  // Check if document was created by another process
+                  const recheckExisting = await this.getDocument(id);
+                  if (recheckExisting) {
+                    console.log(`[DEBUG] Document '${id}' was created by another process, continuing...`);
+                    break;
+                  }
+                  await new Promise(resolve => setTimeout(resolve, 100 * initAttempts));
+                  continue;
+                }
+                
+                console.error(`[ERROR] Failed to initialize document '${id}' after ${initAttempts} attempts:`, initErr);
+                break; // Don't throw, just log and continue with other documents
+              }
+            }
           }
         }
       } catch (err) {
@@ -120,7 +213,20 @@ async removeDocument(id: DocumentID): Promise<void> {
       }
 
       // Fetch all documents explicitly by ID to avoid key-order bugs
-      const [appSettingsDoc, tasksDoc, clientsDoc, collaboratorsDoc, categoriesDoc, quotesDoc, collaboratorQuotesDoc, quoteTemplatesDoc, notesDoc, eventsDoc, workSessionsDoc, fixedCostsDoc, expensesDoc, aiAnalysesDoc, aiProductivityAnalysesDoc] = await Promise.all(ids.map(id => this.getDocument(id)));
+      let documents;
+      try {
+        documents = await Promise.all(ids.map(id => this.getDocument(id)));
+      } catch (err: any) {
+        if (err.name === 'conflict' && !recoveryAttempted) {
+          console.warn("[PouchDB] Conflict detected during document fetching, attempting recovery...");
+          await this.recoverFromConflicts();
+          documents = await Promise.all(ids.map(id => this.getDocument(id)));
+        } else {
+          throw err;
+        }
+      }
+      
+      const [appSettingsDoc, tasksDoc, clientsDoc, collaboratorsDoc, categoriesDoc, quotesDoc, collaboratorQuotesDoc, quoteTemplatesDoc, notesDoc, eventsDoc, workSessionsDoc, fixedCostsDoc, expensesDoc, aiAnalysesDoc, aiProductivityAnalysesDoc] = documents;
 
       const loadedData: AppData = {
           appSettings: (appSettingsDoc as any)?.data ?? initialAppData.appSettings,
@@ -141,5 +247,41 @@ async removeDocument(id: DocumentID): Promise<void> {
       };
       console.log("[DEBUG] loadAppData finished. Task count:", loadedData.tasks.length);
       return loadedData;
+  },
+
+  // Utility method to manually trigger conflict recovery
+  async manualRecovery(): Promise<void> {
+    console.log("[PouchDB] Manual recovery initiated...");
+    try {
+      await this.recoverFromConflicts();
+      console.log("[PouchDB] Manual recovery completed successfully");
+    } catch (err) {
+      console.error("[PouchDB] Manual recovery failed:", err);
+      throw err;
+    }
+  },
+
+  // Method to check database health
+  async checkDatabaseHealth(): Promise<{ healthy: boolean; conflicts: number; totalDocs: number }> {
+    try {
+      const database = await getDb();
+      const result = await database.allDocs({ include_docs: true, conflicts: true });
+      
+      let conflictCount = 0;
+      for (const row of result.rows) {
+        if (row.doc && (row.doc as any)._conflicts) {
+          conflictCount += (row.doc as any)._conflicts.length;
+        }
+      }
+      
+      return {
+        healthy: conflictCount === 0,
+        conflicts: conflictCount,
+        totalDocs: result.total_rows
+      };
+    } catch (err) {
+      console.error("[PouchDB] Health check failed:", err);
+      return { healthy: false, conflicts: -1, totalDocs: -1 };
+    }
   }
 };

@@ -66,20 +66,86 @@ export function useAppData() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: appData, isLoading } = useQuery('appData', () => PouchDBService.loadAppData().then(parseDates), {
-    refetchOnWindowFocus: false, staleTime: Infinity,
-  });
+  const { data: appData, isLoading, error } = useQuery('appData', 
+    async () => {
+      try {
+        return await PouchDBService.loadAppData().then(parseDates);
+      } catch (err: any) {
+        console.error('[useAppData] Error loading data:', err);
+        
+        // If it's a conflict error, try recovery once
+        if (err.name === 'conflict') {
+          console.warn('[useAppData] Detected conflict, attempting automatic recovery...');
+          try {
+            await PouchDBService.manualRecovery();
+            console.log('[useAppData] Recovery successful, retrying data load...');
+            return await PouchDBService.loadAppData().then(parseDates);
+          } catch (recoveryErr) {
+            console.error('[useAppData] Recovery failed:', recoveryErr);
+            toast({
+              title: "Database Conflict Detected",
+              description: "There was a conflict accessing your data. Please refresh the page or contact support if this persists.",
+              variant: "destructive",
+              duration: 10000,
+            });
+            // Return safe initial data as fallback
+            return parseDates(safeInitialAppData);
+          }
+        }
+        
+        // For other errors, show a general error and return fallback data
+        toast({
+          title: "Data Loading Error", 
+          description: "Could not load your data. Using defaults. Please refresh the page.",
+          variant: "destructive",
+          duration: 8000,
+        });
+        return parseDates(safeInitialAppData);
+      }
+    }, 
+    {
+      refetchOnWindowFocus: false, 
+      staleTime: Infinity,
+      retry: false, // Don't retry automatically, we handle it ourselves
+    });
   
   const mutation = useMutation('updateAppData',
     async (updates: Partial<AppData>) => {
       const currentData = queryClient.getQueryData<AppData>('appData') ?? safeInitialAppData;
       const newData = { ...currentData, ...updates };
-  await Promise.all(Object.keys(updates).map(key => PouchDBService.setDocument(key as DocumentID, newData[key as keyof AppData])));
-      return newData;
+      
+      try {
+        await Promise.all(Object.keys(updates).map(key => PouchDBService.setDocument(key as DocumentID, newData[key as keyof AppData])));
+        return newData;
+      } catch (err: any) {
+        console.error('[useAppData] Mutation error:', err);
+        
+        if (err.name === 'conflict') {
+          console.warn('[useAppData] Conflict during save, attempting recovery and retry...');
+          try {
+            await PouchDBService.manualRecovery();
+            // Retry the save operation
+            await Promise.all(Object.keys(updates).map(key => PouchDBService.setDocument(key as DocumentID, newData[key as keyof AppData])));
+            return newData;
+          } catch (retryErr) {
+            console.error('[useAppData] Retry after recovery failed:', retryErr);
+            throw new Error('Failed to save data due to database conflicts. Please try again.');
+          }
+        }
+        
+        throw err; // Re-throw non-conflict errors
+      }
     },
     {
       onSuccess: (updatedData) => { queryClient.setQueryData('appData', parseDates(updatedData)); },
-      onError: (error: any) => { toast({ title: "Data Sync Error", description: error.message, variant: "destructive" }); },
+      onError: (error: any) => { 
+        toast({ 
+          title: "Data Sync Error", 
+          description: error.message || "Failed to save data. Please try again.", 
+          variant: "destructive",
+          duration: 6000,
+        }); 
+      },
     }
   );
   

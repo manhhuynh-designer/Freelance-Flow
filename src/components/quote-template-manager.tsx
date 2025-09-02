@@ -53,7 +53,9 @@ export function QuoteTemplateManager({ templates, onAddTemplate, onEditTemplate,
     }));
 
     if (templateToEdit) {
-      onEditTemplate({ id: templateToEdit.id, name: values.name, sections: sectionsWithIds, columns });
+      // Ensure each section has a required 'name' field
+  const normalizedSections = sectionsWithIds.map(s => ({ id: s.id, name: s.name || 'Section', items: (s.items || []).map((it: any) => ({ description: it.description || '', unitPrice: Number(it.unitPrice || 0), customFields: it.customFields || {} })) }));
+      onEditTemplate({ id: templateToEdit.id, name: values.name || templateToEdit.name, sections: normalizedSections, columns });
     } else {
       onAddTemplate({name: values.name, sections: sectionsWithIds}, columns);
     }

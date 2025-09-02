@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import { browserLocal } from '@/lib/browser';
 import type { AppSettings } from '@/lib/types';
 import { i18n } from '@/lib/i18n';
 import { useAuth } from '@/hooks/use-auth';
@@ -31,17 +32,13 @@ export default function HomePage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    const storedSettings = localStorage.getItem('freelance-flow-settings');
-    if (storedSettings) {
-        try {
-            const parsedSettings: AppSettings = JSON.parse(storedSettings);
-            if (parsedSettings.language) {
-                setLanguage(parsedSettings.language);
-            }
-        } catch(e) {
-            console.error("Failed to parse settings from localStorage", e);
-        }
-    }
+    try {
+      const storedSettings = browserLocal.getItem('freelance-flow-settings');
+      if (storedSettings) {
+          const parsedSettings: AppSettings = JSON.parse(storedSettings);
+          if (parsedSettings.language) setLanguage(parsedSettings.language);
+      }
+    } catch(e) { console.error("Failed to parse settings from localStorage", e); }
   }, []);
   
   const T = i18n[language];
@@ -63,7 +60,7 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <Header />
+  <Header language={language} onLanguageChange={setLanguage} />
       <main className="flex-1">
         {/* Hero Section */}
         <section className="w-full py-20 md:py-32 lg:py-40 bg-secondary/40">

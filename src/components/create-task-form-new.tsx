@@ -111,6 +111,27 @@ type CreateTaskFormProps = {
   prefillCollaboratorColumns?: QuoteColumn[];
 };
 
+// Helper function to create valid timeline data for new items
+const createInitialTimelineData = (startDate?: Date, endDate?: Date, itemIndex = 0, totalItems = 1) => {
+  const defaultStart = startDate || new Date();
+  const defaultEnd = endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+  
+  const totalDays = Math.ceil((defaultEnd.getTime() - defaultStart.getTime()) / (1000 * 60 * 60 * 24));
+  const itemDuration = Math.max(1, Math.floor(totalDays / totalItems));
+  
+  const startOffset = itemIndex * itemDuration;
+  const endOffset = Math.min(startOffset + itemDuration, totalDays);
+  
+  const itemStart = new Date(defaultStart.getTime() + startOffset * 24 * 60 * 60 * 1000);
+  const itemEnd = new Date(defaultStart.getTime() + endOffset * 24 * 60 * 60 * 1000);
+  
+  return JSON.stringify({
+    start: itemStart.toISOString(),
+    end: itemEnd.toISOString(),
+    color: `hsl(${(itemIndex * 60) % 360}, 60%, 55%)`
+  });
+};
+
 export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>((props, ref) => {
   const { 
     setOpen, 
@@ -202,7 +223,13 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
       sections: [{ 
         id: `section-${Date.now()}`, 
         name: T.untitledSection, 
-        items: [{ description: "", unitPrice: 0, customFields: {} }] 
+        items: [{ 
+          description: "", 
+          unitPrice: 0, 
+          customFields: { 
+            timeline: createInitialTimelineData(defaultDate, defaultDate ? new Date(defaultDate.getTime() + 7 * 24 * 60 * 60 * 1000) : undefined, 0, 1)
+          } 
+        }] 
       }],
       collaboratorQuotes: [],
     }
@@ -221,10 +248,10 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
     name: "collaboratorQuotes" 
   });
   
-  const handleFormSubmit = (data: TaskFormValues) => {
-  onStartSaving?.();
-  // debug trace - POST to server so we can observe ordering in node logs
-  try { void fetch('/api/_trace-saving', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ source: 'CreateTaskForm', event: 'onStartSaving', ts: Date.now() }) }); } catch (e) {}
+  const handleFormSubmit = useCallback((data: TaskFormValues) => {
+    onStartSaving?.();
+    // debug trace - POST to server so we can observe ordering in node logs
+    try { void fetch('/api/_trace-saving', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ source: 'CreateTaskForm', event: 'onStartSaving', ts: Date.now() }) }); } catch (e) {}
     // Convert dates from form format to task format
     const cleanedData: any = {
       ...data,
@@ -238,15 +265,15 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
     // Remove the dates object since backend expects individual fields
     delete cleanedData.dates;
     
-  const newId = onFormSubmit(cleanedData, columns, collaboratorColumns);
+    const newId = onFormSubmit(cleanedData, columns, collaboratorColumns);
     
     // Reset form and dirty state
     form.reset();
     onDirtyChange?.(false);
     
     // Notify success - parent will handle closing
-  onSubmitSuccess?.(typeof newId === 'string' ? newId : undefined);
-  };
+    onSubmitSuccess?.(typeof newId === 'string' ? newId : undefined);
+  }, [onStartSaving, onFormSubmit, columns, collaboratorColumns, form, onDirtyChange, onSubmitSuccess]);
 
   useImperativeHandle(ref, () => ({
     handleSaveDraft() {
@@ -299,7 +326,7 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
         console.error('Failed to set initial values:', e);
       }
     }
-  }));
+  }), [getValues, onStartSaving, T, onFormSubmit, columns, collaboratorColumns, form, onDirtyChange, onSubmitSuccess, setColumns, setCollaboratorColumns]);
   
   const categoryId = useWatch({ control, name: 'categoryId' });
   const categoryName = useMemo(() => 
@@ -307,12 +334,15 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
     [categories, categoryId]
   );
 
-  const handleApplySuggestion = (items: SuggestQuoteOutput['suggestedItems']) => {
-    const newItems = items.map((item: SuggestQuoteOutput['suggestedItems'][number]) => ({
+  const handleApplySuggestion = useCallback((items: SuggestQuoteOutput['suggestedItems']) => {
+    const currentDates = getValues('dates');
+    const newItems = items.map((item: SuggestQuoteOutput['suggestedItems'][number], index) => ({
       description: item.description,
       unitPrice: item.unitPrice,
       id: `item-sugg-${Date.now()}-${Math.random()}`,
-      customFields: {},
+      customFields: {
+        timeline: createInitialTimelineData(currentDates.from, currentDates.to, index, items.length)
+      },
     }));
     setValue('sections', [{ id: 'section-ai-1', name: T.untitledSection, items: newItems }]);
     setColumns(defaultColumns);
@@ -320,9 +350,9 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
       title: T.suggestionApplied, 
       description: T.suggestionAppliedDesc?.replace('{count}', String(items.length)) 
     });
-  };
+  }, [getValues, setValue, setColumns, defaultColumns, T, toast]);
   
-  const handleCopyFromQuote = (targetCollaboratorIndex: number) => {
+  const handleCopyFromQuote = useCallback((targetCollaboratorIndex: number) => {
     const currentSections = getValues('sections');
     const currentQuotes = getValues('collaboratorQuotes') || [];
     
@@ -345,7 +375,7 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
         variant: "destructive"
       });
     }
-  };
+  }, [getValues, setValue, setCollaboratorColumns, columns, T, toast]);
 
   const handleAddClient = useCallback(() => {
     if (newClientName.trim() === "") {
@@ -664,6 +694,8 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
             taskDescription={getValues('description') || ''}
             taskCategory={categoryName}
             onApplySuggestion={handleApplySuggestion}
+            taskStartDate={getValues('dates').from}
+            taskEndDate={getValues('dates').to}
           />
 
           <Separator />
@@ -687,12 +719,19 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
                       variant="outline" 
                       size="sm"
                       onClick={() => {
+                        const currentDates = getValues('dates');
                         const newQuote = {
                           collaboratorId: '',
                           sections: [{
                             id: `section-collab-${Date.now()}`,
                             name: T.untitledSection,
-                            items: [{ description: "", unitPrice: 0, customFields: {} }]
+                            items: [{ 
+                              description: "", 
+                              unitPrice: 0, 
+                              customFields: { 
+                                timeline: createInitialTimelineData(currentDates.from, currentDates.to, 0, 1)
+                              } 
+                            }]
                           }]
                         };
                         collabAppendQuote(newQuote);
@@ -757,6 +796,8 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
                         settings={settings}
                         onCopyFromQuote={() => handleCopyFromQuote(index)}
                         showCopyFromQuote={true}
+                        taskStartDate={getValues('dates').from}
+                        taskEndDate={getValues('dates').to}
                       />
                     </div>
                   ))}

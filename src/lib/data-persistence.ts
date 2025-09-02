@@ -3,6 +3,8 @@
  * Hỗ trợ backup dữ liệu quan trọng vào IndexedDB
  */
 
+import { browserLocal } from '@/lib/browser';
+
 export class DataPersistenceService {
   private static readonly DB_NAME = 'freelance-flow-persist';
   private static readonly DB_VERSION = 1;
@@ -106,7 +108,7 @@ export class DataPersistenceService {
       const keys = ['freelance-flow-data', 'freelance-flow-backup'];
       
       for (const key of keys) {
-        const localData = localStorage.getItem(key);
+        const localData = browserLocal.getItem(key);
         if (localData) {
           await this.saveToIndexedDB(key, JSON.parse(localData));
         }
@@ -122,15 +124,15 @@ export class DataPersistenceService {
   static async restoreFromIndexedDB(): Promise<boolean> {
     try {
       const mainDataKey = 'freelance-flow-data';
-      const localData = localStorage.getItem(mainDataKey);
-      
+      const localData = browserLocal.getItem(mainDataKey);
+
       if (!localData || localData === '{}') {
         const indexedData = await this.getFromIndexedDB(mainDataKey);
         if (indexedData) {
-          localStorage.setItem(mainDataKey, JSON.stringify(indexedData));
+          browserLocal.setItem(mainDataKey, JSON.stringify(indexedData));
           console.log('Data restored from IndexedDB');
           // Set flag để hiển thị notification
-          sessionStorage.setItem('data-was-restored', 'true');
+          try { if (typeof window !== 'undefined') sessionStorage.setItem('data-was-restored', 'true'); } catch {}
           return true;
         }
       }

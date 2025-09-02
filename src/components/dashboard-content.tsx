@@ -427,6 +427,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
           collaborators={appData.collaborators}
           categories={appData.categories}
           quote={viewingTaskDetails.quote}
+          quotes={quotes}
           collaboratorQuotes={collaboratorQuotesForDetails}
           settings={appData.appSettings}
           onEdit={() => effectiveHandleEditTaskClick(viewingTaskDetails.task)}
@@ -434,6 +435,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
           onUpdateQuote={updateQuote}
           onUpdateCollaboratorQuote={updateCollaboratorQuote}
           onChangeStatus={(taskId, statusId) => handleTaskStatusChange?.(taskId, statusId as any)}
+          onUpdateTask={updateTask}
         />
       )}
 

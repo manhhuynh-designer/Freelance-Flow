@@ -71,6 +71,27 @@ import { useToast } from "@/hooks/use-toast";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
+// Helper function to create valid timeline data for new items
+const createInitialTimelineData = (startDate?: Date, endDate?: Date, itemIndex = 0, totalItems = 1) => {
+  const defaultStart = startDate || new Date();
+  const defaultEnd = endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+  
+  const totalDays = Math.ceil((defaultEnd.getTime() - defaultStart.getTime()) / (1000 * 60 * 60 * 24));
+  const itemDuration = Math.max(1, Math.floor(totalDays / totalItems));
+  
+  const startOffset = itemIndex * itemDuration;
+  const endOffset = Math.min(startOffset + itemDuration, totalDays);
+  
+  const itemStart = new Date(defaultStart.getTime() + startOffset * 24 * 60 * 60 * 1000);
+  const itemEnd = new Date(defaultStart.getTime() + endOffset * 24 * 60 * 60 * 1000);
+  
+  return JSON.stringify({
+    start: itemStart.toISOString(),
+    end: itemEnd.toISOString(),
+    color: `hsl(${(itemIndex * 60) % 360}, 60%, 55%)`
+  });
+};
+
 interface QuoteSectionComponentProps {
   sectionIndex: number;
   control: any;
@@ -86,6 +107,8 @@ interface QuoteSectionComponentProps {
   onUpdateColumnCalculation?: (colId: string, calculation: { type: string; formula?: string }) => void;
   onAddColumn?: (column: Omit<QuoteColumn, 'id'>) => void;
   T: any;
+  taskStartDate?: Date;
+  taskEndDate?: Date;
 }
 export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
   const {
@@ -102,7 +125,9 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
     onItemChange,
     onUpdateColumnCalculation,
     onAddColumn,
-    T
+    T,
+    taskStartDate,
+    taskEndDate
   } = props;
   // State management
   const [sectionName, setSectionName] = React.useState('');
@@ -360,10 +385,17 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
         }
       });
       
+      // Always add timeline data for new items
+      const currentItems = watchedItems || [];
+      const newItemIndex = currentItems.length;
+      const totalItems = newItemIndex + 1;
+      
+      customFields.timeline = createInitialTimelineData(taskStartDate, taskEndDate, newItemIndex, totalItems);
+      
       append({
         description: newItemDescription.trim(),
         unitPrice: 0,
-        customFields: Object.keys(customFields).length > 0 ? customFields : {},
+        customFields: customFields,
       });
       setNewItemDescription('');
     }
@@ -686,12 +718,37 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <Input 
-                                  type={col.type === 'date' ? 'text' : col.type} 
-                                  {...field}
-                                  value={field.value || (col.type === 'number' ? '0' : '')}
-                                  className="border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 shadow-none"
-                                />
+                                {col.id === 'timeline' ? (
+                                  // Special handling for timeline column - display as read-only formatted text
+                                  <div className="px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-sm">
+                                    {(() => {
+                                      let timelineData = field.value;
+                                      
+                                      // Handle both object and JSON string formats
+                                      if (typeof timelineData === 'string') {
+                                        try {
+                                          timelineData = JSON.parse(timelineData);
+                                        } catch (e) {
+                                          return 'Invalid timeline data';
+                                        }
+                                      }
+                                      
+                                      if (timelineData && typeof timelineData === 'object' && timelineData.start && timelineData.end) {
+                                        const start = new Date(timelineData.start).toLocaleDateString();
+                                        const end = new Date(timelineData.end).toLocaleDateString();
+                                        return `${start} - ${end}`;
+                                      }
+                                      return 'No timeline set';
+                                    })()}
+                                  </div>
+                                ) : (
+                                  <Input 
+                                    type={col.type === 'date' ? 'text' : col.type} 
+                                    {...field}
+                                    value={field.value || (col.type === 'number' ? '0' : '')}
+                                    className="border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 shadow-none"
+                                  />
+                                )}
                               </FormControl>
                               <FormMessage />
                             </FormItem>

@@ -4,6 +4,7 @@
  */
 
 import type { AppData } from './types';
+import { browserLocal } from './browser';
 
 export class LocalBackupService {
   private static readonly LOCAL_BACKUP_SETTINGS_KEY = 'freelance-flow-local-backup';
@@ -99,7 +100,7 @@ export class LocalBackupService {
    * Kiểm tra browser có hỗ trợ File System Access API không
    */
   static isFileSystemAccessSupported(): boolean {
-    return 'showDirectoryPicker' in window;
+  return typeof window !== 'undefined' && 'showDirectoryPicker' in window;
   }
 
   /**
@@ -161,7 +162,7 @@ export class LocalBackupService {
         lastSetup: Date.now()
       };
       
-      localStorage.setItem(this.LOCAL_BACKUP_SETTINGS_KEY, JSON.stringify(settings));
+  browserLocal.setItem(this.LOCAL_BACKUP_SETTINGS_KEY, JSON.stringify(settings));
       this.autoSaveEnabled = true;
 
       return true;
@@ -302,8 +303,8 @@ export class LocalBackupService {
    */
   static getSettings(): any {
     try {
-      const settings = localStorage.getItem(this.LOCAL_BACKUP_SETTINGS_KEY);
-      return settings ? JSON.parse(settings) : null;
+  const settings = browserLocal.getItem(this.LOCAL_BACKUP_SETTINGS_KEY);
+  return settings ? JSON.parse(settings) : null;
     } catch {
       return null;
     }
@@ -316,7 +317,7 @@ export class LocalBackupService {
     try {
       const currentSettings = this.getSettings() || {};
       const newSettings = { ...currentSettings, ...updates };
-      localStorage.setItem(this.LOCAL_BACKUP_SETTINGS_KEY, JSON.stringify(newSettings));
+  browserLocal.setItem(this.LOCAL_BACKUP_SETTINGS_KEY, JSON.stringify(newSettings));
     } catch (error) {
       console.error('Failed to update local backup settings:', error);
     }
@@ -415,21 +416,25 @@ export class LocalBackupService {
    * Fallback: Download backup vào Downloads folder (cho browser cũ)
    */
   static downloadBackupToDownloads(data: AppData, filename?: string): void {
+    if (typeof window === 'undefined' || typeof document === 'undefined' || typeof URL === 'undefined') {
+      console.warn('downloadBackupToDownloads requires a browser environment');
+      return;
+    }
     const backupFilename = filename || `freelance-flow-backup-${new Date().toISOString().split('T')[0]}.json`;
     const jsonString = JSON.stringify(data, null, 2);
     
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    
+
     link.download = backupFilename;
     link.href = url;
     link.style.display = 'none';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     URL.revokeObjectURL(url);
   }
 

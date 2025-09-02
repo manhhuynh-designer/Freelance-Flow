@@ -1,6 +1,8 @@
 // Calendar utility functions and constants
 import { Task, AppEvent } from '@/lib/types';
-import { CalendarViewMode } from '@/lib/types';
+
+// Local alias for calendar view modes (types.ts does not export this currently)
+type CalendarViewMode = 'week' | 'month';
 
 // Helper function to format relative dates with i18n
 export function formatRelativeDate(date: Date, t: any): string {

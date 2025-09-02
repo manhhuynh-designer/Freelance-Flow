@@ -15,9 +15,22 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import { Brain, TrendingUp, Target, Clock, Zap, Award, AlertTriangle, CheckCircle, Info, Settings } from 'lucide-react';
 
-import type { PatternInsight } from '@/ai/learning/pattern-analyzer';
-import type { UserBehaviorPattern, PerformanceMetrics, UserPreferences } from '@/ai/learning/behavior-tracker';
-import type { AdaptivePredictionModel, AdaptivePrediction, FeedbackData } from '@/ai/learning/adaptive-predictor';
+// Minimal local type definitions to avoid depending on removed/unstable AI modules
+type PatternInsight = {
+  type?: string;
+  strength?: number;
+  confidence?: number;
+  description?: string;
+  recommendations?: string[];
+  impact?: string;
+};
+
+type UserBehaviorPattern = any;
+type PerformanceMetrics = any;
+type UserPreferences = { predictionTrust: number } & Record<string, any>;
+type AdaptivePredictionModel = { id: string; modelType: string; accuracy: number; trainingDataSize?: number; version?: string; lastUpdated?: Date };
+type AdaptivePrediction = any;
+type FeedbackData = { userFeedback: { rating: number; usefulness?: string } };
 
 export interface LearningDashboardProps {
   patterns: PatternInsight[];
@@ -51,9 +64,9 @@ const LearningDashboard: React.FC<LearningDashboardProps> = ({
   const learningProgress = calculateLearningProgress(predictionModels, feedbackHistory);
   const improvementTrends = calculateImprovementTrends(predictionModels, selectedTimeRange);
   const patternStrengths = patterns.map(p => ({
-    name: p.type.replace('_', ' '),
-    strength: p.strength * 100,
-    confidence: p.confidence * 100
+    name: (p as any).type ? String((p as any).type).replace('_', ' ') : 'unknown',
+    strength: (p as any).strength ? (p as any).strength * 100 : 0,
+    confidence: (p as any).confidence ? (p as any).confidence * 100 : 0
   }));
 
   return (

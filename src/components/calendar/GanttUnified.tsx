@@ -117,7 +117,7 @@ const GanttTaskRow: React.FC<GanttTaskRowProps> = ({
           </DialogTrigger>
           <TaskDetailsDialog
             task={task} client={client} clients={clients} collaborators={collaborators} categories={categories}
-            quote={quote} collaboratorQuotes={taskCollaboratorQuotes} settings={settings}
+            quote={quote} quotes={quotes} collaboratorQuotes={taskCollaboratorQuotes} settings={settings}
             isOpen={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} onEdit={handleEditClick} onDelete={handleDeleteClick}
           />
         </Dialog>

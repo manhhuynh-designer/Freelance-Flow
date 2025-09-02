@@ -24,7 +24,6 @@ import { ArchiveRestore, Trash2, ChevronDown } from "lucide-react";
 type TaskListItemProps = {
   task: Task;
   client?: Client;
-  collaborators: Collaborator[];
   category?: Category;
   quote?: Quote;
   status?: StatusInfo;
@@ -34,6 +33,13 @@ type TaskListItemProps = {
   onRestoreTask: (taskId: string) => void;
   onPermanentDeleteTask: (taskId: string) => void;
   settings: AppSettings;
+  // Optional handlers to match various callers
+  onEditTask?: (values: any, quoteColumns: any, collaboratorQuoteColumns: any, taskId: string) => void;
+  onDeleteTask?: (taskId: string) => void;
+  onAddClient?: (data: Omit<Client, 'id'>) => Client;
+  quoteTemplates?: any[];
+  // allow callers to omit collaborator arrays
+  collaborators?: Collaborator[];
 };
 
 export function TaskListItem({ 

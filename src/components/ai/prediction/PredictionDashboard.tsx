@@ -7,7 +7,6 @@
 
 import React, { useState } from 'react';
 import { useDashboard } from '../../../contexts/dashboard-context';
-import { PersonalDeadlineIntelligence, type DeadlineIntelligenceMetrics } from '../../../ai/analytics/personal-deadline-intelligence';
 import { chatWithAI } from '@/ai/simple-ai';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -21,9 +20,12 @@ import { EnhancedWorkTimeStatsCard } from './EnhancedWorkTimeStatsCard';
 import { TaskAnalyticsCard } from './TaskAnalyticsCard';
 import { DeadlineAlertsCard } from './DeadlineAlertsCard';
 import { AIInsightsList } from './AIInsightsList';
-import type { StructuredInsight, AIProductivityAnalysis } from './types'; // Import AIProductivityAnalysis
+import type { StructuredInsight } from './types';
+import type { AIProductivityAnalysis } from '@/lib/types';
 import { DateRange } from 'react-day-picker';
 import { GeminiModel, ModelFallbackManager } from '@/ai/utils/gemini-models'; // NEW IMPORT
+import PersonalDeadlineIntelligence, { type DeadlineIntelligenceMetrics } from '@/ai/analytics/personal-deadline-intelligence';
+// removed duplicate local AIProductivityAnalysis import
 import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique IDs
 import { PouchDBService } from '@/lib/pouchdb-service'; // Import PouchDBService
 
@@ -401,7 +403,6 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
         </div>
         <div className={cn(
           "space-y-6 transition-all duration-500 origin-right",
-          showAnalysisPanel ? "lg:w-[40%] opacity-100 translate-x-0" : "lg:w-0 opacity-0 -translate-x-4 pointer-events-none overflow-hidden"
         )}>
           {(isLoading || aiInsights.length > 0) && (
             <Card className="transition-opacity duration-500">

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { PatternLearner, type UserPattern, type LearningInsight, type PatternLearningConfig } from '@/ai/learning/pattern-learner';
+import { browserLocal } from '@/lib/browser';
 import { ContextMemoryEntry } from '@/hooks/useContextMemory';
 
 export interface UsePatternLearningReturn {
@@ -32,7 +33,9 @@ export function usePatternLearning(initialConfig?: Partial<PatternLearningConfig
   useEffect(() => {
     try {
       // Load patterns
-      const savedPatterns = localStorage.getItem(PATTERN_STORAGE_KEY);
+      const savedPatterns = (() => {
+        try { return browserLocal.getItem(PATTERN_STORAGE_KEY); } catch { return null; }
+      })();
       if (savedPatterns) {
         const patterns = JSON.parse(savedPatterns);
         // Convert timestamp strings back to Date objects
@@ -44,13 +47,13 @@ export function usePatternLearning(initialConfig?: Partial<PatternLearningConfig
       }
 
       // Load insights
-      const savedInsights = localStorage.getItem(INSIGHTS_STORAGE_KEY);
+  const savedInsights = (() => { try { return browserLocal.getItem(INSIGHTS_STORAGE_KEY); } catch { return null; } })();
       if (savedInsights) {
         setInsights(JSON.parse(savedInsights));
       }
 
       // Load config
-      const savedConfig = localStorage.getItem(PATTERN_CONFIG_KEY);
+  const savedConfig = (() => { try { return browserLocal.getItem(PATTERN_CONFIG_KEY); } catch { return null; } })();
       if (savedConfig) {
         learner.updateConfig(JSON.parse(savedConfig));
       }
@@ -64,13 +67,13 @@ export function usePatternLearning(initialConfig?: Partial<PatternLearningConfig
   // Save patterns and insights whenever they change
   useEffect(() => {
     if (detectedPatterns.length > 0) {
-      localStorage.setItem(PATTERN_STORAGE_KEY, JSON.stringify(detectedPatterns));
+  try { browserLocal.setItem(PATTERN_STORAGE_KEY, JSON.stringify(detectedPatterns)); } catch {}
     }
   }, [detectedPatterns]);
 
   useEffect(() => {
     if (insights.length > 0) {
-      localStorage.setItem(INSIGHTS_STORAGE_KEY, JSON.stringify(insights));
+      try { browserLocal.setItem(INSIGHTS_STORAGE_KEY, JSON.stringify(insights)); } catch {}
     }
   }, [insights]);
 
@@ -119,15 +122,14 @@ export function usePatternLearning(initialConfig?: Partial<PatternLearningConfig
     setInsights([]);
     setLastAnalysis(null);
     
-    localStorage.removeItem(PATTERN_STORAGE_KEY);
-    localStorage.removeItem(INSIGHTS_STORAGE_KEY);
+  try { browserLocal.removeItem(PATTERN_STORAGE_KEY); browserLocal.removeItem(INSIGHTS_STORAGE_KEY); } catch {}
     
     console.log('📚 All patterns and insights cleared');
   }, [learner]);
 
   const updateConfig = useCallback((newConfig: Partial<PatternLearningConfig>) => {
     learner.updateConfig(newConfig);
-    localStorage.setItem(PATTERN_CONFIG_KEY, JSON.stringify(newConfig));
+  try { browserLocal.setItem(PATTERN_CONFIG_KEY, JSON.stringify(newConfig)); } catch {}
     
     console.log('📚 Pattern learning configuration updated:', newConfig);
   }, [learner]);

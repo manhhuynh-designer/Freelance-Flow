@@ -971,6 +971,7 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
         collaborators={appData?.collaborators || []}
         categories={appData?.categories || []}
         quote={appData?.quotes?.find((q: any) => q.id === selectedTask.quoteId)}
+        quotes={appData?.quotes || []}
         collaboratorQuotes={appData?.quotes?.filter((q: any) => 
           selectedTask.collaboratorQuotes?.some((cq: any) => cq.quoteId === q.id)
         )}

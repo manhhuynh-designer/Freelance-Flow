@@ -9,6 +9,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import Providers from '@/components/providers';
 import type { AppSettings } from '@/lib/types';
 import { useEffect, useState } from 'react';
+import { browserLocal } from '@/lib/browser';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
@@ -22,17 +23,13 @@ export default function RootLayout({
   const [language, setLanguage] = useState('en');
 
   useEffect(() => {
-    const storedSettings = localStorage.getItem('freelance-flow-settings');
-    if (storedSettings) {
-        try {
-            const parsedSettings: AppSettings = JSON.parse(storedSettings);
-            if (parsedSettings.language) {
-                setLanguage(parsedSettings.language);
-            }
-        } catch(e) {
-            console.error("Failed to parse settings from localStorage", e);
-        }
-    }
+    try {
+      const storedSettings = browserLocal.getItem('freelance-flow-settings');
+      if (storedSettings) {
+          const parsedSettings: AppSettings = JSON.parse(storedSettings);
+          if (parsedSettings.language) setLanguage(parsedSettings.language);
+      }
+    } catch(e) { console.error("Failed to parse settings from localStorage", e); }
   }, []);
   
   return (

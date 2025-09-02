@@ -241,7 +241,7 @@ export class PersonalAnalyticsSystem {
       const performance = await this.performanceEngine.analyzePerformanceCorrelations(
         productivity,
         energy,
-        timeEfficiency,
+        actions,
         tasks,
         behaviorPatterns
       );

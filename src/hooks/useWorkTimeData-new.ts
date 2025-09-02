@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from 'react';
 import { WorkSession } from '@/lib/helpers/time-analyzer';
+import { browserLocal } from '@/lib/browser';
 
 const STORAGE_KEY = 'work-time-sessions';
 
@@ -13,17 +14,17 @@ export function useWorkTimeData() {
   
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = browserLocal.getItem(STORAGE_KEY);
       if (raw) setSessions(JSON.parse(raw));
     } catch {}
   }, []);
 
   useEffect(() => {
-    try { 
-        if (sessions.length > 0) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-        }
-    } catch {}
+  try { 
+    if (sessions.length > 0) {
+      browserLocal.setItem(STORAGE_KEY, JSON.stringify(sessions));
+    }
+  } catch {}
   }, [sessions]);
 
   const checkIn = useCallback(() => {

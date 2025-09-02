@@ -3,6 +3,7 @@
  */
 
 import type { FilterSettings } from '@/lib/types';
+import { browserLocal } from '@/lib/browser';
 
 const FILTER_SETTINGS_KEY = 'freelance-flow-filter-settings';
 const FILTER_EXPANDED_KEY = 'freelance-flow-filter-expanded';
@@ -13,9 +14,9 @@ export class FilterSettingsService {
    */
   static saveFilterSettings(settings: Partial<FilterSettings>): void {
     try {
-      const existing = this.getFilterSettings();
-      const updated = { ...existing, ...settings };
-      localStorage.setItem(FILTER_SETTINGS_KEY, JSON.stringify(updated));
+  const existing = this.getFilterSettings();
+  const updated = { ...existing, ...settings };
+  browserLocal.setItem(FILTER_SETTINGS_KEY, JSON.stringify(updated));
     } catch (error) {
       console.warn('Failed to save filter settings:', error);
     }
@@ -26,8 +27,8 @@ export class FilterSettingsService {
    */
   static getFilterSettings(): FilterSettings | null {
     try {
-      const saved = localStorage.getItem(FILTER_SETTINGS_KEY);
-      return saved ? JSON.parse(saved) : null;
+  const saved = browserLocal.getItem(FILTER_SETTINGS_KEY);
+  return saved ? JSON.parse(saved) : null;
     } catch (error) {
       console.warn('Failed to load filter settings:', error);
       return null;
@@ -39,7 +40,7 @@ export class FilterSettingsService {
    */
   static saveExpandedState(isExpanded: boolean): void {
     try {
-      localStorage.setItem(FILTER_EXPANDED_KEY, JSON.stringify(isExpanded));
+  browserLocal.setItem(FILTER_EXPANDED_KEY, JSON.stringify(isExpanded));
     } catch (error) {
       console.warn('Failed to save filter expanded state:', error);
     }
@@ -50,8 +51,8 @@ export class FilterSettingsService {
    */
   static getExpandedState(): boolean {
     try {
-      const saved = localStorage.getItem(FILTER_EXPANDED_KEY);
-      return saved ? JSON.parse(saved) : false;
+  const saved = browserLocal.getItem(FILTER_EXPANDED_KEY);
+  return saved ? JSON.parse(saved) : false;
     } catch (error) {
       console.warn('Failed to load filter expanded state:', error);
       return false;
@@ -63,8 +64,8 @@ export class FilterSettingsService {
    */
   static clearAllSettings(): void {
     try {
-      localStorage.removeItem(FILTER_SETTINGS_KEY);
-      localStorage.removeItem(FILTER_EXPANDED_KEY);
+  browserLocal.removeItem(FILTER_SETTINGS_KEY);
+  browserLocal.removeItem(FILTER_EXPANDED_KEY);
     } catch (error) {
       console.warn('Failed to clear filter settings:', error);
     }

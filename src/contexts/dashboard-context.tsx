@@ -9,6 +9,7 @@ import { useActionBuffer } from '@/hooks/useActionBuffer';
 import { initialAppData } from '@/lib/data';
 import { BackupService } from '@/lib/backup-service';
 import { PouchDBService } from '@/lib/pouchdb-service';
+import { browserLocal } from '@/lib/browser';
 import type { AppData, AppEvent, AppSettings, Category, Client, Collaborator, Quote, CollaboratorQuote, Task, QuoteTemplate, QuoteColumn } from '@/lib/types';
 
 // Create a client once
@@ -69,7 +70,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
         const handler = (e: any) => {
             e.preventDefault();
             setInstallPromptEvent(e);
-            if (typeof window !== 'undefined' && localStorage.getItem('hidePwaInstallPrompt') !== 'true') {
+            if (typeof window !== 'undefined' && browserLocal.getItem('hidePwaInstallPrompt') !== 'true') {
                 setShowInstallPrompt(true);
             }
         };
@@ -117,6 +118,22 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
     // and we expose derived stats here for UI consumers.
 
     const updateTask = data.updateTask as (updates: Partial<Task> & { id: string }) => void;
+    
+    // Debug wrapper for updateTask
+    const wrappedUpdateTask = useCallback((updates: Partial<Task> & { id: string }) => {
+        console.log('DashboardContext: updateTask called', {
+            taskId: updates.id,
+            updates: Object.keys(updates),
+            milestonesCount: updates.milestones?.length,
+            hasDataUpdateTask: !!data.updateTask
+        });
+        
+        if (data.updateTask) {
+            data.updateTask(updates);
+        } else {
+            console.error('DashboardContext: data.updateTask is not available');
+        }
+    }, [data.updateTask]);
 
     const updateEvent = useCallback((updates: Partial<AppEvent> & { id: string }) => {
         if (!data.appData) return;
@@ -393,11 +410,11 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
             }
             try {
                 if (typeof window !== 'undefined') {
-                    localStorage.removeItem('freelance-flow-ai-persistent-data');
-                    localStorage.removeItem('ai-writing-presets');
-                    localStorage.removeItem('ai-writing-history');
-                    localStorage.removeItem('ai-writing-versions');
-                    localStorage.removeItem('freelance-flow-filter-presets');
+                    browserLocal.removeItem('freelance-flow-ai-persistent-data');
+                    browserLocal.removeItem('ai-writing-presets');
+                    browserLocal.removeItem('ai-writing-history');
+                    browserLocal.removeItem('ai-writing-versions');
+                    browserLocal.removeItem('freelance-flow-filter-presets');
                 }
             } catch (err) { console.warn('Failed to clear localStorage AI keys', err); }
         })();
@@ -419,13 +436,13 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
             }
             try {
                 if (typeof window !== 'undefined') {
-                    localStorage.removeItem('freelance-flow-ai-persistent-data');
-                    localStorage.removeItem('ai-writing-presets');
-                    localStorage.removeItem('ai-writing-history');
-                    localStorage.removeItem('ai-writing-versions');
-                    localStorage.removeItem('freelance-flow-filter-presets');
-                    localStorage.removeItem('freelance-flow-last-backup');
-                    localStorage.removeItem('freelance-flow-default-export-format');
+                    browserLocal.removeItem('freelance-flow-ai-persistent-data');
+                    browserLocal.removeItem('ai-writing-presets');
+                    browserLocal.removeItem('ai-writing-history');
+                    browserLocal.removeItem('ai-writing-versions');
+                    browserLocal.removeItem('freelance-flow-filter-presets');
+                    browserLocal.removeItem('freelance-flow-last-backup');
+                    browserLocal.removeItem('freelance-flow-default-export-format');
                 }
             } catch (err) { console.warn('Failed to clear localStorage keys during clear-data-and-backups', err); }
         })();
@@ -461,9 +478,14 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
     
     // Default export format - can be changed by user preference
     const [defaultExportFormat, setDefaultExportFormat] = useState<'json' | 'excel'>(() => {
-        if (typeof window !== 'undefined') return 'excel';
-        const saved = localStorage.getItem('freelance-flow-default-export-format');
-        return (saved as 'json' | 'excel') || 'excel';
+        // If running on server (no window), default to 'excel'. Only access localStorage in the browser.
+        if (typeof window === 'undefined') return 'excel';
+        try {
+            const saved = localStorage.getItem('freelance-flow-default-export-format');
+            return (saved as 'json' | 'excel') || 'excel';
+        } catch (e) {
+            return 'excel';
+        }
     });
     
     const handleExport = useCallback(async (format?: 'json' | 'excel') => {
@@ -557,7 +579,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
     isTaskFormOpen, setIsTaskFormOpen, taskFormSize, cycleTaskFormSize,
         // Data ops
         setAppData,
-        updateTask,
+        updateTask: wrappedUpdateTask,
         updateEvent,
     handleEventSubmit,
         updateQuote,

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { PouchDBService } from '@/lib/pouchdb-service';
+import { browserLocal } from '@/lib/browser';
 
 interface PersistentAIData {
   conversationHistory: any[];
@@ -67,20 +68,23 @@ export function useAIDataPersistence() {
       setIsLoading(true);
       
       // Try to load from localStorage
-      const storedData = localStorage.getItem(AI_STORAGE_KEY);
-      
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
-        setPersistentData(parsedData);
-        console.log('🔄 AI data loaded from localStorage:', parsedData);
-      } else {
-        console.log('💡 No existing AI data found, starting fresh');
+      try {
+        const storedData = browserLocal.getItem(AI_STORAGE_KEY);
+        if (storedData) {
+          const parsedData = JSON.parse(storedData);
+          setPersistentData(parsedData);
+          console.log('🔄 AI data loaded from localStorage:', parsedData);
+        } else {
+          console.log('💡 No existing AI data found, starting fresh');
+        }
+      } catch (e) {
+        console.warn('Failed to load AI data from localStorage', e);
       }
     } catch (error) {
       console.error('❌ Error loading AI data:', error);
       // Try to load backup
       try {
-        const backupData = localStorage.getItem(AI_BACKUP_KEY);
+        const backupData = browserLocal.getItem(AI_BACKUP_KEY);
         if (backupData) {
           const parsedBackup = JSON.parse(backupData);
           setPersistentData(parsedBackup);
@@ -111,10 +115,10 @@ export function useAIDataPersistence() {
       } catch (pErr) {
         console.warn('⚠️ Could not save AI data to PouchDB, falling back to localStorage', pErr);
         // Save to localStorage as fallback
-        localStorage.setItem(AI_STORAGE_KEY, JSON.stringify(dataToSave));
-        // Create backup
-        const currentData = localStorage.getItem(AI_STORAGE_KEY);
-        if (currentData) localStorage.setItem(AI_BACKUP_KEY, currentData);
+  browserLocal.setItem(AI_STORAGE_KEY, JSON.stringify(dataToSave));
+  // Create backup
+  const currentData = browserLocal.getItem(AI_STORAGE_KEY);
+  if (currentData) browserLocal.setItem(AI_BACKUP_KEY, currentData);
       }
     } catch (error) {
       console.error('❌ Error saving AI data:', error);
@@ -166,8 +170,8 @@ export function useAIDataPersistence() {
 
   const clearAllAIData = async () => {
     try {
-      localStorage.removeItem(AI_STORAGE_KEY);
-      localStorage.removeItem(AI_BACKUP_KEY);
+  browserLocal.removeItem(AI_STORAGE_KEY);
+  browserLocal.removeItem(AI_BACKUP_KEY);
       
       const freshData: PersistentAIData = {
         conversationHistory: [],
@@ -190,12 +194,16 @@ export function useAIDataPersistence() {
     const dataStr = JSON.stringify(persistentData, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `freelance-flow-ai-data-${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    if (typeof window !== 'undefined' && typeof document !== 'undefined' && typeof URL !== 'undefined') {
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `freelance-flow-ai-data-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
   };
 
   const importAIData = async (file: File) => {
@@ -227,8 +235,8 @@ export function useAIDataPersistence() {
 
   const getStorageStats = () => {
     try {
-      const data = localStorage.getItem(AI_STORAGE_KEY);
-      const backup = localStorage.getItem(AI_BACKUP_KEY);
+    const data = browserLocal.getItem(AI_STORAGE_KEY);
+    const backup = browserLocal.getItem(AI_BACKUP_KEY);
       
       return {
         mainDataSize: data ? new Blob([data]).size : 0,

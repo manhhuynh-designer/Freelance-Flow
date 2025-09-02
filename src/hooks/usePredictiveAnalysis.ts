@@ -9,6 +9,7 @@ import type { Task, Client, Category, Quote } from '@/lib/types';
 import type { ContextMemoryEntry } from '@/hooks/useContextMemory';
 import type { UserPattern } from '@/ai/learning/pattern-learner';
 import { AIConfigManager } from '@/ai/utils/ai-config-manager';
+import { browserLocal } from '@/lib/browser';
 
 // Phase 2: Real AI Integration Imports
 import { PredictionContextBuilder } from '@/ai/context/prediction-context-builder';
@@ -227,15 +228,15 @@ export function usePredictiveAnalysis({
   
   // Convert detectedPatterns to userPatterns format
   const userPatterns: UserPattern[] = propUserPatterns || detectedPatterns.map(pattern => ({
-    id: pattern.id,
-    type: pattern.type,
-    pattern: pattern.pattern,
-    confidence: pattern.confidence,
-    frequency: pattern.frequency,
-    lastSeen: pattern.lastSeen,
-    contexts: pattern.contexts,
-    metadata: pattern.metadata
-  }));
+    id: String(pattern.id),
+    type: (pattern.type as any) || 'unknown',
+    pattern: String(pattern.pattern || ''),
+    confidence: Number(pattern.confidence || 0),
+    frequency: Number(pattern.frequency || 0),
+    lastSeen: pattern.lastSeen instanceof Date ? pattern.lastSeen : new Date(pattern.lastSeen || Date.now()),
+    contexts: Array.isArray(pattern.contexts) ? pattern.contexts : [],
+    metadata: { ...(pattern.metadata || {}), strength: (pattern as any).strength || 0 }
+  } as unknown as UserPattern));
   
   // Get real action history
   const actionHistory: ActionBufferEntry[] = actionBuffer?.getActionHistory() || [];
@@ -742,7 +743,7 @@ export function usePredictiveAnalysis({
       const context = contextBuilder.buildContext();
       
       // Get Gemini API key
-      const geminiApiKey = localStorage.getItem('gemini-api-key') || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  const geminiApiKey = (typeof window !== 'undefined' ? browserLocal.getItem('gemini-api-key') : null) || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       
       if (!geminiApiKey) {
         console.warn('No Gemini API key found for task predictions, using fallback');
@@ -1156,7 +1157,7 @@ export function usePredictiveAnalysis({
       setPredictionContext(context);
 
       // Get Gemini API key (this should be configured in your app)
-      const geminiApiKey = localStorage.getItem('gemini-api-key') || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  const geminiApiKey = (typeof window !== 'undefined' ? browserLocal.getItem('gemini-api-key') : null) || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       
       if (!geminiApiKey) {
         console.warn('No Gemini API key found, using fallback insights');

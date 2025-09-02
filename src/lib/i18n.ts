@@ -649,16 +649,24 @@ viewEventDetailsDesc: 'View event details below.',
       saturday: 'Saturday',
       sunday: 'Sunday'
     },
-    weekdaysShort: {
-      monday: 'Mon',
-      tuesday: 'Tue',
-      wednesday: 'Wed',
-      thursday: 'Thu', 
-      friday: 'Fri',
-      saturday: 'Sat',
-      sunday: 'Sun'
-    }
+  weekdaysShort: {
+    monday: 'Mon',
+    tuesday: 'Tue',
+    wednesday: 'Wed',
+    thursday: 'Thu', 
+    friday: 'Fri',
+    saturday: 'Sat',
+    sunday: 'Sun'
   },
+  // Timeline Creator
+  timelineCreator: 'Timeline Creator',
+  exportImage: 'Export Image',
+  copyImageToClipboard: 'Copy timeline image to clipboard',
+  exportPreparing: 'Preparing timeline image...',
+  exportCopied: 'Timeline image copied to clipboard',
+  exportFailed: 'Timeline export failed',
+  noMilestonesYet: 'No milestones generated yet. Adjust task dates or quote items.',
+},
   
   vi: {
     ...vi_base,
@@ -1282,6 +1290,14 @@ requiredField: 'Trường này là bắt buộc',
     },
     weekdaysShort: {
       monday: 'T2',
+// Timeline Creator
+    timelineCreator: 'Tạo Timeline',
+    exportImage: 'Xuất ảnh',
+    copyImageToClipboard: 'Sao chép ảnh timeline vào clipboard',
+    exportPreparing: 'Đang chuẩn bị ảnh timeline...',
+    exportCopied: 'Ảnh timeline đã được sao chép vào clipboard',
+    exportFailed: 'Xuất timeline thất bại',
+    noMilestonesYet: 'Chưa có milestone nào được tạo. Hãy điều chỉnh ngày bắt đầu, ngày kết thúc hoặc các mục báo giá.',
       tuesday: 'T3',
       wednesday: 'T4', 
       thursday: 'T5',
