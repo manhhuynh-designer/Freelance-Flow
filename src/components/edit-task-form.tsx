@@ -379,6 +379,14 @@ export function EditTaskForm({
     // Always use latest columns/collaboratorColumns from state
     const currentColumns = columns;
     const currentCollaboratorColumns = collaboratorColumns;
+    
+    console.log('EditTaskForm onSubmit called with:', {
+      hasCollaboratorQuotes: !!(values.collaboratorQuotes),
+      collaboratorQuotesLength: values.collaboratorQuotes?.length || 0,
+      collaboratorQuotesData: values.collaboratorQuotes,
+      taskToEdit: taskToEdit?.id
+    });
+    
     if (!taskToEdit) {
       toast({
         title: "Lỗi",

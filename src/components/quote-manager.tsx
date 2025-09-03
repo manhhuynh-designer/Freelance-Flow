@@ -42,6 +42,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { vi, en } from "@/lib/i18n";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Helper function to create valid timeline data for new items
 const createInitialTimelineData = (startDate?: Date, endDate?: Date, itemIndex = 0, totalItems = 1) => {
@@ -105,6 +106,7 @@ export const QuoteManager = ({
 
   const [templateToApply, setTemplateToApply] = React.useState<QuoteTemplate | null>(null);
   const [activeTab, setActiveTab] = React.useState("sections");
+  const [isSuggestDialogOpen, setIsSuggestDialogOpen] = React.useState(false);
   
   // Paste options state
   const [pendingPasteData, setPendingPasteData] = React.useState<{
@@ -1293,6 +1295,28 @@ export const QuoteManager = ({
                 </Select>
               </div>
             )}
+
+            {/* Suggest with AI button moved to header */}
+            {onApplySuggestion && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsSuggestDialogOpen(true)}
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      {T.suggestions || "AI Suggestions"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{(T as any).suggestionAppliedDesc || "Generate suggested quote items with AI"}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             
             {showCopyFromQuote && onCopyFromQuote && (
               <TooltipProvider>
@@ -1324,7 +1348,7 @@ export const QuoteManager = ({
 
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid w-full ${fieldArrayName === "collaboratorSections" ? "grid-cols-2" : "grid-cols-3"}`}>
+          <TabsList className={`grid w-full grid-cols-2`}>
             <TabsTrigger value="sections" className="flex items-center gap-2">
               <FolderPlus className="h-4 w-4" />
               {T.sections || "Sections"}
@@ -1333,12 +1357,6 @@ export const QuoteManager = ({
               <Calculator className="h-4 w-4" />
               {T.calculationsDesc || "Tổng Kết"}
             </TabsTrigger>
-            {fieldArrayName !== "collaboratorSections" && (
-              <TabsTrigger value="suggestions" className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
-                {T.suggestions || "AI Suggestions"}
-              </TabsTrigger>
-            )}
           </TabsList>
 
           <TabsContent value="sections" className="space-y-4 mt-6">
@@ -1540,20 +1558,29 @@ export const QuoteManager = ({
             )}
           </TabsContent>
 
-          {fieldArrayName !== "collaboratorSections" && (
-            <TabsContent value="suggestions" className="space-y-4 mt-6">
-              {onApplySuggestion && (
-                <QuoteSuggestion
-                  settings={settings}
-                  taskDescription={taskDescription}
-                  taskCategory={taskCategory}
-                  onApplySuggestion={onApplySuggestion}
-                />
-              )}
-            </TabsContent>
-          )}
+          {/* Timeline tab removed as requested */}
         </Tabs>
       </CardContent>
+
+      {/* AI Suggestion Dialog */}
+      <Dialog open={isSuggestDialogOpen} onOpenChange={setIsSuggestDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{T.suggestions || "AI Suggestions"}</DialogTitle>
+          </DialogHeader>
+          {onApplySuggestion && (
+            <QuoteSuggestion
+              settings={settings}
+              taskDescription={taskDescription}
+              taskCategory={taskCategory}
+              onApplySuggestion={(items) => {
+                onApplySuggestion(items);
+                setIsSuggestDialogOpen(false);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Paste Options Dialog */}
       <AlertDialog open={isPasteOptionsDialogOpen} onOpenChange={setIsPasteOptionsDialogOpen}>

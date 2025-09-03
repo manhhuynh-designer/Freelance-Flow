@@ -9,8 +9,62 @@ import { buildWorkTimeStats, WorkSession } from '@/lib/helpers/time-analyzer';
 import type { AppData, AppSettings, FixedCost, Quote, Task } from '@/lib/types'; // Add types for better error checking
 import { ModelFallbackManager } from '@/ai/utils/gemini-models'; // NEW IMPORT
 
-// --- Placeholders ---
-export async function askAboutTasksAction(input: AskAboutTasksInput): Promise<AskAboutTasksOutput> { return { text: "...", action: null}; }
+// --- Ask About Tasks Action (Real Implementation) ---
+export async function askAboutTasksAction(input: AskAboutTasksInput): Promise<AskAboutTasksOutput> {
+  try {
+    // Validate required fields
+    if (!input.apiKey) {
+      throw new Error('API key is required');
+    }
+    if (!input.userInput || !input.userInput.trim()) {
+      throw new Error('User input is required');
+    }
+
+    // Build conversation history in the format expected by chatWithAI
+    const messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: Date }> = [];
+    
+    // Add history messages
+    if (input.history && input.history.length > 0) {
+      for (const histMsg of input.history) {
+        messages.push({
+          role: histMsg.role === 'user' ? 'user' : 'assistant',
+          content: Array.isArray(histMsg.content) ? histMsg.content.map(c => c.text).join(' ') : String(histMsg.content),
+          timestamp: new Date()
+        });
+      }
+    }
+
+    // Add the current user message
+    messages.push({
+      role: 'user',
+      content: input.userInput,
+      timestamp: new Date()
+    });
+
+    // Call the AI service
+    const response = await chatWithAI({
+      messages,
+      apiKey: input.apiKey,
+      modelName: input.modelName || 'gemini-1.5-flash'
+    });
+
+    if (!response.success) {
+      throw new Error(response.error || 'AI request failed');
+    }
+
+    return {
+      text: response.message.content,
+      action: null, // For now, no specific actions are parsed
+      interactiveElements: [] // For now, no interactive elements
+    };
+
+  } catch (error: any) {
+    console.error('askAboutTasksAction error:', error);
+    throw new Error(error.message || 'Failed to process AI request');
+  }
+}
+
+// --- Deprecated placeholder ---
 export async function suggestQuoteAction(input: any): Promise<any> { return null; }
 
 // --- AI Writing Assistant Action ---

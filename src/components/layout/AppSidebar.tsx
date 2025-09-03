@@ -12,12 +12,13 @@ import {
 import {
     Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle
 } from "@/components/ui/dialog";
-import { Users, FileText, Briefcase, LayoutGrid, Cog, Trash2, LogIn, LogOut, User } from "lucide-react";
+import { Users, FileText, Briefcase, LayoutGrid, Cog, Trash2, LogIn, LogOut, User, DollarSign } from "lucide-react";
 import { SidebarNavigation } from "@/components/sidebar-navigation";
 import { ClientManager } from "@/components/client-manager";
 import { CollaboratorManager } from "@/components/collaborator-manager";
 import { CategoryManager } from "@/components/category-manager";
 import { QuoteTemplateManager } from "@/components/quote-template-manager";
+import { FixedCostsCard } from '@/components/ai/business/FixedCostsCard';
 import { WIDGETS } from '@/lib/widgets';
 import type { AppSettings } from '@/lib/types';
 import { useSession, signIn, signOut } from 'next-auth/react';
@@ -64,10 +65,11 @@ export function AppSidebar() {
         );
     }
 
-    const { T, appData, isClientManagerOpen, setIsClientManagerOpen, handleAddClientAndSelect, handleEditClient, handleDeleteClient, 
-            isCollaboratorManagerOpen, setIsCollaboratorManagerOpen, handleAddCollaborator, handleEditCollaborator, handleDeleteCollaborator,
-            isCategoryManagerOpen, setIsCategoryManagerOpen, handleAddCategory, handleEditCategory, handleDeleteCategory,
-            isTemplateManagerOpen, setIsTemplateManagerOpen, setAppData } = dashboardContext;
+  const { T, appData, isClientManagerOpen, setIsClientManagerOpen, handleAddClientAndSelect, handleEditClient, handleDeleteClient, 
+      isCollaboratorManagerOpen, setIsCollaboratorManagerOpen, handleAddCollaborator, handleEditCollaborator, handleDeleteCollaborator,
+      isCategoryManagerOpen, setIsCategoryManagerOpen, handleAddCategory, handleEditCategory, handleDeleteCategory,
+      isTemplateManagerOpen, setIsTemplateManagerOpen, setAppData,
+      isFixedCostManagerOpen, setIsFixedCostManagerOpen } = dashboardContext;
 
     const sidebarWidgets = (appData.appSettings.widgets || [])
         .filter(w => w.showInSidebar)
@@ -102,6 +104,24 @@ export function AppSidebar() {
                        <SidebarMenu>
                            <SidebarMenuItem><Dialog open={isClientManagerOpen} onOpenChange={setIsClientManagerOpen}><DialogTrigger asChild><SidebarMenuButton><Users />{T.manageClients}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.clientManagement}</DialogTitle></DialogHeader><ClientManager clients={appData.clients} tasks={appData.tasks} onAddClient={handleAddClientAndSelect} onEditClient={handleEditClient} onDeleteClient={handleDeleteClient} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
                            <SidebarMenuItem><Dialog open={isCollaboratorManagerOpen} onOpenChange={setIsCollaboratorManagerOpen}><DialogTrigger asChild><SidebarMenuButton><Briefcase />{T.manageCollaborators}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.collaboratorManagement}</DialogTitle></DialogHeader><CollaboratorManager collaborators={appData.collaborators} tasks={appData.tasks} onAddCollaborator={handleAddCollaborator} onEditCollaborator={handleEditCollaborator} onDeleteCollaborator={handleDeleteCollaborator} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
+                           <SidebarMenuItem>
+                             <Dialog open={isFixedCostManagerOpen} onOpenChange={setIsFixedCostManagerOpen}>
+                               <DialogTrigger asChild>
+                                 <SidebarMenuButton><DollarSign />{T.fixedCosts || 'Fixed Costs'}</SidebarMenuButton>
+                               </DialogTrigger>
+                               <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+                                 <DialogHeader><DialogTitle>{T.fixedCosts || 'Fixed Costs'}</DialogTitle></DialogHeader>
+                                 <FixedCostsCard 
+                                   dateRange={{}} 
+                                   embedded 
+                                   hideSummary 
+                                   defaultOpen 
+                                   currency={appData.appSettings.currency}
+                                   locale={appData.appSettings.language === 'vi' ? 'vi-VN' : 'en-US'}
+                                 />
+                               </DialogContent>
+                             </Dialog>
+                           </SidebarMenuItem>
                            <SidebarMenuItem><Dialog open={isCategoryManagerOpen} onOpenChange={setIsCategoryManagerOpen}><DialogTrigger asChild><SidebarMenuButton><LayoutGrid />{T.manageCategories}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.categoryManagement}</DialogTitle></DialogHeader><CategoryManager categories={appData.categories} tasks={appData.tasks} onAddCategory={handleAddCategory} onEditCategory={handleEditCategory} onDeleteCategory={handleDeleteCategory} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
                            <SidebarMenuItem>
                              <Dialog open={isTemplateManagerOpen} onOpenChange={setIsTemplateManagerOpen}>

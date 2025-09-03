@@ -41,8 +41,6 @@ import {
   ArrowRight, 
   Pencil, 
   ClipboardPaste, 
-  ChevronUp, 
-  ChevronDown,
   Settings,
   Calculator,
   Columns,
@@ -183,6 +181,9 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
     control,
     name: `${fieldArrayName}.${sectionIndex}.items`,
   });
+  // DnD state for row reordering
+  const [dragIndex, setDragIndex] = React.useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
   
   const watchedItems = useWatch({
     control,
@@ -549,6 +550,36 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
     setSelectedItems([]);
   };
 
+  // Drag & Drop handlers
+  const handleDragStart = (index: number, e: React.DragEvent) => {
+    setDragIndex(index);
+    // Required for Firefox to initiate drag
+    try { e.dataTransfer.setData('text/plain', String(index)); } catch {}
+    e.dataTransfer.effectAllowed = 'move';
+  };
+  const handleDragEnter = (index: number) => {
+    if (dragIndex !== null && index !== dragIndex) {
+      setDragOverIndex(index);
+    }
+  };
+  const handleDragOver = (e: React.DragEvent) => {
+    // Allow dropping
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+  const handleDrop = (index: number, e: React.DragEvent) => {
+    e.preventDefault();
+    if (dragIndex !== null && index !== dragIndex) {
+      move(dragIndex, index);
+    }
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
   return (
     <>
       {/* Section Header */}
@@ -602,6 +633,8 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
         <Table>
           <TableHeader>
             <TableRow>
+              {/* Reorder handle header */}
+              <TableHead className="p-0 w-[28px] min-w-[28px] max-w-[28px]" />
               {columns.map((col, colIndex) => (
                 <TableHead key={col.id} className={col.id === 'description' ? 'w-1/2' : undefined}>
                   <div className="flex items-center justify-between gap-2 min-w-[120px]">
@@ -677,7 +710,28 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
           </TableHeader>
           <TableBody>
             {fields.map((item, index) => (
-              <TableRow key={item.id}>
+                <TableRow
+                key={item.id}
+                onDragEnter={() => handleDragEnter(index)}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(index, e)}
+                onDragEnd={handleDragEnd}
+                className={dragOverIndex === index ? 'bg-muted/40 transition-colors' : undefined}
+              >
+                {/* Reorder cell with drag handle + up/down buttons */}
+                <TableCell className="p-0 w-[28px] min-w-[28px] max-w-[28px]">
+                  <div className="flex items-center justify-center h-full">
+                    <button
+                      type="button"
+                      aria-label={(T as any).dragToReorder || 'Drag to reorder'}
+                      className={`inline-flex items-center justify-center rounded hover:bg-muted cursor-grab active:cursor-grabbing ${dragIndex === index ? 'opacity-70' : ''} h-5 w-5 p-[2px]`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(index, e)}
+                    >
+                      <GripVertical className="h-6 w-6 text-muted-foreground" />
+                    </button>
+                  </div>
+                </TableCell>
                 {columns.map(col => (
                   <TableCell key={col.id}>
                     {col.type === 'number' && col.rowFormula

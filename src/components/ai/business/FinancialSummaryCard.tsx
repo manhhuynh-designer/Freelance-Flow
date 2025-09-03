@@ -43,7 +43,8 @@ import {
   calculateFinancialSummary,
   calculateTaskDetails,
   calculateAdditionalFinancials,
-  calculateAdditionalTaskDetails
+  calculateAdditionalTaskDetails,
+  calculateFixedCostDetails
 } from '@/ai/analytics/business-intelligence-helpers';
 
 interface TaskDetail {
@@ -181,7 +182,16 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
 
   // Derive dateRange from selected period and anchors
   const selectedRange = useMemo(() => {
-    if (period === 'all') return {} as { from?: Date; to?: Date };
+    console.log(`🗓️ Period Selection Debug:`);
+    console.log(`   Period: ${period}`);
+    console.log(`   Week date: ${weekDate}`);
+    console.log(`   Month value: ${monthValue}`);
+    console.log(`   Year value: ${yearValue}`);
+    
+    if (period === 'all') {
+      console.log(`   → Range: all (no filter)`);
+      return {} as { from?: Date; to?: Date };
+    }
     if (period === 'week') {
       const anchor = new Date(weekDate);
       const start = new Date(anchor);
@@ -192,20 +202,30 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
       const end = new Date(start);
       end.setDate(end.getDate() + 6);
       end.setHours(23,59,59,999);
+      console.log(`   → Week range: ${start.toISOString()} to ${end.toISOString()}`);
       return { from: start, to: end };
     }
     if (period === 'month') {
       const [y, m] = monthValue.split('-').map(Number);
       const from = new Date(y, (m||1)-1, 1);
       const to = new Date(y, (m||1), 0);
+      console.log(`   → Month range: ${from.toISOString()} to ${to.toISOString()}`);
+      console.log(`   → Month calculation: year=${y}, month=${m}, from=${from.toString()}, to=${to.toString()}`);
       return { from, to };
     }
     // year
-    return { from: new Date(yearValue, 0, 1), to: new Date(yearValue, 11, 31) };
+    const from = new Date(yearValue, 0, 1);
+    const to = new Date(yearValue, 11, 31);
+    console.log(`   → Year range: ${from.toISOString()} to ${to.toISOString()}`);
+    return { from, to };
   }, [period, weekDate, monthValue, yearValue]);
 
   // Compute period-based metrics
   const viewSummary = useMemo(() => {
+    console.log('🔍 FinancialSummaryCard selectedRange:', selectedRange);
+    console.log('🔍 Period:', period);
+    console.log('🔍 Month value:', monthValue);
+    console.log('🔍 Year value:', yearValue);
     return appData ? calculateFinancialSummary(appData as any, selectedRange) : summary || { revenue: 0, costs: 0, profit: 0 };
   }, [appData, selectedRange, summary]);
 
@@ -220,6 +240,11 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
   const viewAdditionalTaskDetails = useMemo(() => {
     return appData ? calculateAdditionalTaskDetails(appData as any, selectedRange) : additionalTaskDetails || { futureRevenueItems: [], lostRevenueItems: [] };
   }, [appData, selectedRange, additionalTaskDetails]);
+
+  const viewFixedCostDetails = useMemo(() => {
+    const result = appData ? calculateFixedCostDetails(appData as any, selectedRange) : [];
+    return Array.isArray(result) ? result : result.fixedCostItems || [];
+  }, [appData, selectedRange]);
 
   const frequencyLabels = {
     once: 'One time',
@@ -926,87 +951,178 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
             ) : (
               // Existing task details logic
               (dialogType === 'revenue' && viewTaskDetails) ? (
-                viewTaskDetails.revenueItems.length > 0 ? (
-                  viewTaskDetails.revenueItems.map((item) => (
-                    <div 
-                      key={item.id} 
-                      className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border cursor-pointer hover:bg-green-100 dark:hover:bg-green-950/30 transition-colors"
-                      onClick={() => onTaskClick?.(item.id)}
-                    >
-                      <div className="flex-1">
-                        <h4 className="font-medium text-green-800 dark:text-green-200">{item.name}</h4>
-                        <p className="text-sm text-green-600 dark:text-green-400">{item.clientName}</p>
+                <>
+                  {/* Revenue Summary Card */}
+                  <Card className="border border-green-200 dark:border-green-800 bg-green-50/60 dark:bg-green-950/20">
+                    <CardContent className="py-3 flex items-center justify-between">
+                      <div className="text-sm font-medium text-green-700 dark:text-green-300">{T.totalRevenue || 'Total Revenue'}</div>
+                      <div className="text-lg font-semibold text-green-800 dark:text-green-200">{formatCurrency(revenue)}</div>
+                    </CardContent>
+                  </Card>
+
+                  {viewTaskDetails.revenueItems.length > 0 ? (
+                    viewTaskDetails.revenueItems.map((item) => (
+                      <div 
+                        key={item.id} 
+                        className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border cursor-pointer hover:bg-green-100 dark:hover:bg-green-950/30 transition-colors"
+                        onClick={() => onTaskClick?.(item.id)}
+                      >
+                        <div className="flex-1">
+                          <h4 className="font-medium text-green-800 dark:text-green-200">{item.name}</h4>
+                          <p className="text-sm text-green-600 dark:text-green-400">{item.clientName}</p>
+                        </div>
+                        <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          {formatCurrency(item.amount)}
+                        </Badge>
                       </div>
-                      <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                        {formatCurrency(item.amount)}
-                      </Badge>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-muted-foreground py-8">{T.noRevenueTasksFound || 'No revenue tasks found'}</p>
-                )
+                    ))
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">{T.noRevenueTasksFound || 'No revenue tasks found'}</p>
+                  )}
+                </>
               ) : (dialogType === 'costs' && viewTaskDetails) ? (
-                viewTaskDetails.costItems.length > 0 ? (
-                  viewTaskDetails.costItems.map((item) => (
-                    <div 
-                      key={item.id} 
-                      className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border cursor-pointer hover:bg-red-100 dark:hover:bg-red-950/30 transition-colors"
-                      onClick={() => onTaskClick?.(item.id)}
-                    >
-                      <div className="flex-1">
-                        <h4 className="font-medium text-red-800 dark:text-red-200">{item.name}</h4>
-                        <p className="text-sm text-red-600 dark:text-red-400">{item.clientName}</p>
+                <>
+                  {/* Total Costs Summary Card */}
+                  <Card className="border-2 border-red-200 dark:border-red-800 bg-white dark:bg-gray-900">
+                    <CardContent className="py-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{T.totalCosts || 'Total Costs'}</div>
+                        <div className="text-lg font-semibold text-red-800 dark:text-red-200">{formatCurrency(costs)}</div>
                       </div>
-                      <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                        {formatCurrency(item.amount)}
-                      </Badge>
+                      <div className="grid grid-cols-2 gap-4 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-red-600 dark:text-red-400">Fixed Costs:</span>
+                          <span className="font-medium text-gray-800 dark:text-gray-200">{formatCurrency(totalFixedCosts)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-red-600 dark:text-red-400">Collaborator Costs:</span>
+                          <span className="font-medium text-gray-800 dark:text-gray-200">{formatCurrency(costs - totalFixedCosts)}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Fixed Costs Collapsible Section */}
+                  {viewFixedCostDetails.length > 0 && (
+                    <details className="space-y-2">
+                      <summary className="cursor-pointer text-sm font-medium text-gray-800 dark:text-gray-200 border-b border-red-200 dark:border-red-700 pb-1 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+                        Fixed Costs ({viewFixedCostDetails.length} items)
+                      </summary>
+                      <div className="space-y-2 mt-2">
+                        {viewFixedCostDetails.map((cost) => (
+                          <div 
+                            key={cost.id} 
+                            className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border-2 border-red-200 dark:border-red-800"
+                          >
+                            <div className="flex-1">
+                              <h5 className="font-medium text-gray-800 dark:text-gray-200">{cost.name}</h5>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {cost.frequency === 'once' ? 'One time' : 
+                                 cost.frequency === 'weekly' ? 'Weekly' : 
+                                 cost.frequency === 'monthly' ? 'Monthly' : 'Yearly'}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="border-red-200 text-gray-800 dark:border-red-700 dark:text-gray-200">
+                              {formatCurrency(cost.amount)}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+
+                  {/* Collaborator Costs Section */}
+                  {viewTaskDetails.costItems.filter((i) => !String(i.id).startsWith('expense-')).length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 border-b border-red-200 dark:border-red-700 pb-1">
+                        Collaborator Costs
+                      </h4>
+                      {viewTaskDetails.costItems.filter((i) => !String(i.id).startsWith('expense-')).map((item) => (
+                        <div 
+                          key={item.id} 
+                          className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border-2 border-red-200 dark:border-red-800 cursor-pointer hover:border-red-300 dark:hover:border-red-700 transition-colors"
+                          onClick={() => onTaskClick?.(item.id)}
+                        >
+                          <div className="flex-1">
+                            <h5 className="font-medium text-gray-800 dark:text-gray-200">{item.name}</h5>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">{item.clientName}</p>
+                          </div>
+                          <Badge variant="outline" className="border-red-200 text-gray-800 dark:border-red-700 dark:text-gray-200">
+                            {formatCurrency(item.amount)}
+                          </Badge>
+                        </div>
+                      ))}
                     </div>
-                  ))
-                ) : (
-                  <p className="text-center text-muted-foreground py-8">{T.noCostTasksFound || 'No cost tasks found'}</p>
-                )
+                  )}
+
+                  {/* Empty state if no costs */}
+                  {viewFixedCostDetails.length === 0 && 
+                   viewTaskDetails.costItems.filter((i) => !String(i.id).startsWith('expense-')).length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">{T.noCostTasksFound || 'No costs found'}</p>
+                  )}
+                </>
               ) : (dialogType === 'future-revenue' && viewAdditionalTaskDetails) ? (
-                viewAdditionalTaskDetails.futureRevenueItems.length > 0 ? (
-                  viewAdditionalTaskDetails.futureRevenueItems.map((item) => (
-                    <div 
-                      key={item.id} 
-                      className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-950/30 transition-colors"
-                      onClick={() => onTaskClick?.(item.id)}
-                    >
-                      <div className="flex-1">
-                        <h4 className="font-medium text-yellow-800 dark:text-yellow-200">{item.name}</h4>
-                        <p className="text-sm text-yellow-600 dark:text-yellow-400">{item.clientName}</p>
-                        <p className="text-xs text-yellow-500 dark:text-yellow-500 mt-1">Status: {item.status}</p>
+                <>
+                  {/* Future Revenue Summary Card */}
+                  <Card className="border border-yellow-200 dark:border-yellow-800 bg-yellow-50/60 dark:bg-yellow-950/20">
+                    <CardContent className="py-3 flex items-center justify-between">
+                      <div className="text-sm font-medium text-yellow-700 dark:text-yellow-300">{T.futureRevenue || 'Total Future Revenue'}</div>
+                      <div className="text-lg font-semibold text-yellow-800 dark:text-yellow-200">{formatCurrency(viewAdditionalFinancials.futureRevenue)}</div>
+                    </CardContent>
+                  </Card>
+
+                  {viewAdditionalTaskDetails.futureRevenueItems.length > 0 ? (
+                    viewAdditionalTaskDetails.futureRevenueItems.map((item) => (
+                      <div 
+                        key={item.id} 
+                        className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-950/30 transition-colors"
+                        onClick={() => onTaskClick?.(item.id)}
+                      >
+                        <div className="flex-1">
+                          <h4 className="font-medium text-yellow-800 dark:text-yellow-200">{item.name}</h4>
+                          <p className="text-sm text-yellow-600 dark:text-yellow-400">{item.clientName}</p>
+                          <p className="text-xs text-yellow-500 dark:text-yellow-500 mt-1">Status: {item.status}</p>
+                        </div>
+                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                          {formatCurrency(item.amount)}
+                        </Badge>
                       </div>
-                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                        {formatCurrency(item.amount)}
-                      </Badge>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-muted-foreground py-8">{'No future revenue tasks found'}</p>
-                )
+                    ))
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">{'No future revenue tasks found'}</p>
+                  )}
+                </>
               ) : (dialogType === 'lost-revenue' && viewAdditionalTaskDetails) ? (
-                viewAdditionalTaskDetails.lostRevenueItems.length > 0 ? (
-                  viewAdditionalTaskDetails.lostRevenueItems.map((item) => (
-                    <div 
-                      key={item.id} 
-                      className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/30 transition-colors"
-                      onClick={() => onTaskClick?.(item.id)}
-                    >
-                      <div className="flex-1">
-                        <h4 className="font-medium text-orange-800 dark:text-orange-200">{item.name}</h4>
-                        <p className="text-sm text-orange-600 dark:text-orange-400">{item.clientName}</p>
-                        <p className="text-xs text-orange-500 dark:text-orange-500 mt-1">Status: {item.status}</p>
+                <>
+                  {/* Lost Revenue Summary Card */}
+                  <Card className="border border-orange-200 dark:border-orange-800 bg-orange-50/60 dark:bg-orange-950/20">
+                    <CardContent className="py-3 flex items-center justify-between">
+                      <div className="text-sm font-medium text-orange-700 dark:text-orange-300">{'Total Lost Revenue'}</div>
+                      <div className="text-lg font-semibold text-orange-800 dark:text-orange-200">{formatCurrency(viewAdditionalFinancials.lostRevenue)}</div>
+                    </CardContent>
+                  </Card>
+
+                  {viewAdditionalTaskDetails.lostRevenueItems.length > 0 ? (
+                    viewAdditionalTaskDetails.lostRevenueItems.map((item) => (
+                      <div 
+                        key={item.id} 
+                        className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/30 transition-colors"
+                        onClick={() => onTaskClick?.(item.id)}
+                      >
+                        <div className="flex-1">
+                          <h4 className="font-medium text-orange-800 dark:text-orange-200">{item.name}</h4>
+                          <p className="text-sm text-orange-600 dark:text-orange-400">{item.clientName}</p>
+                          <p className="text-xs text-orange-500 dark:text-orange-500 mt-1">Status: {item.status}</p>
+                        </div>
+                        <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                          {formatCurrency(item.amount)}
+                        </Badge>
                       </div>
-                      <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                        {formatCurrency(item.amount)}
-                      </Badge>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-muted-foreground py-8">{'No lost revenue tasks found'}</p>
-                )
+                    ))
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">{'No lost revenue tasks found'}</p>
+                  )}
+                </>
               ) : (
                 <p className="text-center text-muted-foreground py-8">{T.noDataAvailable || 'No data available'}</p>
               )

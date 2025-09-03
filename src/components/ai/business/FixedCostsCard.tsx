@@ -42,14 +42,20 @@ interface FixedCostsCardProps {
   dateRange: { from?: Date; to?: Date };
   currency?: string;
   locale?: string;
+  // When true, render the management UI directly (no internal Dialog)
+  embedded?: boolean;
+  // When true, hide the clickable summary card block
+  hideSummary?: boolean;
+  // If provided and not embedded, open the internal Dialog by default
+  defaultOpen?: boolean;
 }
 
-export function FixedCostsCard({ dateRange, currency = 'USD', locale }: FixedCostsCardProps) {
+export function FixedCostsCard({ dateRange, currency = 'USD', locale, embedded = false, hideSummary = false, defaultOpen = false }: FixedCostsCardProps) {
   const { appData, setAppData } = useDashboard();
   const T = i18n[appData?.appSettings?.language || 'en'];
   const { toast } = useToast();
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(!!defaultOpen);
   const [editingCost, setEditingCost] = useState<FixedCost | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -217,70 +223,7 @@ export function FixedCostsCard({ dateRange, currency = 'USD', locale }: FixedCos
     });
   };
 
-  return (
-    <TooltipProvider>
-      <Card className="bg-gradient-to-br from-background to-muted/30 border-2">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-xl font-bold flex items-center gap-2">
-            <Settings className="w-6 h-6 text-primary" />
-            Fixed Costs
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">
-                  Chi phí cố định được tính theo thời gian đã chọn
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div 
-            className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800 cursor-pointer hover:shadow-lg transition-shadow group"
-            onClick={() => setIsDialogOpen(true)}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                  Total Fixed Costs
-                </p>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Clock className="w-3 h-3 text-purple-600 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">
-                      Tính toán cho khoảng thời gian đã chọn
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-purple-600 flex-shrink-0" />
-                <Settings className="w-4 h-4 text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </div>
-            <h3 className="text-2xl lg:text-3xl font-bold text-purple-800 dark:text-purple-200 break-all">
-              {formatCurrency(totalFixedCosts)}
-            </h3>
-            <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
-              {fixedCosts.length} {fixedCosts.length === 1 ? 'item' : 'items'}
-            </p>
-          </div>
-        </CardContent>
-
-        {/* Fixed Costs Management Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5 text-purple-600" />
-                Manage Fixed Costs
-              </DialogTitle>
-            </DialogHeader>
-            
+  const manageContent = (
             <div className="space-y-6">
               {/* Add/Edit Form */}
               <Card>
@@ -471,9 +414,80 @@ export function FixedCostsCard({ dateRange, currency = 'USD', locale }: FixedCos
                 </div>
               )}
             </div>
+  );
+
+  return (
+    <TooltipProvider>
+      {!embedded && !hideSummary && (
+        <Card className="bg-gradient-to-br from-background to-muted/30 border-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xl font-bold flex items-center gap-2">
+              <Settings className="w-6 h-6 text-primary" />
+              Fixed Costs
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">
+                    Chi phí cố định được tính theo thời gian đã chọn
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div 
+              className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800 cursor-pointer hover:shadow-lg transition-shadow group"
+              onClick={() => setIsDialogOpen(true)}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                    Total Fixed Costs
+                  </p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Clock className="w-3 h-3 text-purple-600 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">
+                        Tính toán cho khoảng thời gian đã chọn
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                  <Settings className="w-4 h-4 text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
+              <h3 className="text-2xl lg:text-3xl font-bold text-purple-800 dark:text-purple-200 break-all">
+                {formatCurrency(totalFixedCosts)}
+              </h3>
+              <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
+                {fixedCosts.length} {fixedCosts.length === 1 ? 'item' : 'items'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {embedded ? (
+        manageContent
+      ) : (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5 text-purple-600" />
+                Manage Fixed Costs
+              </DialogTitle>
+            </DialogHeader>
+            {manageContent}
           </DialogContent>
         </Dialog>
-      </Card>
+      )}
     </TooltipProvider>
   );
 }

@@ -55,6 +55,8 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
     const [isCollaboratorManagerOpen, setIsCollaboratorManagerOpen] = useState(false);
     const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
     const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
+    // Fixed costs manager state
+    const [isFixedCostManagerOpen, setIsFixedCostManagerOpen] = useState(false);
 
     // Task form dialog state and size (for DashboardHeader)
     const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
@@ -264,11 +266,23 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
         const idToEdit = taskId || values.id;
         if (!idToEdit) return;
         
+        console.log('handleEditTask called with:', {
+            taskId: idToEdit,
+            hasCollaboratorQuotes: !!(values as any).collaboratorQuotes,
+            collaboratorQuotesCount: Array.isArray((values as any).collaboratorQuotes) ? (values as any).collaboratorQuotes.length : 0,
+            collaboratorQuotesData: (values as any).collaboratorQuotes
+        });
+        
         setAppData(prev => {
             const newPrev = { ...prev } as AppData;
 
             // Update task
-            newPrev.tasks = newPrev.tasks.map((t: Task) => t.id === idToEdit ? { ...t, ...values } : t);
+            newPrev.tasks = newPrev.tasks.map((t: Task) => {
+                if (t.id !== idToEdit) return t;
+                // Don't override collaboratorIds and collaboratorQuotes from values if we're updating them below
+                const { collaboratorQuotes: _, ...valuesWithoutCollabQuotes } = values as any;
+                return { ...t, ...valuesWithoutCollabQuotes };
+            });
 
             // If we have an updated sections payload, update the linked quote's sections and total
             const targetTask = (newPrev.tasks || []).find((t: Task) => t.id === idToEdit);
@@ -293,29 +307,104 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                 }
 
                 // Update collaborator quotes: values.collaboratorQuotes is array of { collaboratorId, sections }
-                if (Array.isArray((values as any).collaboratorQuotes) && (values as any).collaboratorQuotes.length > 0) {
+                if (Array.isArray((values as any).collaboratorQuotes)) {
                     const collabArr = (values as any).collaboratorQuotes as any[];
-                    newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).map((cq: any) => {
-                        // Find mapping entry in task to get collaboratorId associated with this collaborator quote id
-                        const mapping = targetTask.collaboratorQuotes?.find((m: any) => m.quoteId === cq.id) || null;
-                        // If mapping exists, try to find the incoming update by collaboratorId
-                        if (mapping) {
-                            const incoming = collabArr.find(ci => ci.collaboratorId === mapping.collaboratorId);
-                            if (incoming) {
-                                const secs = Array.isArray(incoming.sections) ? incoming.sections : cq.sections || [];
-                                const total = secs.reduce((acc: number, s: any) => {
-                                    const sumItems = (s.items || []).reduce((ai: number, it: any) => {
-                                        const qty = (it.quantity || 1);
-                                        const price = Number(it.unitPrice || 0);
-                                        return ai + (price * qty);
+                    console.log('Processing collaborator quotes update:', collabArr);
+                    
+                    // Filter out empty entries (no collaboratorId or empty sections)
+                    const validCollabEntries = collabArr.filter(ci => 
+                        ci?.collaboratorId && 
+                        Array.isArray(ci.sections) && 
+                        ci.sections.length > 0 &&
+                        ci.sections.some((s: any) => Array.isArray(s.items) && s.items.length > 0)
+                    );
+                    
+                    console.log('Valid collaborator entries after filtering:', validCollabEntries);
+                    
+                    // Find which collaborator IDs should be removed (were in form but are now invalid/empty)
+                    const formCollabIds = collabArr.map(ci => ci?.collaboratorId).filter(Boolean);
+                    const validCollabIds = validCollabEntries.map(ci => ci.collaboratorId);
+                    const removedCollabIds = formCollabIds.filter(id => !validCollabIds.includes(id));
+                    
+                    console.log('Collaborator IDs to remove:', removedCollabIds);
+                    
+                    // Remove collaborator quotes for collaborators that are no longer valid
+                    if (removedCollabIds.length > 0 && targetTask.collaboratorQuotes) {
+                        const quotesToRemove = targetTask.collaboratorQuotes
+                            .filter(mapping => removedCollabIds.includes(mapping.collaboratorId))
+                            .map(mapping => mapping.quoteId);
+                        
+                        console.log('Collaborator quote IDs to remove:', quotesToRemove);
+                        
+                        // Remove from collaboratorQuotes array
+                        newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).filter(cq => 
+                            !quotesToRemove.includes(cq.id)
+                        );
+                        
+                        // Update task to remove mappings and collaboratorIds
+                        newPrev.tasks = newPrev.tasks.map((t: Task) => {
+                            if (t.id !== idToEdit) return t;
+                            const updatedMappings = (t.collaboratorQuotes || []).filter(mapping => 
+                                !removedCollabIds.includes(mapping.collaboratorId)
+                            );
+                            const updatedCollaboratorIds = (t.collaboratorIds || []).filter(id => 
+                                !removedCollabIds.includes(id)
+                            );
+                            return { ...t, collaboratorQuotes: updatedMappings, collaboratorIds: updatedCollaboratorIds } as Task;
+                        });
+                    }
+                    
+                    if (validCollabEntries.length > 0) {
+                        // First, update existing collaborator quotes by mapping
+                        newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).map((cq: any) => {
+                            // Find mapping entry in task to get collaboratorId associated with this collaborator quote id
+                            const mapping = targetTask.collaboratorQuotes?.find((m: any) => m.quoteId === cq.id) || null;
+                            // If mapping exists, try to find the incoming update by collaboratorId
+                            if (mapping) {
+                                const incoming = validCollabEntries.find(ci => ci.collaboratorId === mapping.collaboratorId);
+                                if (incoming) {
+                                    const secs = Array.isArray(incoming.sections) ? incoming.sections : cq.sections || [];
+                                    const total = secs.reduce((acc: number, s: any) => {
+                                        const sumItems = (s.items || []).reduce((ai: number, it: any) => {
+                                            const qty = (it.quantity || 1);
+                                            const price = Number(it.unitPrice || 0);
+                                            return ai + (price * qty);
+                                        }, 0);
+                                        return acc + sumItems;
                                     }, 0);
-                                    return acc + sumItems;
-                                }, 0);
-                                return { ...cq, sections: secs, total, columns: collaboratorQuoteColumns ?? cq.columns };
+                                    console.log(`Updated existing collaborator quote ${cq.id} for collaborator ${mapping.collaboratorId}`);
+                                    return { ...cq, sections: secs, total, columns: collaboratorQuoteColumns ?? cq.columns };
+                                }
                             }
+                            return cq;
+                        });
+
+                        // Then, create collaborator quotes for any NEW collaborator entries not present in current mappings
+                        const existingMappings = targetTask.collaboratorQuotes || [];
+                        const existingCollabIds = new Set<string>(existingMappings.map((m: any) => m.collaboratorId || ''));
+                        const newEntries = validCollabEntries.filter(ci => ci?.collaboratorId && !existingCollabIds.has(ci.collaboratorId));
+                        
+                        console.log('New collaborator entries to create:', newEntries);
+                        
+                        if (newEntries.length > 0) {
+                            newEntries.forEach((entry: any) => {
+                                const created = createCollaboratorQuoteFrom(entry, collaboratorQuoteColumns);
+                                console.log(`Created new collaborator quote ${created.id} for collaborator ${entry.collaboratorId}`);
+                                // Append new collaborator quote entity
+                                newPrev.collaboratorQuotes = [
+                                    ...(newPrev.collaboratorQuotes || []),
+                                    created
+                                ];
+                                // Update task mapping and collaboratorIds
+                                newPrev.tasks = newPrev.tasks.map((t: Task) => {
+                                    if (t.id !== idToEdit) return t;
+                                    const updatedMappings = [...(t.collaboratorQuotes || []), { collaboratorId: entry.collaboratorId, quoteId: created.id }];
+                                    const updatedCollaboratorIds = Array.from(new Set([...(t.collaboratorIds || []), entry.collaboratorId]));
+                                    return { ...t, collaboratorQuotes: updatedMappings, collaboratorIds: updatedCollaboratorIds } as Task;
+                                });
+                            });
                         }
-                        return cq;
-                    });
+                    }
                 } else if (collaboratorQuoteColumns && targetTask.collaboratorQuotes) {
                     newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).map((cq: any) => {
                         const mapping = targetTask.collaboratorQuotes?.find((m: any) => m.quoteId === cq.id);
@@ -564,11 +653,12 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
     const contextValue: DashboardContextType = {
         ...data,
         workTime: derivedWorkTime,
-        // UI states
-        isClientManagerOpen, setIsClientManagerOpen,
-        isCollaboratorManagerOpen, setIsCollaboratorManagerOpen,
-        isCategoryManagerOpen, setIsCategoryManagerOpen,
-        isTemplateManagerOpen, setIsTemplateManagerOpen,
+    // UI states
+    isClientManagerOpen, setIsClientManagerOpen,
+    isCollaboratorManagerOpen, setIsCollaboratorManagerOpen,
+    isCategoryManagerOpen, setIsCategoryManagerOpen,
+    isTemplateManagerOpen, setIsTemplateManagerOpen,
+    isFixedCostManagerOpen, setIsFixedCostManagerOpen,
         // PWA install prompt
         showInstallPrompt, setShowInstallPrompt, installPromptEvent, handleInstallClick,
         // Action buffer

@@ -1,0 +1,1220 @@
+ 📊 FinancialSummary inRange: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 💰 Task "VF8 Render" (done) revenue: 7100000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 💰 Task "Flex cappy Green Future - Cara" (done) revenue: 18500000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 💰 Task "BIOCODEX PDP & LEAFLET" (done) revenue: 10720000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 💰 Task "Animation product trong lồng máy giặt" (done) revenue: 30500000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 💸 Task "BIOCODEX PDP & LEAFLET" collaborator cost: 6550000, payment dates: Array(1)
+ 📊 Financial Summary Debug: Object
+ 🔍 FinancialSummaryCard selectedRange: Object
+ 🔍 Period: all
+ 🔍 Month value: 2025-09
+ 🔍 Year value: 2025
+ 📊 FinancialSummary inRange: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 💰 Task "POSM Trắng gắt hơn nắng" (done) revenue: 22000000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 💰 Task "EC VAN 3D artwork" (done) revenue: 19000000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 📊 FinancialSummary inRange: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 💰 Task "VF8 Render" (done) revenue: 7100000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 💰 Task "Flex cappy Green Future - Cara" (done) revenue: 18500000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 💰 Task "BIOCODEX PDP & LEAFLET" (done) revenue: 10720000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 💰 Task "Animation product trong lồng máy giặt" (done) revenue: 30500000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 💸 Task "BIOCODEX PDP & LEAFLET" collaborator cost: 6550000, payment dates: Array(1)
+ 📊 Financial Summary Debug: Object
+ 🔮 Future revenue calc for quote quote-1753878749261: total=22000000
+    → Total paid: 22000000, remaining future: 0
+ 🔮 Task "POSM Trắng gắt hơn nắng" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1753863101523: total=0
+    → No payments, future revenue: 0
+ 🔮 Task "cloudtopia product model & render" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1752084374964: total=19000000
+    → Total paid: 19000000, remaining future: 0
+ 🔮 Task "EC VAN 3D artwork" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1751938287995: total=0
+    → Total paid: 0, remaining future: 0
+ 🔮 Task "Lifter Glaze model & render" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1751890975260: total=7100000
+    → Total paid: 7100000, remaining future: 0
+ 🔮 Task "VF8 Render" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1751890728145: total=18500000
+    → Total paid: 18500000, remaining future: 0
+ 🔮 Task "Flex cappy Green Future - Cara" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1751890436058: total=9500000
+    → No payments, future revenue: 9500000
+ 🔮 Task "Vietjet air Flight box animation" (done) future revenue: 9500000
+ 🔮 Future revenue calc for quote quote-1751889791575: total=13400000
+    → Total paid: 10720000, remaining future: 2680000
+ 🔮 Task "BIOCODEX PDP & LEAFLET" (done) future revenue: 2680000
+ 🔮 Future revenue calc for quote quote-1755010385251: total=5000000
+    → Total paid: 0, remaining future: 5000000
+ 🔮 Task "Animation product Holo Fan" (done) future revenue: 5000000
+ 🔮 Future revenue calc for quote quote-1754111266570: total=0
+    → No payments, future revenue: 0
+ 🔮 Task "3D CHALLENGE!!!!!!!!" (inprogress) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1753090700186: total=19500000
+    → No payments, future revenue: 19500000
+ 🔮 Task "POSM Close UP" (inprogress) future revenue: 19500000
+ 🔮 Future revenue calc for quote quote-1753342284283: total=30500000
+    → Total paid: 30500000, remaining future: 0
+ 🔮 Task "Animation product trong lồng máy giặt" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1755761720238: total=25000000
+    → No payments, future revenue: 25000000
+ 🔮 Task "Doji CGI nhẫn & xe bus" (todo) future revenue: 25000000
+ 🔮 Future revenue calc for quote quote-1756212501146-2vq8sr: total=24000000
+    → No payments, future revenue: 24000000
+ 🔮 Task "Colorkey FOOH CGI" (todo) future revenue: 24000000
+ 🔮 Future revenue calc for quote quote-1756441288635-65x77g: total=11000000
+    → No payments, future revenue: 11000000
+ 🔮 Task "Aeon Tân An CGI 10s" (todo) future revenue: 11000000
+ 🔮 Future revenue calc for quote quote-1753878749261: total=22000000
+    → Total paid: 22000000, remaining future: 0
+ 🔮 Task "POSM Trắng gắt hơn nắng" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1753863101523: total=0
+    → No payments, future revenue: 0
+ 🔮 Task "cloudtopia product model & render" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1752084374964: total=19000000
+    → Total paid: 19000000, remaining future: 0
+ 🔮 Task "EC VAN 3D artwork" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1751938287995: total=0
+    → Total paid: 0, remaining future: 0
+ 🔮 Task "Lifter Glaze model & render" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1751890975260: total=7100000
+    → Total paid: 7100000, remaining future: 0
+ 🔮 Task "VF8 Render" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1751890728145: total=18500000
+    → Total paid: 18500000, remaining future: 0
+ 🔮 Task "Flex cappy Green Future - Cara" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1751890436058: total=9500000
+    → No payments, future revenue: 9500000
+ 🔮 Task "Vietjet air Flight box animation" (done) future revenue: 9500000
+ 🔮 Future revenue calc for quote quote-1751889791575: total=13400000
+    → Total paid: 10720000, remaining future: 2680000
+ 🔮 Task "BIOCODEX PDP & LEAFLET" (done) future revenue: 2680000
+ 🔮 Future revenue calc for quote quote-1755010385251: total=5000000
+    → Total paid: 0, remaining future: 5000000
+ 🔮 Task "Animation product Holo Fan" (done) future revenue: 5000000
+ 🔮 Future revenue calc for quote quote-1754111266570: total=0
+    → No payments, future revenue: 0
+ 🔮 Task "3D CHALLENGE!!!!!!!!" (inprogress) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1753090700186: total=19500000
+    → No payments, future revenue: 19500000
+ 🔮 Task "POSM Close UP" (inprogress) future revenue: 19500000
+ 🔮 Future revenue calc for quote quote-1753342284283: total=30500000
+    → Total paid: 30500000, remaining future: 0
+ 🔮 Task "Animation product trong lồng máy giặt" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1755761720238: total=25000000
+    → No payments, future revenue: 25000000
+ 🔮 Task "Doji CGI nhẫn & xe bus" (todo) future revenue: 25000000
+ 🔮 Future revenue calc for quote quote-1756212501146-2vq8sr: total=24000000
+    → No payments, future revenue: 24000000
+ 🔮 Task "Colorkey FOOH CGI" (todo) future revenue: 24000000
+ 🔮 Future revenue calc for quote quote-1756441288635-65x77g: total=11000000
+    → No payments, future revenue: 11000000
+ 🔮 Task "Aeon Tân An CGI 10s" (todo) future revenue: 11000000
+ 🔍 calculateTaskDetails Debug: Object
+ 📅 inRange check: Tue Aug 27 2024 07:00:00 GMT+0700 (Indochina Time) -> 2024-08-27T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 🗓️ Test date 2024-08-27 inRange: true
+ 📅 inRange check: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 📅 inRange check: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 📅 inRange check: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 📅 inRange check: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 📅 inRange check: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 📅 inRange check: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 📅 inRange check: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 💰 Task "POSM Trắng gắt hơn nắng" (done): 0 collaborator links
+ 💰 Task "cloudtopia product model & render" (done): 0 collaborator links
+ 💰 Task "Vietjet air texturing model" (onhold): 0 collaborator links
+ 💰 Task "EC VAN 3D artwork" (done): 0 collaborator links
+ 💰 Task "Capybara mascot model 3D pack 2" (onhold): 0 collaborator links
+ 💰 Task "Lifter Glaze model & render" (done): 0 collaborator links
+ 💰 Task "VF8 Render" (done): 0 collaborator links
+ 💰 Task "Flex cappy Green Future - Cara" (done): 0 collaborator links
+ 💰 Task "Vietjet air Flight box animation" (done): 0 collaborator links
+ 💰 Task "BIOCODEX PDP & LEAFLET" (done): 1 collaborator links
+    📋 Collaborator quote collab-quote-1755242387666-0.1676124410135028: collaborator collab-1755242332951
+    🔍 Raw collaborator quote data: Object
+    💵 Computed total: 6550000
+    🧾 Payments: 0 entries
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+      📅 No payment structure, assuming paid total: 6550000, date: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time), inRange: true, source: task.date
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+    ✅ Final paid amount: 6550000
+    ✅ Added cost item: Object
+ 💰 Task "Animation product Holo Fan" (done): 1 collaborator links
+    ❌ Missing collaborator quote: undefined
+ 💰 Task "3D CHALLENGE!!!!!!!!" (inprogress): 0 collaborator links
+ 💰 Task "POSM Close UP" (inprogress): 0 collaborator links
+ 💰 Task "Animation product trong lồng máy giặt" (done): 0 collaborator links
+ 💰 Task "Doji CGI nhẫn & xe bus" (todo): 0 collaborator links
+ 💰 Task "Colorkey FOOH CGI" (todo): 0 collaborator links
+ 💰 Task "Aeon Tân An CGI 10s" (todo): 0 collaborator links
+ 🎯 Final results: Object
+ 🔍 calculateTaskDetails Debug: Object
+ 📅 inRange check: Tue Aug 27 2024 07:00:00 GMT+0700 (Indochina Time) -> 2024-08-27T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 🗓️ Test date 2024-08-27 inRange: true
+ 📅 inRange check: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 📅 inRange check: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 📅 inRange check: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 📅 inRange check: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 📅 inRange check: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 📅 inRange check: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 📅 inRange check: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+ 💰 Task "POSM Trắng gắt hơn nắng" (done): 0 collaborator links
+ 💰 Task "cloudtopia product model & render" (done): 0 collaborator links
+ 💰 Task "Vietjet air texturing model" (onhold): 0 collaborator links
+ 💰 Task "EC VAN 3D artwork" (done): 0 collaborator links
+ 💰 Task "Capybara mascot model 3D pack 2" (onhold): 0 collaborator links
+ 💰 Task "Lifter Glaze model & render" (done): 0 collaborator links
+ 💰 Task "VF8 Render" (done): 0 collaborator links
+ 💰 Task "Flex cappy Green Future - Cara" (done): 0 collaborator links
+ 💰 Task "Vietjet air Flight box animation" (done): 0 collaborator links
+ 💰 Task "BIOCODEX PDP & LEAFLET" (done): 1 collaborator links
+    📋 Collaborator quote collab-quote-1755242387666-0.1676124410135028: collaborator collab-1755242332951
+    🔍 Raw collaborator quote data: Object
+    💵 Computed total: 6550000
+    🧾 Payments: 0 entries
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+      📅 No payment structure, assuming paid total: 6550000, date: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time), inRange: true, source: task.date
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [undefined to undefined]
+    ✅ In range
+    ✅ Final paid amount: 6550000
+    ✅ Added cost item: Object
+ 💰 Task "Animation product Holo Fan" (done): 1 collaborator links
+    ❌ Missing collaborator quote: undefined
+ 💰 Task "3D CHALLENGE!!!!!!!!" (inprogress): 0 collaborator links
+ 💰 Task "POSM Close UP" (inprogress): 0 collaborator links
+ 💰 Task "Animation product trong lồng máy giặt" (done): 0 collaborator links
+ 💰 Task "Doji CGI nhẫn & xe bus" (todo): 0 collaborator links
+ 💰 Task "Colorkey FOOH CGI" (todo): 0 collaborator links
+ 💰 Task "Aeon Tân An CGI 10s" (todo): 0 collaborator links
+ 🎯 Final results: Object
+ === Period Selection Debug ===
+ Current period: all
+ Selected range: Object
+ Monthly chart data: Array(5)
+ ===============================
+ === Period Selection Debug ===
+ Current period: all
+ Selected range: Object
+ Monthly chart data: Array(5)
+ ===============================
+ No valid embeddings returned, skipping vector persistence
+indexTasks @ webpack-internal:///…tasks-indexer.ts:32
+ ✅ Auto-indexed 17 tasks successfully
+ No valid embeddings returned, skipping vector persistence
+indexTasks @ webpack-internal:///…tasks-indexer.ts:32
+ ✅ Auto-indexed 17 tasks successfully
+ No valid embeddings returned, skipping vector persistence
+indexTasks @ webpack-internal:///…tasks-indexer.ts:32
+ ✅ Auto-indexed 17 tasks successfully
+ No valid embeddings returned, skipping vector persistence
+indexTasks @ webpack-internal:///…tasks-indexer.ts:32
+ ✅ Auto-indexed 17 tasks successfully
+ No valid embeddings returned, skipping vector persistence
+indexTasks @ webpack-internal:///…tasks-indexer.ts:32
+ ✅ Auto-indexed 17 tasks successfully
+ No valid embeddings returned, skipping vector persistence
+indexTasks @ webpack-internal:///…tasks-indexer.ts:32
+ ✅ Auto-indexed 17 tasks successfully
+ No valid embeddings returned, skipping vector persistence
+indexTasks @ webpack-internal:///…tasks-indexer.ts:32
+ ✅ Auto-indexed 17 tasks successfully
+ No valid embeddings returned, skipping vector persistence
+indexTasks @ webpack-internal:///…tasks-indexer.ts:32
+ ✅ Auto-indexed 17 tasks successfully
+ No valid embeddings returned, skipping vector persistence
+indexTasks @ webpack-internal:///…tasks-indexer.ts:32
+ ✅ Auto-indexed 17 tasks successfully
+ No valid embeddings returned, skipping vector persistence
+indexTasks @ webpack-internal:///…tasks-indexer.ts:32
+ ✅ Auto-indexed 17 tasks successfully
+ No valid embeddings returned, skipping vector persistence
+indexTasks @ webpack-internal:///…tasks-indexer.ts:32
+ ✅ Auto-indexed 17 tasks successfully
+ No valid embeddings returned, skipping vector persistence
+indexTasks @ webpack-internal:///…tasks-indexer.ts:32
+ ✅ Auto-indexed 17 tasks successfully
+ No valid embeddings returned, skipping vector persistence
+indexTasks @ webpack-internal:///…tasks-indexer.ts:32
+ ✅ Auto-indexed 17 tasks successfully
+ 🗓️ Period Selection Debug:
+    Period: month
+    Week date: 2025-09-03
+    Month value: 2025-09
+    Year value: 2025
+    → Month range: 2025-08-31T17:00:00.000Z to 2025-09-29T17:00:00.000Z
+    → Month calculation: year=2025, month=9, from=Mon Sep 01 2025 00:00:00 GMT+0700 (Indochina Time), to=Tue Sep 30 2025 00:00:00 GMT+0700 (Indochina Time)
+ 🗓️ Period Selection Debug:
+    Period: month
+    Week date: 2025-09-03
+    Month value: 2025-09
+    Year value: 2025
+    → Month range: 2025-08-31T17:00:00.000Z to 2025-09-29T17:00:00.000Z
+    → Month calculation: year=2025, month=9, from=Mon Sep 01 2025 00:00:00 GMT+0700 (Indochina Time), to=Tue Sep 30 2025 00:00:00 GMT+0700 (Indochina Time)
+ 🔍 FinancialSummaryCard selectedRange: Object
+ 🔍 Period: month
+ 🔍 Month value: 2025-09
+ 🔍 Year value: 2025
+ 📊 FinancialSummary inRange: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 Financial Summary Debug: Object
+ 🔍 FinancialSummaryCard selectedRange: Object
+ 🔍 Period: month
+ 🔍 Month value: 2025-09
+ 🔍 Year value: 2025
+ 📊 FinancialSummary inRange: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📊 Financial Summary Debug: Object
+ 🔮 Future revenue calc for quote quote-1755761720238: total=25000000
+    → No payments, future revenue: 25000000
+ 🔮 Task "Doji CGI nhẫn & xe bus" (todo) future revenue: 25000000
+ 🔮 Future revenue calc for quote quote-1756212501146-2vq8sr: total=24000000
+    → No payments, future revenue: 24000000
+ 🔮 Task "Colorkey FOOH CGI" (todo) future revenue: 24000000
+ 🔮 Future revenue calc for quote quote-1756441288635-65x77g: total=11000000
+    → No payments, future revenue: 11000000
+ 🔮 Task "Aeon Tân An CGI 10s" (todo) future revenue: 11000000
+ 🔮 Future revenue calc for quote quote-1755761720238: total=25000000
+    → No payments, future revenue: 25000000
+ 🔮 Task "Doji CGI nhẫn & xe bus" (todo) future revenue: 25000000
+ 🔮 Future revenue calc for quote quote-1756212501146-2vq8sr: total=24000000
+    → No payments, future revenue: 24000000
+ 🔮 Task "Colorkey FOOH CGI" (todo) future revenue: 24000000
+ 🔮 Future revenue calc for quote quote-1756441288635-65x77g: total=11000000
+    → No payments, future revenue: 11000000
+ 🔮 Task "Aeon Tân An CGI 10s" (todo) future revenue: 11000000
+ 🔍 calculateTaskDetails Debug: Object
+ 📅 inRange check: Tue Aug 27 2024 07:00:00 GMT+0700 (Indochina Time) -> 2024-08-27T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 🗓️ Test date 2024-08-27 inRange: false
+ 📅 inRange check: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 💰 Task "POSM Trắng gắt hơn nắng" (done): 0 collaborator links
+ 💰 Task "cloudtopia product model & render" (done): 0 collaborator links
+ 💰 Task "Vietjet air texturing model" (onhold): 0 collaborator links
+ 💰 Task "EC VAN 3D artwork" (done): 0 collaborator links
+ 💰 Task "Capybara mascot model 3D pack 2" (onhold): 0 collaborator links
+ 💰 Task "Lifter Glaze model & render" (done): 0 collaborator links
+ 💰 Task "VF8 Render" (done): 0 collaborator links
+ 💰 Task "Flex cappy Green Future - Cara" (done): 0 collaborator links
+ 💰 Task "Vietjet air Flight box animation" (done): 0 collaborator links
+ 💰 Task "BIOCODEX PDP & LEAFLET" (done): 1 collaborator links
+    📋 Collaborator quote collab-quote-1755242387666-0.1676124410135028: collaborator collab-1755242332951
+    🔍 Raw collaborator quote data: Object
+    💵 Computed total: 6550000
+    🧾 Payments: 0 entries
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+      📅 No payment structure, assuming paid total: 6550000, date: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time), inRange: false, source: task.date
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+    ✅ Final paid amount: 0
+    ❌ No paid amount, skipping
+ 💰 Task "Animation product Holo Fan" (done): 1 collaborator links
+    ❌ Missing collaborator quote: undefined
+ 💰 Task "3D CHALLENGE!!!!!!!!" (inprogress): 0 collaborator links
+ 💰 Task "POSM Close UP" (inprogress): 0 collaborator links
+ 💰 Task "Animation product trong lồng máy giặt" (done): 0 collaborator links
+ 💰 Task "Doji CGI nhẫn & xe bus" (todo): 0 collaborator links
+ 💰 Task "Colorkey FOOH CGI" (todo): 0 collaborator links
+ 💰 Task "Aeon Tân An CGI 10s" (todo): 0 collaborator links
+ 🎯 Final results: Object
+ 🔍 calculateTaskDetails Debug: Object
+ 📅 inRange check: Tue Aug 27 2024 07:00:00 GMT+0700 (Indochina Time) -> 2024-08-27T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 🗓️ Test date 2024-08-27 inRange: false
+ 📅 inRange check: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+ 💰 Task "POSM Trắng gắt hơn nắng" (done): 0 collaborator links
+ 💰 Task "cloudtopia product model & render" (done): 0 collaborator links
+ 💰 Task "Vietjet air texturing model" (onhold): 0 collaborator links
+ 💰 Task "EC VAN 3D artwork" (done): 0 collaborator links
+ 💰 Task "Capybara mascot model 3D pack 2" (onhold): 0 collaborator links
+ 💰 Task "Lifter Glaze model & render" (done): 0 collaborator links
+ 💰 Task "VF8 Render" (done): 0 collaborator links
+ 💰 Task "Flex cappy Green Future - Cara" (done): 0 collaborator links
+ 💰 Task "Vietjet air Flight box animation" (done): 0 collaborator links
+ 💰 Task "BIOCODEX PDP & LEAFLET" (done): 1 collaborator links
+    📋 Collaborator quote collab-quote-1755242387666-0.1676124410135028: collaborator collab-1755242332951
+    🔍 Raw collaborator quote data: Object
+    💵 Computed total: 6550000
+    🧾 Payments: 0 entries
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+      📅 No payment structure, assuming paid total: 6550000, date: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time), inRange: false, source: task.date
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-08-31T17:00:00.000Z to 2025-09-30T16:59:59.999Z]
+    ❌ Before range start
+    ✅ Final paid amount: 0
+    ❌ No paid amount, skipping
+ 💰 Task "Animation product Holo Fan" (done): 1 collaborator links
+    ❌ Missing collaborator quote: undefined
+ 💰 Task "3D CHALLENGE!!!!!!!!" (inprogress): 0 collaborator links
+ 💰 Task "POSM Close UP" (inprogress): 0 collaborator links
+ 💰 Task "Animation product trong lồng máy giặt" (done): 0 collaborator links
+ 💰 Task "Doji CGI nhẫn & xe bus" (todo): 0 collaborator links
+ 💰 Task "Colorkey FOOH CGI" (todo): 0 collaborator links
+ 💰 Task "Aeon Tân An CGI 10s" (todo): 0 collaborator links
+ 🎯 Final results: Object
+ Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+DescriptionWarning.useEffect @ webpack-internal:///…/dist/index.mjs:475
+ Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+DescriptionWarning.useEffect @ webpack-internal:///…/dist/index.mjs:475
+ 🗓️ Period Selection Debug:
+    Period: month
+    Week date: 2025-09-03
+    Month value: 2025-08
+    Year value: 2025
+    → Month range: 2025-07-31T17:00:00.000Z to 2025-08-30T17:00:00.000Z
+    → Month calculation: year=2025, month=8, from=Fri Aug 01 2025 00:00:00 GMT+0700 (Indochina Time), to=Sun Aug 31 2025 00:00:00 GMT+0700 (Indochina Time)
+ 🗓️ Period Selection Debug:
+    Period: month
+    Week date: 2025-09-03
+    Month value: 2025-08
+    Year value: 2025
+    → Month range: 2025-07-31T17:00:00.000Z to 2025-08-30T17:00:00.000Z
+    → Month calculation: year=2025, month=8, from=Fri Aug 01 2025 00:00:00 GMT+0700 (Indochina Time), to=Sun Aug 31 2025 00:00:00 GMT+0700 (Indochina Time)
+ 🔍 FinancialSummaryCard selectedRange: Object
+ 🔍 Period: month
+ 🔍 Month value: 2025-08
+ 🔍 Year value: 2025
+ 📊 FinancialSummary inRange: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "EC VAN 3D artwork" (done) revenue: 19000000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "VF8 Render" (done) revenue: 7100000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "Animation product trong lồng máy giặt" (done) revenue: 30500000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💸 Task "BIOCODEX PDP & LEAFLET" collaborator cost: 6550000, payment dates: Array(1)
+ 📊 Financial Summary Debug: Object
+ 🔍 FinancialSummaryCard selectedRange: Object
+ 🔍 Period: month
+ 🔍 Month value: 2025-08
+ 🔍 Year value: 2025
+ 📊 FinancialSummary inRange: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "EC VAN 3D artwork" (done) revenue: 19000000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "VF8 Render" (done) revenue: 7100000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "Animation product trong lồng máy giặt" (done) revenue: 30500000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💸 Task "BIOCODEX PDP & LEAFLET" collaborator cost: 6550000, payment dates: Array(1)
+ 📊 Financial Summary Debug: Object
+ 🔮 Future revenue calc for quote quote-1751889791575: total=13400000
+    → Total paid: 10720000, remaining future: 2680000
+ 🔮 Task "BIOCODEX PDP & LEAFLET" (done) future revenue: 2680000
+ 🔮 Future revenue calc for quote quote-1755010385251: total=5000000
+    → Total paid: 0, remaining future: 5000000
+ 🔮 Task "Animation product Holo Fan" (done) future revenue: 5000000
+ 🔮 Future revenue calc for quote quote-1754111266570: total=0
+    → No payments, future revenue: 0
+ 🔮 Task "3D CHALLENGE!!!!!!!!" (inprogress) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1753090700186: total=19500000
+    → No payments, future revenue: 19500000
+ 🔮 Task "POSM Close UP" (inprogress) future revenue: 19500000
+ 🔮 Future revenue calc for quote quote-1751889791575: total=13400000
+    → Total paid: 10720000, remaining future: 2680000
+ 🔮 Task "BIOCODEX PDP & LEAFLET" (done) future revenue: 2680000
+ 🔮 Future revenue calc for quote quote-1755010385251: total=5000000
+    → Total paid: 0, remaining future: 5000000
+ 🔮 Task "Animation product Holo Fan" (done) future revenue: 5000000
+ 🔮 Future revenue calc for quote quote-1754111266570: total=0
+    → No payments, future revenue: 0
+ 🔮 Task "3D CHALLENGE!!!!!!!!" (inprogress) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1753090700186: total=19500000
+    → No payments, future revenue: 19500000
+ 🔮 Task "POSM Close UP" (inprogress) future revenue: 19500000
+ 🔍 calculateTaskDetails Debug: Object
+ 📅 inRange check: Tue Aug 27 2024 07:00:00 GMT+0700 (Indochina Time) -> 2024-08-27T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 🗓️ Test date 2024-08-27 inRange: false
+ 📅 inRange check: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 📅 inRange check: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 📅 inRange check: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "POSM Trắng gắt hơn nắng" (done): 0 collaborator links
+ 💰 Task "cloudtopia product model & render" (done): 0 collaborator links
+ 💰 Task "Vietjet air texturing model" (onhold): 0 collaborator links
+ 💰 Task "EC VAN 3D artwork" (done): 0 collaborator links
+ 💰 Task "Capybara mascot model 3D pack 2" (onhold): 0 collaborator links
+ 💰 Task "Lifter Glaze model & render" (done): 0 collaborator links
+ 💰 Task "VF8 Render" (done): 0 collaborator links
+ 💰 Task "Flex cappy Green Future - Cara" (done): 0 collaborator links
+ 💰 Task "Vietjet air Flight box animation" (done): 0 collaborator links
+ 💰 Task "BIOCODEX PDP & LEAFLET" (done): 1 collaborator links
+    📋 Collaborator quote collab-quote-1755242387666-0.1676124410135028: collaborator collab-1755242332951
+    🔍 Raw collaborator quote data: Object
+    💵 Computed total: 6550000
+    🧾 Payments: 0 entries
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+      📅 No payment structure, assuming paid total: 6550000, date: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time), inRange: true, source: task.date
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+    ✅ Final paid amount: 6550000
+    ✅ Added cost item: Object
+ 💰 Task "Animation product Holo Fan" (done): 1 collaborator links
+    ❌ Missing collaborator quote: undefined
+ 💰 Task "3D CHALLENGE!!!!!!!!" (inprogress): 0 collaborator links
+ 💰 Task "POSM Close UP" (inprogress): 0 collaborator links
+ 💰 Task "Animation product trong lồng máy giặt" (done): 0 collaborator links
+ 💰 Task "Doji CGI nhẫn & xe bus" (todo): 0 collaborator links
+ 💰 Task "Colorkey FOOH CGI" (todo): 0 collaborator links
+ 💰 Task "Aeon Tân An CGI 10s" (todo): 0 collaborator links
+ 🎯 Final results: Object
+ 🔍 calculateTaskDetails Debug: Object
+ 📅 inRange check: Tue Aug 27 2024 07:00:00 GMT+0700 (Indochina Time) -> 2024-08-27T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 🗓️ Test date 2024-08-27 inRange: false
+ 📅 inRange check: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 📅 inRange check: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 📅 inRange check: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "POSM Trắng gắt hơn nắng" (done): 0 collaborator links
+ 💰 Task "cloudtopia product model & render" (done): 0 collaborator links
+ 💰 Task "Vietjet air texturing model" (onhold): 0 collaborator links
+ 💰 Task "EC VAN 3D artwork" (done): 0 collaborator links
+ 💰 Task "Capybara mascot model 3D pack 2" (onhold): 0 collaborator links
+ 💰 Task "Lifter Glaze model & render" (done): 0 collaborator links
+ 💰 Task "VF8 Render" (done): 0 collaborator links
+ 💰 Task "Flex cappy Green Future - Cara" (done): 0 collaborator links
+ 💰 Task "Vietjet air Flight box animation" (done): 0 collaborator links
+ 💰 Task "BIOCODEX PDP & LEAFLET" (done): 1 collaborator links
+    📋 Collaborator quote collab-quote-1755242387666-0.1676124410135028: collaborator collab-1755242332951
+    🔍 Raw collaborator quote data: Object
+    💵 Computed total: 6550000
+    🧾 Payments: 0 entries
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+      📅 No payment structure, assuming paid total: 6550000, date: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time), inRange: true, source: task.date
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+    ✅ Final paid amount: 6550000
+    ✅ Added cost item: Object
+ 💰 Task "Animation product Holo Fan" (done): 1 collaborator links
+    ❌ Missing collaborator quote: undefined
+ 💰 Task "3D CHALLENGE!!!!!!!!" (inprogress): 0 collaborator links
+ 💰 Task "POSM Close UP" (inprogress): 0 collaborator links
+ 💰 Task "Animation product trong lồng máy giặt" (done): 0 collaborator links
+ 💰 Task "Doji CGI nhẫn & xe bus" (todo): 0 collaborator links
+ 💰 Task "Colorkey FOOH CGI" (todo): 0 collaborator links
+ 💰 Task "Aeon Tân An CGI 10s" (todo): 0 collaborator links
+ 🎯 Final results: Object
+ Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+DescriptionWarning.useEffect @ webpack-internal:///…/dist/index.mjs:475
+ Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+DescriptionWarning.useEffect @ webpack-internal:///…/dist/index.mjs:475
+ 🗓️ Period Selection Debug:
+    Period: month
+    Week date: 2025-09-03
+    Month value: 2025-07
+    Year value: 2025
+    → Month range: 2025-06-30T17:00:00.000Z to 2025-07-30T17:00:00.000Z
+    → Month calculation: year=2025, month=7, from=Tue Jul 01 2025 00:00:00 GMT+0700 (Indochina Time), to=Thu Jul 31 2025 00:00:00 GMT+0700 (Indochina Time)
+ 🗓️ Period Selection Debug:
+    Period: month
+    Week date: 2025-09-03
+    Month value: 2025-07
+    Year value: 2025
+    → Month range: 2025-06-30T17:00:00.000Z to 2025-07-30T17:00:00.000Z
+    → Month calculation: year=2025, month=7, from=Tue Jul 01 2025 00:00:00 GMT+0700 (Indochina Time), to=Thu Jul 31 2025 00:00:00 GMT+0700 (Indochina Time)
+ 🔍 FinancialSummaryCard selectedRange: Object
+ 🔍 Period: month
+ 🔍 Month value: 2025-07
+ 🔍 Year value: 2025
+ 📊 FinancialSummary inRange: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "POSM Trắng gắt hơn nắng" (done) revenue: 22000000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+ 📊 FinancialSummary inRange: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ✅ In range
+ 📊 FinancialSummary inRange: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+ 📊 FinancialSummary inRange: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+ 📊 FinancialSummary inRange: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+ 📊 Financial Summary Debug: Object
+ 🔍 FinancialSummaryCard selectedRange: Object
+ 🔍 Period: month
+ 🔍 Month value: 2025-07
+ 🔍 Year value: 2025
+ 📊 FinancialSummary inRange: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "POSM Trắng gắt hơn nắng" (done) revenue: 22000000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+ 📊 FinancialSummary inRange: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ✅ In range
+ 📊 FinancialSummary inRange: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+ 📊 FinancialSummary inRange: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+ 📊 FinancialSummary inRange: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+ 📊 Financial Summary Debug: Object
+ 🔮 Future revenue calc for quote quote-1753878749261: total=22000000
+    → Total paid: 22000000, remaining future: 0
+ 🔮 Task "POSM Trắng gắt hơn nắng" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1753863101523: total=0
+    → No payments, future revenue: 0
+ 🔮 Task "cloudtopia product model & render" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1751938287995: total=0
+    → Total paid: 0, remaining future: 0
+ 🔮 Task "Lifter Glaze model & render" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1751890436058: total=9500000
+    → No payments, future revenue: 9500000
+ 🔮 Task "Vietjet air Flight box animation" (done) future revenue: 9500000
+ 🔮 Future revenue calc for quote quote-1753342284283: total=30500000
+    → Total paid: 30500000, remaining future: 0
+ 🔮 Task "Animation product trong lồng máy giặt" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1753878749261: total=22000000
+    → Total paid: 22000000, remaining future: 0
+ 🔮 Task "POSM Trắng gắt hơn nắng" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1753863101523: total=0
+    → No payments, future revenue: 0
+ 🔮 Task "cloudtopia product model & render" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1751938287995: total=0
+    → Total paid: 0, remaining future: 0
+ 🔮 Task "Lifter Glaze model & render" (done) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1751890436058: total=9500000
+    → No payments, future revenue: 9500000
+ 🔮 Task "Vietjet air Flight box animation" (done) future revenue: 9500000
+ 🔮 Future revenue calc for quote quote-1753342284283: total=30500000
+    → Total paid: 30500000, remaining future: 0
+ 🔮 Task "Animation product trong lồng máy giặt" (done) future revenue: 0
+ 🔍 calculateTaskDetails Debug: Object
+ 📅 inRange check: Tue Aug 27 2024 07:00:00 GMT+0700 (Indochina Time) -> 2024-08-27T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ Before range start
+ 🗓️ Test date 2024-08-27 inRange: false
+ 📅 inRange check: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ✅ In range
+ 📅 inRange check: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+ 📅 inRange check: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ✅ In range
+ 📅 inRange check: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+ 📅 inRange check: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+ 💰 Task "POSM Trắng gắt hơn nắng" (done): 0 collaborator links
+ 💰 Task "cloudtopia product model & render" (done): 0 collaborator links
+ 💰 Task "Vietjet air texturing model" (onhold): 0 collaborator links
+ 💰 Task "EC VAN 3D artwork" (done): 0 collaborator links
+ 💰 Task "Capybara mascot model 3D pack 2" (onhold): 0 collaborator links
+ 💰 Task "Lifter Glaze model & render" (done): 0 collaborator links
+ 💰 Task "VF8 Render" (done): 0 collaborator links
+ 💰 Task "Flex cappy Green Future - Cara" (done): 0 collaborator links
+ 💰 Task "Vietjet air Flight box animation" (done): 0 collaborator links
+ 💰 Task "BIOCODEX PDP & LEAFLET" (done): 1 collaborator links
+    📋 Collaborator quote collab-quote-1755242387666-0.1676124410135028: collaborator collab-1755242332951
+    🔍 Raw collaborator quote data: Object
+    💵 Computed total: 6550000
+    🧾 Payments: 0 entries
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+      📅 No payment structure, assuming paid total: 6550000, date: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time), inRange: false, source: task.date
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+    ✅ Final paid amount: 0
+    ❌ No paid amount, skipping
+ 💰 Task "Animation product Holo Fan" (done): 1 collaborator links
+    ❌ Missing collaborator quote: undefined
+ 💰 Task "3D CHALLENGE!!!!!!!!" (inprogress): 0 collaborator links
+ 💰 Task "POSM Close UP" (inprogress): 0 collaborator links
+ 💰 Task "Animation product trong lồng máy giặt" (done): 0 collaborator links
+ 💰 Task "Doji CGI nhẫn & xe bus" (todo): 0 collaborator links
+ 💰 Task "Colorkey FOOH CGI" (todo): 0 collaborator links
+ 💰 Task "Aeon Tân An CGI 10s" (todo): 0 collaborator links
+ 🎯 Final results: Object
+ 🔍 calculateTaskDetails Debug: Object
+ 📅 inRange check: Tue Aug 27 2024 07:00:00 GMT+0700 (Indochina Time) -> 2024-08-27T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ Before range start
+ 🗓️ Test date 2024-08-27 inRange: false
+ 📅 inRange check: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ✅ In range
+ 📅 inRange check: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+ 📅 inRange check: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ✅ In range
+ 📅 inRange check: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+ 📅 inRange check: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+ 💰 Task "POSM Trắng gắt hơn nắng" (done): 0 collaborator links
+ 💰 Task "cloudtopia product model & render" (done): 0 collaborator links
+ 💰 Task "Vietjet air texturing model" (onhold): 0 collaborator links
+ 💰 Task "EC VAN 3D artwork" (done): 0 collaborator links
+ 💰 Task "Capybara mascot model 3D pack 2" (onhold): 0 collaborator links
+ 💰 Task "Lifter Glaze model & render" (done): 0 collaborator links
+ 💰 Task "VF8 Render" (done): 0 collaborator links
+ 💰 Task "Flex cappy Green Future - Cara" (done): 0 collaborator links
+ 💰 Task "Vietjet air Flight box animation" (done): 0 collaborator links
+ 💰 Task "BIOCODEX PDP & LEAFLET" (done): 1 collaborator links
+    📋 Collaborator quote collab-quote-1755242387666-0.1676124410135028: collaborator collab-1755242332951
+    🔍 Raw collaborator quote data: Object
+    💵 Computed total: 6550000
+    🧾 Payments: 0 entries
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+      📅 No payment structure, assuming paid total: 6550000, date: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time), inRange: false, source: task.date
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-06-30T17:00:00.000Z to 2025-07-31T16:59:59.999Z]
+    ❌ After range end
+    ✅ Final paid amount: 0
+    ❌ No paid amount, skipping
+ 💰 Task "Animation product Holo Fan" (done): 1 collaborator links
+    ❌ Missing collaborator quote: undefined
+ 💰 Task "3D CHALLENGE!!!!!!!!" (inprogress): 0 collaborator links
+ 💰 Task "POSM Close UP" (inprogress): 0 collaborator links
+ 💰 Task "Animation product trong lồng máy giặt" (done): 0 collaborator links
+ 💰 Task "Doji CGI nhẫn & xe bus" (todo): 0 collaborator links
+ 💰 Task "Colorkey FOOH CGI" (todo): 0 collaborator links
+ 💰 Task "Aeon Tân An CGI 10s" (todo): 0 collaborator links
+ 🎯 Final results: Object
+ Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+DescriptionWarning.useEffect @ webpack-internal:///…/dist/index.mjs:475
+ Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+DescriptionWarning.useEffect @ webpack-internal:///…/dist/index.mjs:475
+ 🗓️ Period Selection Debug:
+    Period: month
+    Week date: 2025-09-03
+    Month value: 2025-08
+    Year value: 2025
+    → Month range: 2025-07-31T17:00:00.000Z to 2025-08-30T17:00:00.000Z
+    → Month calculation: year=2025, month=8, from=Fri Aug 01 2025 00:00:00 GMT+0700 (Indochina Time), to=Sun Aug 31 2025 00:00:00 GMT+0700 (Indochina Time)
+ 🗓️ Period Selection Debug:
+    Period: month
+    Week date: 2025-09-03
+    Month value: 2025-08
+    Year value: 2025
+    → Month range: 2025-07-31T17:00:00.000Z to 2025-08-30T17:00:00.000Z
+    → Month calculation: year=2025, month=8, from=Fri Aug 01 2025 00:00:00 GMT+0700 (Indochina Time), to=Sun Aug 31 2025 00:00:00 GMT+0700 (Indochina Time)
+ 🔍 FinancialSummaryCard selectedRange: Object
+ 🔍 Period: month
+ 🔍 Month value: 2025-08
+ 🔍 Year value: 2025
+ 📊 FinancialSummary inRange: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "EC VAN 3D artwork" (done) revenue: 19000000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "VF8 Render" (done) revenue: 7100000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "Animation product trong lồng máy giặt" (done) revenue: 30500000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💸 Task "BIOCODEX PDP & LEAFLET" collaborator cost: 6550000, payment dates: Array(1)
+ 📊 Financial Summary Debug: Object
+ 🔍 FinancialSummaryCard selectedRange: Object
+ 🔍 Period: month
+ 🔍 Month value: 2025-08
+ 🔍 Year value: 2025
+ 📊 FinancialSummary inRange: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "EC VAN 3D artwork" (done) revenue: 19000000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "VF8 Render" (done) revenue: 7100000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📊 FinancialSummary inRange: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "Animation product trong lồng máy giặt" (done) revenue: 30500000, payment dates: Array(1)
+ 📊 FinancialSummary inRange: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💸 Task "BIOCODEX PDP & LEAFLET" collaborator cost: 6550000, payment dates: Array(1)
+ 📊 Financial Summary Debug: Object
+ 🔮 Future revenue calc for quote quote-1751889791575: total=13400000
+    → Total paid: 10720000, remaining future: 2680000
+ 🔮 Task "BIOCODEX PDP & LEAFLET" (done) future revenue: 2680000
+ 🔮 Future revenue calc for quote quote-1755010385251: total=5000000
+    → Total paid: 0, remaining future: 5000000
+ 🔮 Task "Animation product Holo Fan" (done) future revenue: 5000000
+ 🔮 Future revenue calc for quote quote-1754111266570: total=0
+    → No payments, future revenue: 0
+ 🔮 Task "3D CHALLENGE!!!!!!!!" (inprogress) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1753090700186: total=19500000
+    → No payments, future revenue: 19500000
+ 🔮 Task "POSM Close UP" (inprogress) future revenue: 19500000
+ 🔮 Future revenue calc for quote quote-1751889791575: total=13400000
+    → Total paid: 10720000, remaining future: 2680000
+ 🔮 Task "BIOCODEX PDP & LEAFLET" (done) future revenue: 2680000
+ 🔮 Future revenue calc for quote quote-1755010385251: total=5000000
+    → Total paid: 0, remaining future: 5000000
+ 🔮 Task "Animation product Holo Fan" (done) future revenue: 5000000
+ 🔮 Future revenue calc for quote quote-1754111266570: total=0
+    → No payments, future revenue: 0
+ 🔮 Task "3D CHALLENGE!!!!!!!!" (inprogress) future revenue: 0
+ 🔮 Future revenue calc for quote quote-1753090700186: total=19500000
+    → No payments, future revenue: 19500000
+ 🔮 Task "POSM Close UP" (inprogress) future revenue: 19500000
+ 🔍 calculateTaskDetails Debug: Object
+ 📅 inRange check: Tue Aug 27 2024 07:00:00 GMT+0700 (Indochina Time) -> 2024-08-27T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 🗓️ Test date 2024-08-27 inRange: false
+ 📅 inRange check: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 📅 inRange check: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 📅 inRange check: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ❌ Before range start
+ 📅 inRange check: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+ 💰 Task "POSM Trắng gắt hơn nắng" (done): 0 collaborator links
+ 💰 Task "cloudtopia product model & render" (done): 0 collaborator links
+ 💰 Task "Vietjet air texturing model" (onhold): 0 collaborator links
+ 💰 Task "EC VAN 3D artwork" (done): 0 collaborator links
+ 💰 Task "Capybara mascot model 3D pack 2" (onhold): 0 collaborator links
+ 💰 Task "Lifter Glaze model & render" (done): 0 collaborator links
+ 💰 Task "VF8 Render" (done): 0 collaborator links
+ 💰 Task "Flex cappy Green Future - Cara" (done): 0 collaborator links
+ 💰 Task "Vietjet air Flight box animation" (done): 0 collaborator links
+ 💰 Task "BIOCODEX PDP & LEAFLET" (done): 1 collaborator links
+    📋 Collaborator quote collab-quote-1755242387666-0.1676124410135028: collaborator collab-1755242332951
+    🔍 Raw collaborator quote data: Object
+    💵 Computed total: 6550000
+    🧾 Payments: 0 entries
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+    ✅ In range
+      📅 No payment structure, assuming paid total: 6550000, date: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time), inRange: true, source: task.date
+ 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:434    ✅ In range
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:631    ✅ Final paid amount: 6550000
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:644    ✅ Added cost item: Object
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Animation product Holo Fan" (done): 1 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:539    ❌ Missing collaborator quote: undefined
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "3D CHALLENGE!!!!!!!!" (inprogress): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "POSM Close UP" (inprogress): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Animation product trong lồng máy giặt" (done): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Doji CGI nhẫn & xe bus" (todo): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Colorkey FOOH CGI" (todo): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Aeon Tân An CGI 10s" (todo): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:651 🎯 Final results: Object
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:450 🔍 calculateTaskDetails Debug: Object
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:424 📅 inRange check: Tue Aug 27 2024 07:00:00 GMT+0700 (Indochina Time) -> 2024-08-27T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:427    ❌ Before range start
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:460 🗓️ Test date 2024-08-27 inRange: false
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:424 📅 inRange check: Wed Jul 30 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:427    ❌ Before range start
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:424 📅 inRange check: 2025-08-21 -> 2025-08-21T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:434    ✅ In range
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:424 📅 inRange check: Wed Jul 09 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-07-09T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:427    ❌ Before range start
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:424 📅 inRange check: 2025-08-16 -> 2025-08-16T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:434    ✅ In range
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:424 📅 inRange check: Sat May 31 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-05-31T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:427    ❌ Before range start
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:424 📅 inRange check: 2025-06-30 -> 2025-06-30T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:427    ❌ Before range start
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:424 📅 inRange check: 2025-08-27 -> 2025-08-27T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:434    ✅ In range
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "POSM Trắng gắt hơn nắng" (done): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "cloudtopia product model & render" (done): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Vietjet air texturing model" (onhold): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "EC VAN 3D artwork" (done): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Capybara mascot model 3D pack 2" (onhold): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Lifter Glaze model & render" (done): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "VF8 Render" (done): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Flex cappy Green Future - Cara" (done): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Vietjet air Flight box animation" (done): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "BIOCODEX PDP & LEAFLET" (done): 1 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:543    📋 Collaborator quote collab-quote-1755242387666-0.1676124410135028: collaborator collab-1755242332951
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:544    🔍 Raw collaborator quote data: Object
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:580    💵 Computed total: 6550000
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:590    🧾 Payments: 0 entries
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:424 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:434    ✅ In range
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:625      📅 No payment structure, assuming paid total: 6550000, date: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time), inRange: true, source: task.date
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:424 📅 inRange check: Fri Aug 29 2025 00:00:00 GMT+0700 (Indochina Time) -> 2025-08-29T05:00:00.000Z vs [2025-07-31T17:00:00.000Z to 2025-08-31T16:59:59.999Z]
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:434    ✅ In range
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:631    ✅ Final paid amount: 6550000
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:644    ✅ Added cost item: Object
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Animation product Holo Fan" (done): 1 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:539    ❌ Missing collaborator quote: undefined
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "3D CHALLENGE!!!!!!!!" (inprogress): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "POSM Close UP" (inprogress): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Animation product trong lồng máy giặt" (done): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Doji CGI nhẫn & xe bus" (todo): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Colorkey FOOH CGI" (todo): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:534 💰 Task "Aeon Tân An CGI 10s" (todo): 0 collaborator links
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\ai\analytics\business-intelligence-helpers.ts:651 🎯 Final results: Object
+index.mjs:475 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+DescriptionWarning.useEffect @ index.mjs:475
+index.mjs:475 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+DescriptionWarning.useEffect @ index.mjs:475
+index.mjs:475 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+DescriptionWarning.useEffect @ index.mjs:475
+index.mjs:475 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+DescriptionWarning.useEffect @ index.mjs:475
+index.mjs:475 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+DescriptionWarning.useEffect @ index.mjs:475
+index.mjs:475 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+DescriptionWarning.useEffect @ index.mjs:475
+index.js:903 [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues.
+resolveExtensions @ index.js:903
+ExtensionManager @ index.js:2217
+createExtensionManager @ index.js:4669
+Editor @ index.js:4431
+createEditor @ index.js:501
+refreshEditorInstance @ index.js:602
+eval @ index.js:577
+react-stack-bottom-frame @ react-dom-client.development.js:23055
+runWithFiberInDEV @ react-dom-client.development.js:845
+commitHookEffectListMount @ react-dom-client.development.js:11978
+commitHookPassiveMountEffects @ react-dom-client.development.js:12099
+commitPassiveMountOnFiber @ react-dom-client.development.js:13929
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14019
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13992
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13932
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13932
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13932
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13932
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13932
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13932
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13932
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13922
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:14048
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:13902
+commitPassiveMountOnFiber @ react-dom-client.development.js:13941
+flushPassiveEffects @ react-dom-client.development.js:15869
+flushPendingEffects @ react-dom-client.development.js:15830
+flushSpawnedWork @ react-dom-client.development.js:15796
+commitRoot @ react-dom-client.development.js:15529
+commitRootWhenReady @ react-dom-client.development.js:14759
+performWorkOnRoot @ react-dom-client.development.js:14682
+performSyncWorkOnRoot @ react-dom-client.development.js:16365
+flushSyncWorkAcrossRoots_impl @ react-dom-client.development.js:16211
+processRootScheduleInMicrotask @ react-dom-client.development.js:16250
+eval @ react-dom-client.development.js:16384

@@ -114,9 +114,34 @@ export function BusinessDashboard() {
     }
   };
 
-  const handleTaskClick = (taskId: string) => {
-    setSelectedTaskId(taskId);
-    setIsTaskDialogOpen(true);
+  // Ensure clicks from FinancialSummaryCard dialogs open the correct task
+  // Some list items (e.g., collaborator cost entries) use composite IDs like `${task.id}-${collabQuoteId}`
+  // and expense rows may use IDs like `expense-<id>` which don't map to a task at all.
+  const handleTaskClick = (itemId: string) => {
+    if (!appData?.tasks) return;
+
+    // 1) Direct match (revenue/future/lost items already pass the task id)
+    let task = appData.tasks.find((t: Task) => t.id === itemId);
+
+    // 2) Ignore non-task expense rows
+    if (!task && itemId.startsWith('expense-')) {
+      return;
+    }
+
+    // 3) Composite id pattern: `${task.id}-...` (cost items)
+    if (!task) {
+      task = appData.tasks.find((t: Task) => itemId.startsWith(`${t.id}-`));
+    }
+
+    // 4) As a fallback, try locating by embedded collaborator quote id substring
+    if (!task) {
+      task = appData.tasks.find((t: Task) => (t.collaboratorQuotes || []).some((link: { collaboratorId: string; quoteId: string }) => itemId.includes(link.quoteId)));
+    }
+
+    if (task) {
+      setSelectedTaskId(task.id);
+      setIsTaskDialogOpen(true);
+    }
   };
 
   const handleEditTask = () => {
@@ -154,15 +179,45 @@ export function BusinessDashboard() {
       });
     }
 
-    if (values.collaboratorQuotes && selectedCollaboratorQuotes && selectedCollaboratorQuotes.length > 0) {
+    // Update existing collaborator quotes and create new ones if needed
+    if (values.collaboratorQuotes && Array.isArray(values.collaboratorQuotes)) {
+      const currentTask = appData?.tasks?.find((t: Task) => t.id === taskId);
+      const currentMappings = currentTask?.collaboratorQuotes || [];
+      const mappingByCollabId = new Map(currentMappings.map((m: any) => [m.collaboratorId, m.quoteId]));
+
       values.collaboratorQuotes.forEach((collabQuote: any, index: number) => {
-        const existingQuote = selectedCollaboratorQuotes[index];
-        if (existingQuote && collabQuote.sections) {
+        const mappedQuoteId = mappingByCollabId.get(collabQuote.collaboratorId);
+        const existingQuote = mappedQuoteId
+          ? appData?.collaboratorQuotes?.find((cq: any) => cq.id === mappedQuoteId)
+          : selectedCollaboratorQuotes?.[index];
+        if (existingQuote) {
           updateCollaboratorQuote(existingQuote.id, {
             sections: collabQuote.sections,
             columns: collaboratorQuoteColumns,
             collaboratorId: collabQuote.collaboratorId
           });
+        } else if (collabQuote.collaboratorId && collabQuote.sections && collabQuote.sections.length > 0) {
+          // Create new collaborator quote entity and map it to task
+          const newId = `collab-quote-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+          const total = collabQuote.sections.reduce((acc: number, s: any) => acc + (s.items || []).reduce((ai: number, it: any) => ai + (Number(it.unitPrice || 0) * (it.quantity || 1)), 0), 0);
+          const newCQ = {
+            id: newId,
+            collaboratorId: collabQuote.collaboratorId,
+            sections: collabQuote.sections,
+            total,
+            columns: collaboratorQuoteColumns,
+            paymentStatus: 'pending'
+          } as any;
+          // Push into global store
+          setAppData((prev: any) => ({
+            ...prev,
+            collaboratorQuotes: [...(prev.collaboratorQuotes || []), newCQ],
+            tasks: (prev.tasks || []).map((t: Task) => t.id === taskId ? {
+              ...t,
+              collaboratorQuotes: [...(t.collaboratorQuotes || []), { collaboratorId: collabQuote.collaboratorId, quoteId: newId }],
+              collaboratorIds: Array.from(new Set([...(t.collaboratorIds || []), collabQuote.collaboratorId]))
+            } : t)
+          }));
         }
       });
     }

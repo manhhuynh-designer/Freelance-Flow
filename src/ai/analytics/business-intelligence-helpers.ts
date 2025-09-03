@@ -4,6 +4,23 @@ import { DateRange } from 'react-day-picker';
 import { i18n } from '@/lib/i18n';
 import { analyzeBusinessAction } from '@/app/actions/ai-actions';
 
+// Helper: derive the "paid date" for a main quote.
+// Priority: explicit quote.paidDate -> earliest paid payment.date -> undefined
+function getMainQuotePaidDate(q?: Quote): string | undefined {
+  if (!q) return undefined;
+  const anyQ = q as any;
+  if (anyQ.paidDate) return anyQ.paidDate as string;
+  const pays = anyQ.payments as any[] | undefined;
+  if (Array.isArray(pays) && pays.length > 0) {
+    const paid = pays
+      .filter(p => p && p.status === 'paid' && p.date)
+      .map(p => new Date(p.date as string).getTime())
+      .sort((a, b) => a - b);
+    if (paid.length > 0) return new Date(paid[0]).toISOString();
+  }
+  return undefined;
+}
+
 // --- STAGE 1: LOCAL CALCULATION HELPERS ---
 
 /**
@@ -18,8 +35,30 @@ export function calculateFinancialSummary(appData: AppData, dateRange: { from?: 
     if (!dt) return false;
     const from = dateRange.from ? new Date(dateRange.from) : undefined;
     const to = dateRange.to ? new Date(dateRange.to) : undefined;
-    if (from && dt < from) return false;
-    if (to && dt > to) return false;
+    
+    // Normalize dates to start/end of day for proper comparison
+    if (from) {
+      from.setHours(0, 0, 0, 0);
+    }
+    if (to) {
+      to.setHours(23, 59, 59, 999);
+    }
+    
+    // Normalize check date to ignore time
+    const checkDate = new Date(dt);
+    checkDate.setHours(12, 0, 0, 0); // Use noon to avoid timezone issues
+    
+    console.log(`📊 FinancialSummary inRange: ${d} -> ${checkDate.toISOString()} vs [${from?.toISOString()} to ${to?.toISOString()}]`);
+    
+    if (from && checkDate < from) {
+      console.log(`   ❌ Before range start`);
+      return false;
+    }
+    if (to && checkDate > to) {
+      console.log(`   ❌ After range end`);
+      return false;
+    }
+    console.log(`   ✅ In range`);
     return true;
   };
 
@@ -61,11 +100,16 @@ export function calculateFinancialSummary(appData: AppData, dateRange: { from?: 
   };
 
   const computeCollabQuoteTotal = (cq?: CollaboratorQuote): number => {
-    if (!cq?.sections) return 0;
+    if (!cq) return 0;
+    if (!cq.sections || cq.sections.length === 0) {
+      return (cq as any)?.total || 0;
+    }
     const cols = (cq.columns || [{ id: 'description', name: 'Description', type: 'text' }, { id: 'unitPrice', name: 'Unit Price', type: 'number', calculation: { type: 'sum' } }] as QuoteColumn[]);
     const unitCol = cols.find(c => c.id === 'unitPrice');
-    if (!unitCol) return 0;
-    return cq.sections.reduce((acc, sec) => acc + (sec.items?.reduce((ia, it) => ia + calcRowVal(it, unitCol, cols), 0) || 0), 0);
+    if (!unitCol) return (cq as any)?.total || 0;
+    const computed = cq.sections.reduce((acc, sec) => acc + (sec.items?.reduce((ia, it) => ia + calcRowVal(it, unitCol, cols), 0) || 0), 0);
+    // Fallback to stored total if computed is 0 (e.g., custom columns without unitPrice)
+    return computed > 0 ? computed : ((cq as any)?.total || 0);
   };
 
   // Sum only PAID payments that fall within the selected date range.
@@ -134,59 +178,25 @@ export function calculateFinancialSummary(appData: AppData, dateRange: { from?: 
     return sum + (received || 0);
   }, 0);
 
-  // Costs CTV per spec: only count PAID collaborator amounts, similar to revenue logic
+  // Costs CTV: bỏ điều kiện trạng thái payment. Dùng paidDate của task (suy ra từ quote chính) hoặc deadline của task;
+  // số tiền lấy amountPaid nếu có, ngược lại lấy full total của CTV quote.
   const collaboratorCosts = tasksAll.reduce((sum, t) => {
-    if (t.status !== 'done' && t.status !== 'inprogress') return sum;
     const links = t.collaboratorQuotes || [];
     const sub = links.reduce((s, link) => {
       const cq = collabQuoteById.get(link.quoteId);
       if (!cq) return s;
       const total = computeCollabQuoteTotal(cq);
-      
-        // Check if collaborator quote has payment status - only count if paid and within date range
-        const payments = (cq as any).payments as any[] | undefined;
-        let paidAmount = 0;
-        
-        if (Array.isArray(payments) && payments.length > 0) {
-          // Sum only paid payments within range, prefer payment entry date, then cq.paidDate, then task.deadline
-          paidAmount = payments.reduce((ps, p) => {
-            if (!p || p.status !== 'paid') return ps;
-            const pd = p.date || (cq as any).paidDate || t.deadline;
-            if (!inRange(pd)) return ps;
-            if (String(p.amountType || '') === 'percent') {
-              const pct = Math.max(0, Math.min(100, Number(p.percent || 0)));
-              return ps + (total * pct / 100);
-            }
-            const amt = Number(p.amount || 0);
-            return ps + (amt > 0 ? amt : 0);
-          }, 0);
-        } else if (typeof (cq as any).amountPaid === 'number') {
-          // Fallback to legacy amountPaid field; include only if paid date (or task deadline) in range
-          const pd = (cq as any).paidDate || t.deadline;
-          paidAmount = inRange(pd) ? ((cq as any).amountPaid || 0) : 0;
-        } else {
-          // DEFAULT: If no payment data exists, assume "Chưa thanh toán" = 0 cost
-          paidAmount = 0;
-        }
-        
-        // Debug log for collaborator payment date filtering
-        if (paidAmount > 0) {
-          const paymentDates = payments?.map(p => ({ 
-            date: p.date || (cq as any).paidDate || t.deadline, 
-            status: p.status,
-            amount: p.amount 
-          })) || [{ date: (cq as any).paidDate || t.deadline, status: 'legacy', amount: (cq as any).amountPaid }];
-          console.log(`💸 Task "${t.name}" collaborator cost: ${paidAmount}, payment dates:`, paymentDates);
-        }      return s + paidAmount;
+      const amount = typeof (cq as any).amountPaid === 'number' ? (cq as any).amountPaid : total;
+      if (amount <= 0) return s;
+      const taskPaidDate = t.quoteId ? getMainQuotePaidDate(quoteById.get(t.quoteId)) : undefined;
+      const pd = taskPaidDate || t.deadline || t.endDate || t.startDate;
+      if (!inRange(pd)) return s;
+      return s + amount;
     }, 0);
     return sum + sub;
   }, 0);
 
-  // 2. General expenses in range (already date-based)
-    const expensesInRange = (appData.expenses || []).filter(e => inRange(e.date));
-    const generalExpenses = expensesInRange.reduce((s, e) => s + (e.amount || 0), 0);
-
-    // 3. Fixed costs for the selected date range
+  // Fixed costs for the selected date range
     const calculateFixedCosts = () => {
         if (!appData?.fixedCosts || appData.fixedCosts.length === 0) return 0;
 
@@ -247,10 +257,9 @@ export function calculateFinancialSummary(appData: AppData, dateRange: { from?: 
         }, 0);
     };
 
-    const fixedCosts = calculateFixedCosts();
-    const costs = collaboratorCosts + generalExpenses + fixedCosts;
+  const fixedCosts = calculateFixedCosts();
+  const costs = collaboratorCosts + fixedCosts;
   
-  // Profit per spec: Revenue (paid amounts) - Costs (paid amounts)
   // This aligns with the new payment status logic
   const profit = revenue - costs;
 
@@ -258,16 +267,14 @@ export function calculateFinancialSummary(appData: AppData, dateRange: { from?: 
     tasksConsidered: tasksAll.length,
     completedTasks: tasksAll.filter(t => t.status === 'done').length,
         revenue,
-        collaboratorCosts,
-        generalExpenses,
-        fixedCosts,
-        costs,
+  collaboratorCosts,
+        // Sum only paid payments within range. Priority:
+        // payment.date -> collaboratorQuote.paidDate -> mainQuote.paidDate/earliest paid payment -> task dates
         profit
     });
 
-    return { revenue, costs, profit };
+  return { revenue, costs, profit };
 }
-
 /**
  * Phân tích cơ cấu doanh thu theo khách hàng.
  */
@@ -283,7 +290,7 @@ export function calculateRevenueBreakdown(appData: AppData, dateRange: { from?: 
     return true;
   };
   const getTaskDate = (t: Task) => t.endDate || t.deadline || t.startDate;
-
+        // collaboratorQuote.paidDate -> mainQuote.paidDate/earliest paid payment -> task dates
   const clientById = new Map<string, Client>((appData.clients || []).map(c => [c.id, c]));
   const quoteById = new Map<string, Quote>((appData.quotes || []).map(q => [q.id, q]));
   
@@ -291,6 +298,31 @@ export function calculateRevenueBreakdown(appData: AppData, dateRange: { from?: 
   const T = i18n[appData?.appSettings?.language || 'en'];
 
   // Group revenue by client for tasks in range (paid amounts from done tasks only)
+  const computeQuoteTotal = (q2?: Quote): number => {
+    if (!q2?.sections) return (q2 as any)?.total || 0;
+    const cols = (q2.columns || [{ id: 'description', name: 'Description', type: 'text' }, { id: 'unitPrice', name: 'Unit Price', type: 'number', calculation: { type: 'sum' } }] as QuoteColumn[]);
+    const unitCol = cols.find(c => c.id === 'unitPrice');
+    if (!unitCol) return 0;
+    return q2.sections.reduce((acc, sec) => acc + (sec.items?.reduce((ia, it) => {
+      try {
+        if (unitCol.rowFormula) {
+          const rowVals: Record<string, number> = {};
+          cols.forEach(c => {
+            if (c.type === 'number' && c.id !== unitCol.id) {
+              const val = c.id === 'unitPrice' ? Number(it.unitPrice) || 0 : Number(it.customFields?.[c.id]) || 0;
+              rowVals[c.id] = val;
+            }
+          });
+          let expr = unitCol.rowFormula as string;
+          Object.entries(rowVals).forEach(([cid, val]) => { expr = expr.replaceAll(cid, String(val)); });
+          // eslint-disable-next-line no-eval
+          const r = eval(expr);
+          return ia + (!isNaN(r) ? Number(r) : 0);
+        }
+        return ia + (Number(it.unitPrice) || 0);
+      } catch { return ia; }
+    }, 0) || 0), 0);
+  };
   const totalsByClient = new Map<string, number>();
   for (const t of appData.tasks || []) {
     if (t.deletedAt || t.status === 'archived') continue;
@@ -305,8 +337,9 @@ export function calculateRevenueBreakdown(appData: AppData, dateRange: { from?: 
           // Enhanced fallback chain for payment date
           const pd = p.date || (q as any).paidDate || t.deadline || t.endDate || t.startDate;
           if (!inRange(pd)) return s;
+          const totalComputed = computeQuoteTotal(q);
           const inc = p.amountType === 'percent'
-            ? ((q.total || 0) * Math.max(0, Math.min(100, p.percent ?? 0)) / 100)
+            ? (totalComputed * Math.max(0, Math.min(100, p.percent ?? 0)) / 100)
             : (p.amount || 0);
           return s + (inc || 0);
         }, 0);
@@ -314,6 +347,11 @@ export function calculateRevenueBreakdown(appData: AppData, dateRange: { from?: 
         // Enhanced fallback for direct amountPaid
         const pd = (q as any).paidDate || t.deadline || t.endDate || t.startDate;
         amount = inRange(pd) ? ((q as any).amountPaid || 0) : 0;
+      } else if ((q as any).status === 'paid') {
+        // If quote marked as paid with no explicit payments, count full total on paidDate (or task date)
+        const pd = (q as any).paidDate || t.deadline || t.endDate || t.startDate;
+        const total = computeQuoteTotal(q);
+        amount = inRange(pd) ? total : 0;
       } else if (q.total && q.total > 0) {
         // Fallback: use quote total if no payment info but task is done
         const pd = t.endDate || t.deadline || t.startDate;
@@ -348,8 +386,30 @@ export function calculateTaskDetails(appData: AppData, dateRange: { from?: Date;
     if (!dt) return false;
     const from = dateRange.from ? new Date(dateRange.from) : undefined;
     const to = dateRange.to ? new Date(dateRange.to) : undefined;
-    if (from && dt < from) return false;
-    if (to && dt > to) return false;
+    
+    // Normalize dates to start/end of day for proper comparison
+    if (from) {
+      from.setHours(0, 0, 0, 0);
+    }
+    if (to) {
+      to.setHours(23, 59, 59, 999);
+    }
+    
+    // Normalize check date to ignore time
+    const checkDate = new Date(dt);
+    checkDate.setHours(12, 0, 0, 0); // Use noon to avoid timezone issues
+    
+    console.log(`📅 inRange check: ${d} -> ${checkDate.toISOString()} vs [${from?.toISOString()} to ${to?.toISOString()}]`);
+    
+    if (from && checkDate < from) {
+      console.log(`   ❌ Before range start`);
+      return false;
+    }
+    if (to && checkDate > to) {
+      console.log(`   ❌ After range end`);
+      return false;
+    }
+    console.log(`   ✅ In range`);
     return true;
   };
   const getTaskDate = (t: Task) => t.endDate || t.deadline || t.startDate;
@@ -365,27 +425,71 @@ export function calculateTaskDetails(appData: AppData, dateRange: { from?: Date;
   const revenueItems: any[] = [];
   const costItems: any[] = [];
 
-  // Revenue items from tasks - paid amounts from done tasks only
+  console.log('🔍 calculateTaskDetails Debug:', {
+    totalTasks: appData.tasks?.length || 0,
+    nonArchivedTasks: (appData.tasks || []).filter(t => !t.deletedAt && t.status !== 'archived').length,
+    collaboratorQuotes: appData.collaboratorQuotes?.length || 0,
+    dateRange,
+    selectedPeriod: dateRange.from ? `${dateRange.from.toISOString().split('T')[0]} to ${dateRange.to?.toISOString().split('T')[0]}` : 'all-time'
+  });
+
+  // Add detailed period check
+  const testDate = new Date('2024-08-27'); // Animation task paidDate
+  console.log('🗓️ Test date 2024-08-27 inRange:', inRange(testDate));
+
+  // Revenue items from tasks - include any non-archived task that has PAID payments in range
   for (const t of appData.tasks || []) {
     if (t.deletedAt || t.status === 'archived') continue;
-    if (t.status !== 'done') continue;
     const q = t.quoteId ? quoteById.get(t.quoteId) : undefined;
     if (q) {
+      // Compute quote total for percent payments and fallback paths (status=paid without explicit payments)
+      const computeQuoteTotal = (q2?: Quote): number => {
+        if (!q2?.sections) return (q2 as any)?.total || 0;
+        const cols = (q2.columns || [{ id: 'description', name: 'Description', type: 'text' }, { id: 'unitPrice', name: 'Unit Price', type: 'number', calculation: { type: 'sum' } }] as QuoteColumn[]);
+        const unitCol = cols.find(c => c.id === 'unitPrice');
+        if (!unitCol) return 0;
+        return q2.sections.reduce((acc, sec) => acc + (sec.items?.reduce((ia, it) => {
+          try {
+            if (unitCol.rowFormula) {
+              const rowVals: Record<string, number> = {};
+              cols.forEach(c => {
+                if (c.type === 'number' && c.id !== unitCol.id) {
+                  const val = c.id === 'unitPrice' ? Number(it.unitPrice) || 0 : Number(it.customFields?.[c.id]) || 0;
+                  rowVals[c.id] = val;
+                }
+              });
+              let expr = unitCol.rowFormula as string;
+              Object.entries(rowVals).forEach(([cid, val]) => { expr = expr.replaceAll(cid, String(val)); });
+              // eslint-disable-next-line no-eval
+              const r = eval(expr);
+              return ia + (!isNaN(r) ? Number(r) : 0);
+            }
+            return ia + (Number(it.unitPrice) || 0);
+          } catch { return ia; }
+        }, 0) || 0), 0);
+      };
+
       let amount = 0;
       const payments = (q as any).payments as any[] | undefined;
       if (Array.isArray(payments) && payments.length > 0) {
         amount = payments.reduce((s, p) => {
           if (!p || p.status !== 'paid') return s;
-          const pd = p.date || (q as any).paidDate || t.deadline;
+          const pd = p.date || (q as any).paidDate || t.deadline || t.endDate || t.startDate;
           if (!inRange(pd)) return s;
+          const totalComputed = computeQuoteTotal(q);
           const inc = p.amountType === 'percent'
-            ? ((q.total || 0) * Math.max(0, Math.min(100, p.percent ?? 0)) / 100)
+            ? (totalComputed * Math.max(0, Math.min(100, p.percent ?? 0)) / 100)
             : (p.amount || 0);
           return s + (inc || 0);
         }, 0);
       } else if (typeof (q as any).amountPaid === 'number') {
-        const pd = (q as any).paidDate || t.deadline;
+        const pd = (q as any).paidDate || t.deadline || t.endDate || t.startDate;
         amount = inRange(pd) ? ((q as any).amountPaid || 0) : 0;
+      } else if ((q as any).status === 'paid') {
+        // Fallback: if quote is marked as fully paid, include total when paid date (or task deadline) is in range
+        const pd = (q as any).paidDate || t.deadline || t.endDate || t.startDate;
+        const total = computeQuoteTotal(q);
+        amount = inRange(pd) ? total : 0;
       }
 
       if (amount > 0) {
@@ -398,95 +502,68 @@ export function calculateTaskDetails(appData: AppData, dateRange: { from?: Date;
         });
       }
     }
+  }
 
-  // Cost items from collaborator quotes - only include PAID amounts to align with costs logic
-  if (t.status === 'done' || t.status === 'inprogress') {
-      const collabLinks = t.collaboratorQuotes || [];
-      for (const link of collabLinks) {
-        const cq = collabQuoteById.get(link.quoteId);
-        if (!cq) continue;
-        
-        const total = cq.total || 0;
-        if (total <= 0) continue;
-        
-        // Check payment status - only include if paid
-        const payments = (cq as any).payments as any[] | undefined;
-        let paidAmount = 0;
-        
-        if (Array.isArray(payments) && payments.length > 0) {
-          // Sum only paid payments in range (prefer payment entry date, then cq.paidDate, then task deadline)
-          paidAmount = payments.reduce((ps, p) => {
-            if (!p || p.status !== 'paid') return ps;
-            const pd = p.date || (cq as any).paidDate || t.deadline;
-            if (!inRange(pd)) return ps;
-            if (String(p.amountType || '') === 'percent') {
-              const pct = Math.max(0, Math.min(100, Number(p.percent || 0)));
-              return ps + (total * pct / 100);
-            }
-            const amt = Number(p.amount || 0);
-            return ps + (amt > 0 ? amt : 0);
-          }, 0);
-        } else if (typeof (cq as any).amountPaid === 'number') {
-          // Fallback to legacy amountPaid field; include only if paid date (or task deadline) in range
-          const pd = (cq as any).paidDate || t.deadline;
-          paidAmount = inRange(pd) ? ((cq as any).amountPaid || 0) : 0;
+  // Cost items from collaborator quotes - NEW SPEC: ignore payment structures/status entirely.
+  // For each collaborator quote linked to a task: amount = amountPaid || computedTotal (fallback to stored total);
+  // date = mainQuote.paidDate (or earliest paid payment) || task.deadline || task.endDate || task.startDate.
+  for (const t of (appData.tasks || [])) {
+    if (t.deletedAt || t.status === 'archived') continue;
+    const links = t.collaboratorQuotes || [];
+    if (!links.length) continue;
+    const taskPaidDate = t.quoteId ? getMainQuotePaidDate(quoteById.get(t.quoteId)) : undefined;
+    const costDate = taskPaidDate || t.deadline || t.endDate || t.startDate;
+    for (const link of links) {
+      const cq = collabQuoteById.get(link.quoteId);
+      if (!cq) continue;
+      // robust total
+      let total = 0;
+      if (cq.sections && cq.sections.length > 0) {
+        const cols = (cq.columns || [{ id: 'description', name: 'Description', type: 'text' }, { id: 'unitPrice', name: 'Unit Price', type: 'number', calculation: { type: 'sum' } }] as QuoteColumn[]);
+        const unitCol = cols.find(c => c.id === 'unitPrice');
+        if (unitCol) {
+          total = cq.sections.reduce((acc: number, sec: any) => acc + (sec.items?.reduce((ia: number, it: any) => {
+            try {
+              if ((unitCol as any).rowFormula) {
+                const rowVals: Record<string, number> = {};
+                cols.forEach(c => {
+                  if (c.type === 'number' && c.id !== unitCol.id) {
+                    const val = c.id === 'unitPrice' ? Number((it as any).unitPrice) || 0 : Number((it as any).customFields?.[c.id]) || 0;
+                    rowVals[c.id] = val;
+                  }
+                });
+                let expr = (unitCol as any).rowFormula as string;
+                Object.entries(rowVals).forEach(([cid, val]) => { expr = expr.replaceAll(cid, String(val)); });
+                // eslint-disable-next-line no-eval
+                const r = eval(expr);
+                return ia + (!isNaN(r) ? Number(r) : 0);
+              }
+              return ia + (Number((it as any).unitPrice) || 0);
+            } catch { return ia; }
+          }, 0) || 0), 0);
         }
-        
-        // Only add to cost items if there's a paid amount
-        if (paidAmount > 0) {
-          const collaborator = collaboratorById.get(link.collaboratorId);
-          costItems.push({
-            id: `${t.id}-${link.quoteId}`,
-            name: `${t.name} (${collaborator?.name || 'Unknown'})`,
-            clientName: clientById.get(t.clientId)?.name || T.unknownClient,
-            amount: paidAmount,
-            type: 'cost'
-          });
-        }
+      }
+      if (total <= 0) total = (cq as any)?.total || 0;
+      const amount = typeof (cq as any).amountPaid === 'number' ? (cq as any).amountPaid : total;
+      if (amount > 0 && inRange(costDate)) {
+        const collaborator = collaboratorById.get(link.collaboratorId);
+        costItems.push({
+          id: `${t.id}-${link.quoteId}`,
+          name: `${t.name} (${collaborator?.name || 'Unknown'})`,
+          clientName: clientById.get(t.clientId)?.name || T.unknownClient,
+          amount,
+          type: 'cost'
+        });
       }
     }
   }
 
-  // Alternative cost calculation if task links are empty (legacy fallback)
-  // Check collaborator assignments by task completion
-  if (costItems.length === 0) {
-    for (const task of appData.tasks || []) {
-      if (task.deletedAt || task.status === 'archived') continue;
-      if (!inRange(getTaskDate(task))) continue;
-      if (task.status !== 'done' && task.status !== 'inprogress') continue;
-      
-      const collaboratorIds = task.collaboratorIds || [];
-      for (const collabId of collaboratorIds) {
-        const relatedQuotes = (appData.collaboratorQuotes || []).filter(cq => 
-          cq.collaboratorId === collabId && 
-          cq.paidDate && inRange(cq.paidDate)
-        );
-        
-        for (const cq of relatedQuotes) {
-          const collaborator = collaboratorById.get(collabId);
-          costItems.push({
-            id: `${task.id}-alt-${cq.id}`,
-            name: `${task.name} (${collaborator?.name || 'Unknown'})`,
-            clientName: clientById.get(task.clientId)?.name || T.unknownClient,
-            amount: cq.total,
-            type: 'cost'
-          });
-        }
-      }
-    }
-  }
+  console.log('🎯 Final results:', {
+    revenueItems: revenueItems.length,
+    costItems: costItems.length
+  });
 
-  // Add general expenses to cost items
-  const expensesInRange = (appData.expenses || []).filter(e => inRange(e.date));
-  for (const expense of expensesInRange) {
-    costItems.push({
-      id: `expense-${expense.id}`,
-      name: `${expense.name} (${expense.category})`,
-      clientName: 'General Expense',
-      amount: expense.amount,
-      type: 'cost'
-    });
-  }
+  // Only collaborator cost items are included; general expenses are excluded by new spec
 
   return {
     revenueItems: revenueItems.sort((a, b) => b.amount - a.amount),
@@ -592,7 +669,7 @@ export function calculateAdditionalFinancials(appData: AppData, dateRange: { fro
 
   // Future revenue: tasks with any status except archived - calculate remaining unpaid amounts
   const futureRevenue = tasksInRange.reduce((sum, t) => {
-    if (t.status === 'archived') return sum;
+    if (t.status === 'archived' || t.status === 'onhold') return sum; // exclude on-hold from future revenue
     const q = t.quoteId ? quoteById.get(t.quoteId) : undefined;
     if (!q) return sum;
     const total = computeQuoteTotal(q);
@@ -672,7 +749,7 @@ export function calculateAdditionalTaskDetails(appData: AppData, dateRange: { fr
 
   // Future revenue items: all tasks except archived with remaining unpaid amounts
   for (const t of tasksInRange) {
-    if (t.status === 'archived') continue;
+    if (t.status === 'archived' || t.status === 'onhold') continue; // exclude on-hold from future revenue list
     const q = t.quoteId ? quoteById.get(t.quoteId) : undefined;
     if (!q) continue;
     
@@ -715,6 +792,99 @@ export function calculateAdditionalTaskDetails(appData: AppData, dateRange: { fr
     lostRevenueItems: lostRevenueItems.sort((a, b) => b.amount - a.amount)
   };
 }
+
+/**
+ * Calculate fixed cost details for the dialog
+ */
+export function calculateFixedCostDetails(appData: AppData, dateRange: { from?: Date; to?: Date }) {
+  const fixedCostItems: Array<{
+    id: string;
+    name: string;
+    amount: number;
+    frequency: string;
+    type: 'fixed-cost';
+    startDate?: string;
+    endDate?: string;
+  }> = [];
+
+  if (!appData?.fixedCosts || appData.fixedCosts.length === 0) {
+    return { fixedCostItems, totalFixedCosts: 0 };
+  }
+
+  // Use the same date range logic as the financial summary
+  let rangeFromDate: Date, rangeToDate: Date;
+  
+  if (dateRange?.from && dateRange?.to) {
+    rangeFromDate = new Date(dateRange.from);
+    rangeToDate = new Date(dateRange.to);
+  } else {
+    // Default to current month if no date range selected
+    const now = new Date();
+    rangeFromDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    rangeToDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  }
+
+  // Calculate exact number of days in the selected range (inclusive)
+  const rangeDays = Math.ceil((rangeToDate.getTime() - rangeFromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+  let totalFixedCosts = 0;
+
+  appData.fixedCosts.forEach(cost => {
+    if (!cost.isActive) return;
+
+    const startDate = new Date(cost.startDate);
+    const endDate = cost.endDate ? new Date(cost.endDate) : null;
+
+    // Check if cost applies to the selected range
+    if (startDate > rangeToDate || (endDate && endDate < rangeFromDate)) {
+      return;
+    }
+
+    // Calculate daily rate and total for this range
+    let dailyRate = 0;
+    let costForRange = 0;
+    
+    switch (cost.frequency) {
+      case 'once':
+        // One-time cost applies if start date is in range
+        if (startDate >= rangeFromDate && startDate <= rangeToDate) {
+          costForRange = cost.amount;
+        }
+        break;
+      case 'weekly':
+        dailyRate = cost.amount / 7;
+        costForRange = dailyRate * rangeDays;
+        break;
+      case 'monthly':
+        dailyRate = cost.amount / 30.44;
+        costForRange = dailyRate * rangeDays;
+        break;
+      case 'yearly':
+        dailyRate = cost.amount / 365.25;
+        costForRange = dailyRate * rangeDays;
+        break;
+    }
+
+    if (costForRange > 0) {
+      totalFixedCosts += costForRange;
+      fixedCostItems.push({
+        id: cost.id,
+        name: cost.name,
+        amount: costForRange,
+        frequency: cost.frequency,
+        type: 'fixed-cost',
+        startDate: cost.startDate,
+        endDate: cost.endDate
+      });
+    }
+  });
+
+  return {
+    fixedCostItems: fixedCostItems.sort((a, b) => b.amount - a.amount),
+    totalFixedCosts
+  };
+}
+
 /**
  * NEW: Calculate monthly financial breakdown for charts
  */
@@ -770,53 +940,27 @@ export function calculateMonthlyFinancials(appData: AppData, dateRange: { from?:
     }
   });
 
-  // 2. Process Costs (Collaborator, General, Fixed)
-  // 2a. Collaborator Costs (align with Financial Summary: only PAID collaborator payments)
+  // 2. Process Costs (Collaborator, Fixed) — General expenses removed per new spec
+  // 2a. Collaborator Costs (align with Financial Summary: only PAID collaborator payments; include all non-archived tasks)
    tasksAll.forEach(t => {
-    if (t.status !== 'done' && t.status !== 'inprogress') return;
     const links = t.collaboratorQuotes || [];
     links.forEach(link => {
       const cq = collabQuoteById.get(link.quoteId);
       if (!cq) return;
 
-      const payments = (cq as any).payments as any[] | undefined;
-      if (Array.isArray(payments) && payments.length > 0) {
-        payments.forEach(p => {
-          if (p && p.status === 'paid') {
-            // Fallback chain for collaborator payments
-            const paymentDate = toDate(p.date || (cq as any).paidDate || t.deadline || t.endDate || t.startDate);
-            if (paymentDate && (useAllTime || (dateRange.from && dateRange.to && paymentDate >= dateRange.from && paymentDate <= dateRange.to))) {
-              const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
-              ensureMonth(monthKey);
-              const total = (cq.total ?? 0);
-              const amount = p.amountType === 'percent'
-                ? (total * (p.percent ?? 0) / 100)
-                : (p.amount || 0);
-              monthlyMap.get(monthKey)!.costs += amount;
-            }
-          }
-        });
-      } else if (typeof (cq as any).amountPaid === 'number') {
-        // Handle collaborator quotes with direct amountPaid
-        const paymentDate = toDate((cq as any).paidDate || t.deadline || t.endDate || t.startDate);
-        if (paymentDate && (useAllTime || (dateRange.from && dateRange.to && paymentDate >= dateRange.from && paymentDate <= dateRange.to))) {
-          const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
-          ensureMonth(monthKey);
-          monthlyMap.get(monthKey)!.costs += (cq as any).amountPaid;
-        }
+      const mainQuotePaidDate = t.quoteId ? getMainQuotePaidDate(quoteById.get(t.quoteId)) : undefined;
+      const paymentDate = toDate(mainQuotePaidDate || t.deadline || t.endDate || t.startDate);
+      if (!paymentDate) return;
+      if (useAllTime || (dateRange.from && dateRange.to && paymentDate >= dateRange.from && paymentDate <= dateRange.to)) {
+        const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
+        ensureMonth(monthKey);
+        const amount = typeof (cq as any).amountPaid === 'number' ? (cq as any).amountPaid : ((cq as any).total ?? 0);
+        monthlyMap.get(monthKey)!.costs += amount;
       }
     });
   });
 
-  // 2b. General Expenses
-  (appData.expenses || []).forEach(expense => {
-    const expenseDate = toDate(expense.date);
-    if (expenseDate && (useAllTime || (dateRange.from && dateRange.to && expenseDate >= dateRange.from && expenseDate <= dateRange.to))) {
-      const monthKey = `${expenseDate.getFullYear()}-${String(expenseDate.getMonth() + 1).padStart(2, '0')}`;
-      ensureMonth(monthKey);
-      monthlyMap.get(monthKey)!.costs += expense.amount || 0;
-    }
-  });
+  // 2b. (removed) General Expenses
 
   // 2c. Fixed Costs
     // For fixed costs, if no range is provided, compute across each cost's active months
