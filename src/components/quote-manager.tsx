@@ -1355,7 +1355,7 @@ export const QuoteManager = ({
             </TabsTrigger>
             <TabsTrigger value="calculations" className="flex items-center gap-2">
               <Calculator className="h-4 w-4" />
-              {T.calculationsDesc || "Tổng Kết"}
+              {T.calculationsDesc || "Summary"}
             </TabsTrigger>
           </TabsList>
 

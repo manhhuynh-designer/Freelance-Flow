@@ -324,8 +324,8 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
           <CalendarView
             tasks={filteredTasks} events={events} quotes={quotes} collaboratorQuotes={collabQuotesAsQuote} clients={clients}
             collaborators={collaborators} categories={categories} onEditTask={handleEditTask} onAddTask={handleAddTask}
-            onDeleteTask={handleDeleteTask} onAddClient={handleAddClientAndSelect} quoteTemplates={quoteTemplates}
-            settings={appSettings} currentDate={calendarDate} viewMode={calendarMode}
+            onDeleteTask={handleDeleteTask} onAddClient={handleAddClientAndSelect} onUpdateQuote={updateQuote}
+            quoteTemplates={quoteTemplates} settings={appSettings} currentDate={calendarDate} viewMode={calendarMode}
             onDateChange={handleCalendarDateChange} onViewModeChange={handleCalendarModeChange} updateTask={updateTask}
           />
         );

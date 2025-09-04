@@ -45,6 +45,7 @@ export interface CalendarViewProps {
   onAddTask?: (values: TaskFormValues, quoteColumns: QuoteColumn[], collaboratorQuoteColumns: QuoteColumn[]) => void;
   onDeleteTask: (taskId: string) => void;
   onAddClient: (data: Omit<Client, 'id'>) => Client;
+  onUpdateQuote?: (quoteId: string, updates: Partial<Quote>) => void;
   quoteTemplates: QuoteTemplate[];
   settings: AppSettings;
   currentDate?: Date;
@@ -56,7 +57,7 @@ export interface CalendarViewProps {
 
 export function CalendarView({
   tasks, events = [], quotes, collaboratorQuotes, clients, collaborators, categories, onEditTask,
-  onAddTask, onDeleteTask, onAddClient, quoteTemplates, settings, updateTask,
+  onAddTask, onDeleteTask, onAddClient, onUpdateQuote, quoteTemplates, settings, updateTask,
   currentDate = new Date(), viewMode = 'month', onDateChange, onViewModeChange
 }: CalendarViewProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -149,6 +150,7 @@ export function CalendarView({
           onEdit={handleEditFromDetails} onDelete={handleTaskDelete}
           onChangeStatus={(taskId, statusId) => updateTask({ id: taskId, status: statusId as any })}
           onUpdateTask={updateTask}
+          onUpdateQuote={onUpdateQuote}
         />
       )}
 

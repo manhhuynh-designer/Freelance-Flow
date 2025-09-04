@@ -53,6 +53,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 // IMPORT NEW COMPONENT
 import { TimelineCreatorTab } from "@/components/task-dialogs/TimelineCreatorTab";
+import TimelineEditDialog from "@/components/task-dialogs/TimelineEditDialog";
 
 export interface TaskDetailsDialogProps {
   task: Task;
@@ -795,6 +796,9 @@ export function TaskDetailsDialog({
     }
   }, [task, settings, toast, T, clients, categories, defaultColumns, calculationResults, calculateRowValue, totalQuote, quote]);
 
+  // Local: open Edit Quote dialog (edit-only mode) from Price tab
+  const [isPriceEditOpen, setIsPriceEditOpen] = useState(false);
+
   const renderQuoteTable = (title: string, quoteData: Quote | undefined) => {
     if (!quoteData) return null; // Add this check
     return (
@@ -803,6 +807,15 @@ export function TaskDetailsDialog({
         <h4 className="font-semibold">{title}</h4>
         {quoteData && (
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2"
+              onClick={() => setIsPriceEditOpen(true)}
+              title={T.editQuote || 'Edit Quote'}
+            >
+              <Pencil className="w-3.5 h-3.5 mr-1" />{T.edit || 'Edit'}
+            </Button>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => copyQuoteToClipboard(quoteData)} title="Copy table to clipboard">
               <Copy className="w-4 h-4" />
               <span className="sr-only">Copy {title}</span>
@@ -818,7 +831,7 @@ export function TaskDetailsDialog({
         <div key={section.id || sectionIndex} className="mb-4 last:mb-0">
           {section.name && <h5 className="font-medium text-sm text-muted-foreground mb-1 pl-1">{section.name}</h5>}
           <div className="rounded-lg border-2 border-foreground bg-card p-2">
-            <Table>
+            <Table className="[&_tr]:!border-b [&_td]:py-2 [&_th]:py-2">
               <TableHeader>
                 <TableRow>
                   {(quoteData.columns || defaultColumns).map(col => (
@@ -828,7 +841,7 @@ export function TaskDetailsDialog({
               </TableHeader>
               <TableBody>
                 {section.items.map((item, index) => (
-                  <TableRow key={item.id || index}>
+                  <TableRow key={item.id || index} className="hover:bg-transparent">
                     {(quoteData.columns || defaultColumns).map(col => {
                       let displayValue: string | number = '';
                       
@@ -873,7 +886,7 @@ export function TaskDetailsDialog({
                       }
 
                       return (
-                        <TableCell key={col.id} className={cn(col.type === 'number' && 'text-right')}>
+                        <TableCell key={col.id} className={cn('py-2', col.type === 'number' && 'text-right')}>
                           {formattedValue}
                         </TableCell>
                       );
@@ -1148,6 +1161,18 @@ export function TaskDetailsDialog({
               {quote && quote.sections && quote.sections.length > 0 ? (
                 <>
                   {renderQuoteTable(T.priceQuote, quote)}
+                  {/* Edit Quote Dialog (edit-only mode) */}
+                  <TimelineEditDialog
+                    isOpen={isPriceEditOpen}
+                    onClose={() => setIsPriceEditOpen(false)}
+                    task={task}
+                    quote={quote}
+                    settings={settings}
+                    onUpdateQuote={onUpdateQuote}
+                    visibilityState={{}} // not used in editOnly
+                    onVisibilityChange={(_s) => {}}
+                    mode="editOnly"
+                  />
                   <div className="pt-4 mt-4 border-t">
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       <div className="rounded-md border p-3">
@@ -1254,6 +1279,8 @@ export function TaskDetailsDialog({
               quote={quote}
               quotes={quotes}
               settings={settings}
+              clients={clients}
+              categories={categories}
               onUpdateTask={stableUpdateTaskHandler}
               onUpdateQuote={onUpdateQuote}
             />

@@ -1,240 +1,529 @@
 import React from 'react';
-import { Task, AppSettings, Milestone } from "@/lib/types";
-import { i18n } from "@/lib/i18n";
-import { format, differenceInDays } from "date-fns";
+import { Task, Quote, AppSettings, Milestone, Client, Category } from '@/lib/types';
+import { format, addDays } from 'date-fns';
+import { i18n } from '@/lib/i18n';
 
 type Props = {
   task: Task;
-  settings: AppSettings;
+  quote?: Quote;
   milestones: Milestone[];
+  settings: AppSettings;
+  clients: Client[];
+  categories: Category[];
+  viewMode: 'day' | 'week' | 'month';
+  timelineScale: number;
+  displayDate: Date;
+  fileName?: string;
 };
 
-const rowHeight = 32;
 const scale = 48; // Pixels per day for rendering
+const SECTION_HEADER_HEIGHT = 48; // Increased for larger text
+const MILESTONE_ROW_HEIGHT = 120; // Taller rows for larger text and bars
+const BAR_HEIGHT = 84; // Increased bar height to accommodate text better
+const DATE_HEADER_HEIGHT = 40; // Increased for larger text
+const DATE_HEADER_BORDER = 1;
+const MILESTONES_TITLE_HEIGHT = 60; // Increased for larger title text
 
-export const PrintableTimeline: React.FC<Props> = ({ 
-  task, 
+export const PrintableTimeline: React.FC<Props> = ({
+  task,
+  quote,
+  milestones,
   settings,
-  milestones
+  clients,
+  categories,
+  viewMode,
+  timelineScale,
+  displayDate
 }) => {
+  const currency = settings.currency || 'USD';
   const T = i18n[settings.language] || i18n.vi;
-  const primaryColor = settings.theme?.primary || '#2563eb'; // fallback to a default blue
+  const primaryColor = settings.theme?.primary || '#2563eb';
 
-  // Date parsing utility (Copied from TaskDetailsDialog.tsx for consistency)
-  const safeParseDate = (date: any, fallback: Date | null = null): Date | null => {
-    if (!date) return fallback;
+  const currentClient = clients.find(c => c.id === task.clientId);
+  const currentCategory = categories.find(cat => cat.id === task.categoryId);
+
+  // Timeline calculations - Use same logic as TimelineCreatorTab
+  const MS_PER_DAY = 1000 * 60 * 60 * 24;
+  const CONTAINER_WIDTH = 4096; // 4096px width
+  const SIDEBAR_WIDTH = 400; 
+  const TIMELINE_WIDTH = CONTAINER_WIDTH - SIDEBAR_WIDTH;
+
+  // Date utilities - Match TimelineCreatorTab exactly
+  const getUtcTimestamp = (date: any): number => {
+    if (!date) return NaN;
     
-    // Handle if it's already a valid Date object
-    if (date instanceof Date && !isNaN(date.getTime())) {
-      return date;
+    // Handle Date objects
+    if (date instanceof Date) {
+        return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
     }
     
-    // Handle string dates (ISO strings, timestamps, etc.)
-    if (typeof date === 'string' || typeof date === 'number') {
-      const parsed = new Date(date);
-      if (!isNaN(parsed.getTime())) {
-        return parsed;
-      }
-    }
+    // Handle strings and numbers
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return NaN;
     
-    return fallback;
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
   };
 
-  const parsedStartDate = safeParseDate(task.startDate);
-  const parsedDeadline = safeParseDate(task.deadline);
-  
-  const totalDurationDays = parsedStartDate && parsedDeadline 
-    ? differenceInDays(parsedDeadline, parsedStartDate) + 1 
-    : 0;
-  
-  const getTimelineWidth = () => {
-    // Determine the full width needed based on total duration of the task
-    // Ensure minimum width for better readability
-    const minDays = 7; // Minimum 1 week for readability
-    const displayDays = Math.max(minDays, totalDurationDays > 0 ? totalDurationDays : 30);
-    return `${displayDays * scale + 200}px`; // Add padding for labels
-  }
+  const getDayNumber = (timestamp: number): number => {
+    return Math.floor(timestamp / MS_PER_DAY);
+  };
 
-  const styles: { [key: string]: React.CSSProperties } = {
-    container: {
-        width: getTimelineWidth(), // Dynamic width
-        backgroundColor: '#f1f5f9',
-        fontFamily: '"Be Vietnam Pro", sans-serif',
-        wordBreak: 'break-word',
-        whiteSpace: 'normal',
-        lineHeight: '1.75',
-        fontSize: '1.5rem', // Adjusted for visual density
-        padding: '2rem'
-    },
-    sheet: {
-        backgroundColor: '#ffffff',
-        padding: '3rem', // Reduced padding for compactness
-        borderRadius: '0.75rem',
-        border: '1px solid #e2e8f0'
-    },
-    header: {
-        display: 'flex',
-        flexDirection: 'column', // Stack children vertically
-        alignItems: 'flex-start',
-        marginBottom: '2rem', // Reduced margin
-        paddingBottom: '1.5rem',
-        borderBottom: `2px solid ${primaryColor}` // Reduced border size
-    },
-    h1: { fontSize: '3rem', fontWeight: 900, color: primaryColor, marginBottom: '0.5rem', lineHeight: 1 },
-    taskInfo: { fontSize: '1.25rem', color: '#475569', lineHeight: '1.5' },
-    taskInfoSpan: { fontWeight: 700, color: '#1e293b' },
-    milestoneContainer: {
-        position: 'relative',
-        minHeight: `${milestones.length * (rowHeight + 4) + (rowHeight + 16)}px`, // Adjusted for spacing and header height
-        padding: '1rem 0',
-        overflowX: 'auto',
-        border: '1px solid #cbd5e1',
-        borderRadius: '0.5rem',
-        marginTop: '2rem'
-    },
-    dateHeader: {
-      position: 'relative', // Changed from sticky to relative for better rendering in static export
-      width: 'max-content', // Allow content to dictate width
-      minWidth: `${totalDurationDays * scale}px`, // Ensure it spans the full width of the timeline
-      backgroundColor: '#f8fafc',
-      padding: '0.5rem 0', // Reduced padding to match image
-      borderBottom: '1px solid #e2e8f0',
-      marginBottom: '0.5rem', // Reduced margin
-      display: 'flex',
-      flexDirection: 'row',
-      overflow: 'hidden',
-      height: `${rowHeight}px`, // Explicit height
-      alignItems: 'center',
-      justifyContent: 'flex-start', // Align to start for day cells
-    },
-    dayCell: {
-      flexShrink: 0,
-      width: `${scale}px`, // Match scale
-      textAlign: 'center',
-      fontSize: '0.75rem',
-      fontWeight: 500,
-      color: '#475569',
-      borderRight: '1px solid #e2e8f0',
-      boxSizing: 'border-box',
-      lineHeight: `${rowHeight}px`, // Center text vertically, fixed height.
-      position: 'relative',
-      overflow: 'hidden',
-    },
-    milestoneBar: {
-      position: 'absolute',
-      height: `${rowHeight - 8}px`, // Reduced height and added more spacing (8px for top/bottom margin simulation)
-      backgroundColor: '#3b82f6', // Default color
-      borderRadius: '0.25rem',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 0.5rem',
-      fontSize: '0.875rem',
-      color: '#fff',
-      overflow: 'hidden',
-      whiteSpace: 'nowrap',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-      boxSizing: 'border-box'
+  const dateToDayNum = (date: any): number | null => {
+    if (!date) return null;
+    const timestamp = getUtcTimestamp(date);
+    if (isNaN(timestamp)) return null;
+    return getDayNumber(timestamp);
+  };
+
+  const dayNumToFormat = (dayNum: number | null): string => {
+    if (dayNum === null) return 'Invalid Date';
+    const date = new Date((dayNum * MS_PER_DAY) + (new Date().getTimezoneOffset() * 60 * 1000));
+    return format(date, "dd/MM");
+  };
+
+  const getTimelineRange = () => {
+    // Use same logic as TimelineCreatorTab
+    const taskStartDay = dateToDayNum(task.startDate);
+    const taskEndDay = dateToDayNum(task.deadline);
+    
+    if (taskStartDay === null || taskEndDay === null) {
+      // Fallback to current date range
+      const today = new Date();
+      return {
+        startDay: dateToDayNum(today)!,
+        endDay: dateToDayNum(addDays(today, 30))!
+      };
     }
+
+    // Crop timeline exactly from task start to deadline (no extra padding)
+    return {
+      startDay: taskStartDay,
+      endDay: taskEndDay
+    };
+  };
+
+  const { startDay, endDay } = getTimelineRange();
+  const totalDays = Math.max(1, endDay - startDay + 1);
+  const dayWidth = TIMELINE_WIDTH / totalDays;
+
+  const formatDateHeader = (dayNum: number) => {
+    return dayNumToFormat(dayNum);
+  };
+
+  const getMilestonePosition = (milestone: Milestone) => {
+    const milestoneStartDay = dateToDayNum(milestone.startDate);
+    const milestoneEndDay = dateToDayNum(milestone.endDate) || milestoneStartDay;
+    
+    if (milestoneStartDay === null) return { left: 0, width: 0 };
+    
+    // Calculate relative position from timeline start
+    const relativeStart = milestoneStartDay - startDay;
+    const duration = Math.max(1, milestoneEndDay ? milestoneEndDay - milestoneStartDay + 1 : 1);
+    
+    return {
+      left: relativeStart * dayWidth,
+      width: duration * dayWidth
+    };
   };
 
   const renderDateHeaders = () => {
-    if (!parsedStartDate || !parsedDeadline) return null;
-
-    const days = [];
-    let currentDate = new Date(parsedStartDate);
-    let dayCount = 0;
-
-    // Use loop to iterate dates, format dd/MM
-    while (currentDate <= parsedDeadline && dayCount < 365) { 
-      days.push(
-        <div key={currentDate.toISOString()} style={styles.dayCell}>
-          {format(currentDate, 'dd/MM')}
+    const headers = [];
+    const headerInterval = viewMode === 'day' ? 1 : viewMode === 'week' ? 7 : 30;
+    
+    for (let i = 0; i < totalDays; i += headerInterval) {
+      const currentDay = startDay + i;
+      headers.push(
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            left: `${i * dayWidth}px`,
+            width: `${headerInterval * dayWidth}px`,
+            height: '30px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRight: '1px solid #e5e7eb',
+            fontSize: '24px',
+            color: '#6b7280',
+            backgroundColor: '#f9fafb'
+          }}
+        >
+          {dayNumToFormat(currentDay)}
         </div>
       );
-      currentDate.setDate(currentDate.getDate() + 1);
-      dayCount++;
     }
-    return days;
+    
+    return headers;
   };
 
+  const renderGridLines = () => {
+    const lines = [];
+    const interval = viewMode === 'day' ? 1 : viewMode === 'week' ? 7 : 30;
+    
+    // Vertical grid lines
+    for (let i = 0; i <= totalDays; i += interval) {
+      lines.push(
+        <div
+          key={`v-${i}`}
+          style={{
+            position: 'absolute',
+            left: `${i * dayWidth}px`,
+            top: '0',
+            bottom: '0',
+            width: '1px',
+            backgroundColor: '#f3f4f6',
+            opacity: 0.7
+          }}
+        />
+      );
+    }
+    
+    return lines;
+  };
+
+  // Build rows grouped by sections to keep sidebar and bars perfectly aligned
+  type Row = 
+    | { type: 'section'; id: string; name: string }
+    | { type: 'milestone'; id: string; name: string; milestone: Milestone | null };
+
+  const buildRows = (): Row[] => {
+    const rows: Row[] = [];
+    const used = new Set<string>();
+
+    // Helper to find a milestone for a quote item by common patterns
+    const findMilestoneForItem = (sectionIndex: number, itemIndex: number, itemName?: string): Milestone | null => {
+      // Primary: match exact milestone id format used in TimelineCreatorTab
+      const sectionObj = (quote as any)?.sections?.[sectionIndex];
+      const sectionId = sectionObj?.id || `section-${sectionIndex}`;
+      const itemObj = sectionObj?.items?.[itemIndex];
+      const itemId = itemObj?.id || `item-${itemIndex}`;
+      const expectedId = `${sectionId}-${itemId}`;
+      const byExactKey = milestones.find(m => m.id === expectedId);
+      if (byExactKey && !used.has(byExactKey.id)) return byExactKey;
+
+      // Fallbacks
+      if (itemName) {
+        const byName = milestones.find(m => !used.has(m.id) && m.name === itemName);
+        if (byName) return byName;
+      }
+      const any = milestones.find(m => !used.has(m.id));
+      return any || null;
+    };
+
+    if (quote?.sections && quote.sections.length > 0) {
+      quote.sections.forEach((section, sIdx) => {
+        const sectionId = section.id || `section-${sIdx}`;
+        rows.push({ type: 'section', id: String(sectionId), name: section.name || `Section ${sIdx + 1}` });
+        const items = section.items || [];
+        items.forEach((item: any, iIdx: number) => {
+          const ms = findMilestoneForItem(sIdx, iIdx, item?.description);
+          if (ms) used.add(ms.id);
+          rows.push({ type: 'milestone', id: `${sectionId}-item-${iIdx}`, name: item?.description || ms?.name || `Item ${iIdx + 1}` , milestone: ms || null });
+        });
+      });
+    } else {
+      // No quote sections, just list milestones
+      milestones.forEach((m, idx) => {
+        rows.push({ type: 'milestone', id: m.id || `ms-${idx}`, name: m.name, milestone: m });
+      });
+    }
+    return rows;
+  };
+
+  const rows = buildRows();
+  const rowHeights = rows.map(r => r.type === 'section' ? SECTION_HEADER_HEIGHT : MILESTONE_ROW_HEIGHT);
+  const rowTops = rowHeights.reduce<number[]>((acc, h, i) => {
+    const prev = i === 0 ? 0 : acc[i - 1] + rowHeights[i - 1];
+    acc.push(prev);
+    return acc;
+  }, []);
+  const totalRowsHeight = rowHeights.reduce((a, b) => a + b, 0);
+
+  const renderHorizontalGridLines = () => {
+    const lines = [] as React.ReactNode[];
+    rows.forEach((r, i) => {
+      if (r.type === 'milestone') {
+        lines.push(
+          <div
+            key={`h-${i}`}
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: `${MILESTONES_TITLE_HEIGHT + rowTops[i]}px`, // Account for title height
+              height: '1px',
+              backgroundColor: '#f3f4f6',
+              opacity: 0.5
+            }}
+          />
+        );
+      }
+    });
+    // bottom line
+    lines.push(
+      <div
+        key={`h-bottom`}
+        style={{ position: 'absolute', left: 0, right: 0, top: `${MILESTONES_TITLE_HEIGHT + totalRowsHeight}px`, height: '1px', backgroundColor: '#f3f4f6', opacity: 0.5 }}
+      />
+    );
+    return lines;
+  };
+
+  const styles = {
+    container: {
+      width: `${CONTAINER_WIDTH}px`,
+      minHeight: '800px',
+      backgroundColor: '#ffffff',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      position: 'relative' as const,
+      overflow: 'hidden'
+    },
+    header: {
+      padding: '24px',
+      borderBottom: '2px solid #e5e7eb',
+      backgroundColor: '#f9fafb'
+    },
+    title: {
+      fontSize: '48px', // x2 from 24px
+      fontWeight: 'bold',
+      color: primaryColor,
+      marginBottom: '8px'
+    },
+    subtitle: {
+      fontSize: '32px', // x2 from 16px
+      color: '#6b7280',
+      marginBottom: '16px'
+    },
+    infoGrid: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gap: '16px',
+      fontSize: '28px' // x2 from 14px
+    },
+    infoItem: {
+      display: 'flex',
+      flexDirection: 'column' as const
+    },
+    infoLabel: {
+      fontWeight: '600',
+      color: '#374151',
+      marginBottom: '4px'
+    },
+    infoValue: {
+      color: '#6b7280'
+    },
+    content: {
+      display: 'flex',
+      minHeight: '700px'
+    },
+    sidebar: {
+      width: `${SIDEBAR_WIDTH}px`,
+      borderRight: '1px solid #e5e7eb',
+      backgroundColor: '#f9fafb',
+      padding: '16px',
+      paddingTop: `${DATE_HEADER_HEIGHT + DATE_HEADER_BORDER}px` // Align with date header height + border
+    },
+    timelineArea: {
+      flex: 1,
+      position: 'relative' as const,
+      overflow: 'hidden'
+    },
+    dateHeader: {
+      height: `${DATE_HEADER_HEIGHT}px`,
+      borderBottom: '1px solid #e5e7eb',
+      position: 'relative' as const,
+      backgroundColor: '#f9fafb'
+    },
+    timelineContent: {
+      height: `${MILESTONES_TITLE_HEIGHT + totalRowsHeight}px`, // Include title height
+      position: 'relative' as const,
+      backgroundColor: '#ffffff'
+    },
+    milestoneBar: {
+      position: 'absolute' as const,
+      height: `${BAR_HEIGHT}px`, 
+      borderRadius: '6px',
+      backgroundColor: '#3b82f6',
+      border: 'none',
+      overflow: 'hidden',
+      boxSizing: 'border-box' as const
+    },
+    footer: {
+      padding: '16px 24px',
+      borderTop: '1px solid #e5e7eb',
+      backgroundColor: '#f9fafb',
+      fontSize: '12px',
+      color: '#6b7280',
+      textAlign: 'center' as const
+    }
+  };
 
   return (
     <div style={styles.container}>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;900&display=swap" rel="stylesheet" />
-      
-      <div style={styles.sheet}>
-        <div style={styles.header}>
-          <div>
-            <h1 style={styles.h1}>
-              {task.name} - {(T as any).timelineCreator}
-            </h1>
-            <div style={styles.taskInfo}>
-              <p><span style={styles.taskInfoSpan}>{T.startDate}:</span> {parsedStartDate ? format(parsedStartDate, 'MMM dd, yyyy') : 'N/A'}</p>
-              <p><span style={styles.taskInfoSpan}>{T.deadline}:</span> {parsedDeadline ? format(parsedDeadline, 'MMM dd, yyyy') : 'N/A'}</p>
-            </div>
+      {/* Header */}
+      <div style={styles.header}>
+        <h1 style={styles.title}>
+          {task.name || 'Timeline'}
+        </h1>
+        <p style={styles.subtitle}>
+          {currentClient?.name || 'Client'} • {currentCategory?.name || 'Category'}
+        </p>
+        
+        <div style={styles.infoGrid}>
+          <div style={styles.infoItem}>
+            <span style={styles.infoLabel}>{T.startDate || 'Start Date'}:</span>
+            <span style={styles.infoValue}>
+              {task.startDate ? dayNumToFormat(dateToDayNum(task.startDate)) : '-'}
+            </span>
+          </div>
+          <div style={styles.infoItem}>
+            <span style={styles.infoLabel}>{T.deadline || 'Deadline'}:</span>
+            <span style={styles.infoValue}>
+              {task.deadline ? dayNumToFormat(dateToDayNum(task.deadline)) : '-'}
+            </span>
+          </div>
+          <div style={styles.infoItem}>
+            <span style={styles.infoLabel}>View:</span>
+            <span style={styles.infoValue}>
+              {viewMode === 'day' ? 'Day View' : 
+               viewMode === 'week' ? 'Week View' : 
+               'Month View'}
+            </span>
           </div>
         </div>
+      </div>
 
-        <div style={styles.milestoneContainer}>
-            <div style={{ ...styles.dateHeader }}>
-              {renderDateHeaders()}
+      {/* Timeline Content */}
+      <div style={styles.content}>
+        {/* Sidebar */}
+        <div style={styles.sidebar}>
+          <h3 style={{ fontSize: '32px', fontWeight: '600', marginBottom: '16px', color: '#374151', height: `${MILESTONES_TITLE_HEIGHT}px`, display: 'flex', alignItems: 'center', margin: '0 0 0 0' }}>
+            Milestones ({milestones.length})
+          </h3>
+          {rows.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: '28px', marginTop: '32px' }}>
+              No milestones found
             </div>
-            {milestones.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#475569', fontSize: '1rem', marginTop: '1rem' }}>
-                  {(T as any).noMilestonesYet}
-                </p>
-            ) : (
-                milestones.map((milestone, index) => {
-                    const msStartDate = safeParseDate(milestone.startDate);
-                    const msEndDate = safeParseDate(milestone.endDate);
-
-                    if (!msStartDate || !msEndDate || !parsedStartDate) return null;
-
-                    // Calculate offset days from task start date
-                    // Ensure offset is not negative (milestone can't start before task)
-                    const rawOffsetDays = differenceInDays(msStartDate, parsedStartDate);
-                    const offsetDays = Math.max(0, rawOffsetDays);
-
-                    // Calculate duration, ensuring it's at least 1 day
-                    const rawDurationDays = differenceInDays(msEndDate, msStartDate);
-                    const durationDays = Math.max(1, rawDurationDays + 1);
-
-                    // Calculate positions
-                    const leftPosition = offsetDays * scale;
-                    const barWidth = Math.min(durationDays * scale, (totalDurationDays - offsetDays) * scale);
-
-                    // Only render if milestone is within task timeframe
-                    if (msStartDate > parsedDeadline || msEndDate < parsedStartDate) {
-                      return null;
-                    }
-
-                    return (
-                        <div
-                            key={milestone.id}
-                            style={{
-                                ...styles.milestoneBar,
-                                top: `${rowHeight + 4 + (index * (rowHeight + 4))}px`,
-                                left: `${leftPosition}px`,
-                                width: `${barWidth}px`,
-                                backgroundColor: milestone.color || primaryColor,
-                            }}
-                        >
-                            <span style={{flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: '0.5rem'}}>
-                                {milestone.name}
-                            </span>
-                            {barWidth > 150 && (
-                                <span style={{fontSize: '0.65rem', opacity: 0.8}}>
-                                    {format(msStartDate, 'dd/MM')} - {format(msEndDate, 'dd/MM')}
-                                </span>
-                            )}
-                        </div>
-                    );
-                })
-            )}
+          ) : (
+            rows.map((row, i) => (
+              row.type === 'section' ? (
+                <div key={`s-${row.id}`} style={{ height: `${SECTION_HEADER_HEIGHT}px`, boxSizing: 'border-box', display: 'flex', alignItems: 'center', padding: '0 8px', color: '#111827', fontWeight: 700, borderBottom: '1px solid #e5e7eb', background: '#fafafa', fontSize: '28px' }}>
+                  {row.name}
+                </div>
+              ) : (
+                <div key={`m-${row.id}`} style={{ height: `${MILESTONE_ROW_HEIGHT}px`, boxSizing: 'border-box', display: 'flex', alignItems: 'center', paddingLeft: '8px', borderBottom: '1px solid #f3f4f6' }}>
+                  {/* bullet */}
+                  <div style={{ width: '16px', display: 'flex', justifyContent: 'center' }}>
+                    <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '9999px', background: row.milestone?.color || '#9ca3af' }} />
+                  </div>
+                  {/* text block */}
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: '12px' }}>
+                    <div style={{ fontSize: '32px', fontWeight: 600, color: '#374151', lineHeight: '1.2', marginBottom: '4px' }}>
+                      {row.name}
+                    </div>
+                    {row.milestone && (
+                      <div style={{ fontSize: '26px', color: '#6b7280', lineHeight: '1.2' }}>
+                        {row.milestone.startDate && row.milestone.endDate ?
+                          `${dayNumToFormat(dateToDayNum(row.milestone.startDate))} - ${dayNumToFormat(dateToDayNum(row.milestone.endDate))}` :
+                          row.milestone.startDate ? dayNumToFormat(dateToDayNum(row.milestone.startDate)) : '-'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            ))
+          )}
         </div>
+
+        {/* Timeline Area */}
+        <div style={styles.timelineArea}>
+          {/* Date Headers */}
+          <div style={styles.dateHeader}>
+            {renderDateHeaders()}
+          </div>
+
+          {/* Timeline Content */}
+          <div style={styles.timelineContent}>
+            {/* Grid Lines */}
+            {renderGridLines()}
+            
+            {/* Horizontal Grid Lines */}
+            {renderHorizontalGridLines()}
+
+            {/* Today Marker */}
+            {(() => {
+              const today = new Date();
+              const todayDayNum = dateToDayNum(today);
+              if (todayDayNum !== null && todayDayNum >= startDay && todayDayNum <= endDay) {
+                const todayPosition = (todayDayNum - startDay) * dayWidth;
+                return (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: `${todayPosition}px`,
+                      top: '0',
+                      bottom: '0',
+                      width: '2px',
+                      backgroundColor: '#ef4444',
+                      zIndex: 10,
+                      opacity: 0.8
+                    }}
+                  />
+                );
+              }
+              return null;
+            })()}
+
+            {/* Section-aware Milestone Bars */}
+            {rows.map((row, i) => {
+              if (row.type !== 'milestone' || !row.milestone) return null;
+              const milestone = row.milestone;
+              const position = getMilestonePosition(milestone);
+              // Add MILESTONES_TITLE_HEIGHT to account for "Milestones (11)" header
+              const top = MILESTONES_TITLE_HEIGHT + rowTops[i] + (MILESTONE_ROW_HEIGHT - BAR_HEIGHT) / 2; 
+              return (
+                <div key={`bar-${milestone.id}-${i}`} style={{
+                  position: 'absolute',
+                  height: `${BAR_HEIGHT}px`,
+                  borderRadius: '6px',
+                  backgroundColor: milestone.color || primaryColor,
+                  border: 'none',
+                  overflow: 'hidden',
+                  boxSizing: 'border-box',
+                  left: `${position.left}px`,
+                  width: `${Math.max(100, position.width)}px`,
+                  top: `${top}px`,
+                  display: 'table'
+                }}>
+                  <div style={{
+                    display: 'table-cell',
+                    verticalAlign: 'middle',
+                    textAlign: 'center',
+                    width: '100%',
+                    height: `${BAR_HEIGHT}px`,
+                    padding: '8px 16px',
+                    color: '#ffffff',
+                    fontSize: '28px',
+                    fontWeight: '600',
+                    lineHeight: '1.0',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    boxSizing: 'border-box'
+                  }}>
+                    {milestone.name}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={styles.footer}>
+        Exported on {format(new Date(), 'dd/MM/yyyy HH:mm')} • Freelance Flow
       </div>
     </div>
   );

@@ -195,6 +195,8 @@ export const vi_base = {
   ,grandTotaltit: 'Tổng kết & tính toán'
   ,calculationsDesc: 'Tổng kết'
   ,sections: 'Phân mục'
+  ,sectionsOverview: 'Tổng hợp các bảng'
+  ,summary: 'Tóm tắt'
   ,suggestions: 'Gợi ý AI'
   ,addSection: 'Thêm phân mục'
   ,templateApplied: 'Đã áp dụng mẫu'

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { Task, Quote, AppSettings, Milestone, QuoteSection, QuoteItem } from '@/lib/types';
+import { Task, Quote, AppSettings, Milestone, QuoteSection, QuoteItem, Client, Category } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { i18n } from "@/lib/i18n";
 import { DndContext, DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core';
@@ -7,8 +7,10 @@ import { format, addDays, parseISO, isValid } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, FileText, AlertTriangle, Calendar, CalendarDays, CalendarRange, ZoomOut, ZoomIn, Maximize, Minimize, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertCircle, FileText, AlertTriangle, Calendar, CalendarDays, CalendarRange, ZoomOut, ZoomIn, Maximize, Minimize, ChevronDown, ChevronRight, Edit3, Image } from 'lucide-react';
 import stylesModule from './TimelineCreatorTab.module.css';
+import TimelineEditDialog from './TimelineEditDialog';
+import exportTimelineToClipboard from '@/lib/exports/exportTimelineToClipboard';
 
 // --- CORE DATE LOGIC REWRITE ---
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -49,14 +51,36 @@ interface TimelineCreatorTabProps {
   quote?: Quote;
   quotes?: Quote[]; // All quotes for intelligence sync
   settings: AppSettings;
+  clients?: Client[];
+  categories?: Category[];
   onUpdateTask: (updatedTask: Partial<Task> & { id: string }) => void;
   onUpdateQuote?: (quoteId: string, updates: Partial<Quote>) => void;
+}
+
+// Interface for visibility state management
+interface SectionVisibilityState {
+  [sectionId: string]: {
+    visible: boolean;
+    collapsed?: boolean;
+    milestones: {
+      [milestoneId: string]: boolean;
+    };
+  };
 }
 // --- COMPONENT START ---
 const rowHeight = 32;
 const headerHeight = 48;
 
-export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({ task, quote, quotes, settings, onUpdateTask, onUpdateQuote }) => {
+export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({ 
+  task, 
+  quote, 
+  quotes, 
+  settings, 
+  clients = [], 
+  categories = [], 
+  onUpdateTask, 
+  onUpdateQuote 
+}) => {
   const { toast } = useToast();
   const T = i18n[settings.language] || i18n.vi;
 
@@ -78,9 +102,30 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({ task, qu
   // Check if timeline column exists in quote
   const hasTimelineColumn = quote?.columns?.some(col => col.id === 'timeline') || false;
   
+  // Debug timeline column status
+  console.log('🔍 Timeline column check:', {
+    hasQuote: !!quote,
+    hasTimelineColumn,
+    hasOnUpdateQuote: !!onUpdateQuote,
+    columns: quote?.columns?.map(c => c.id) || [],
+    shouldShowCreateBtn: !hasTimelineColumn && !!quote && !!onUpdateQuote
+  });
+  
   // Get milestones from quote timeline column instead of task.milestones
   const getMilestonesFromQuote = useCallback((): Milestone[] => {
+    console.log('🔍 getMilestonesFromQuote called:', {
+      hasQuote: !!quote,
+      sectionsCount: quote?.sections?.length || 0,
+      hasTimelineColumn,
+      columnsCount: quote?.columns?.length || 0,
+      timelineColumn: quote?.columns?.find(col => col.id === 'timeline')
+    });
+    
     if (!quote?.sections || !hasTimelineColumn) {
+      console.log('❌ Early return from getMilestonesFromQuote:', {
+        hasQuoteSections: !!quote?.sections,
+        hasTimelineColumn
+      });
       return [];
     }
     
@@ -89,9 +134,20 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({ task, qu
     quote.sections.forEach((section, sectionIndex) => {
       // Ensure section has items array
       const items = section.items || [];
+      console.log(`📋 Processing section ${sectionIndex}:`, {
+        sectionName: section.name,
+        itemsCount: items.length,
+        sectionId: section.id
+      });
       
       items.forEach((item, itemIndex) => {
         let timelineValue = item.customFields?.timeline;
+        console.log(`📝 Processing item ${itemIndex} in section ${sectionIndex}:`, {
+          itemDescription: item.description,
+          hasCustomFields: !!item.customFields,
+          timelineValue,
+          timelineValueType: typeof timelineValue
+        });
         
         // Handle both object and JSON string formats
         if (typeof timelineValue === 'string' && timelineValue.trim() !== '') {
@@ -106,8 +162,11 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({ task, qu
         // Check if timeline data has required start and end dates
         if (timelineValue && 
             typeof timelineValue === 'object' && 
+            timelineValue !== null &&
             timelineValue.start && 
             timelineValue.end) {
+          
+          console.log(`✅ Valid timeline data found for section ${sectionIndex}, item ${itemIndex}:`, timelineValue);
           
           // Generate consistent milestone ID using same logic as section grouping
           // Use section and item indices as fallback to ensure uniqueness
@@ -115,21 +174,33 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({ task, qu
           const itemIdForMilestone = item.id || `item-${itemIndex}`;
           const milestoneId = `${sectionIdForMilestone}-${itemIdForMilestone}`;
           
+          // TypeScript knows timelineValue is not null here due to the checks above
+          const timelineData = timelineValue as { start: string; end: string; color?: string };
+          
           // Create milestone object
           const milestone: Milestone = {
             id: milestoneId,
             name: item.description || `${section.name || 'Section'} - Item ${itemIndex + 1}`,
-            startDate: timelineValue.start,
-            endDate: timelineValue.end,
-            color: timelineValue.color || `hsl(${(sectionIndex * 137.5 + itemIndex * 60) % 360}, 60%, 55%)`,
+            startDate: timelineData.start,
+            endDate: timelineData.end,
+            color: timelineData.color || `hsl(${(sectionIndex * 137.5 + itemIndex * 60) % 360}, 60%, 55%)`,
             content: `Section: ${section.name || 'Unnamed Section'}`
           };
           
           milestones.push(milestone);
+        } else {
+          console.log(`❌ Invalid timeline data for section ${sectionIndex}, item ${itemIndex}:`, {
+            timelineValue,
+            hasTimelineValue: !!timelineValue,
+            isObject: typeof timelineValue === 'object',
+            hasStart: timelineValue?.start,
+            hasEnd: timelineValue?.end
+          });
         }
       });
     });
     
+    console.log(`🎯 getMilestonesFromQuote result: ${milestones.length} milestones found`, milestones);
     return milestones;
   }, [quote, hasTimelineColumn]);
 
@@ -166,8 +237,10 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({ task, qu
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [timelineContainerWidth, setTimelineContainerWidth] = useState(0);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [visibilityState, setVisibilityState] = useState<SectionVisibilityState>({});
 
-  // Group milestones by section
+  // Group milestones by section with visibility filtering
   const getSectionGroups = useCallback(() => {
     if (!quote?.sections || !hasTimelineColumn) {
       return [];
@@ -184,17 +257,31 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({ task, qu
     console.log(`🔍 getSectionGroups processing ${quote.sections.length} sections with ${milestonesState.length} total milestones`);
     
     quote.sections.forEach((section, sectionIndex) => {
-      // Use same ID generation logic as in getMilestonesFromQuote
+      // Check section visibility
       const sectionId = section.id || `section-${sectionIndex}`;
+      const sectionVisible = visibilityState[sectionId]?.visible !== false;
+      
+      if (!sectionVisible) {
+        console.log(`🚫 Section ${sectionId} is hidden, skipping`);
+        return; // Skip hidden sections
+      }
+      
       // First collect milestones for this section
       const sectionMilestonesRaw = milestonesState.filter(milestone => {
         // Check if milestone belongs to this section by checking if milestone ID starts with sectionId
         const matches = milestone.id.startsWith(`${sectionId}-`);
         return matches;
       });
+      
+      // Filter milestones by visibility
+      const visibleMilestones = sectionMilestonesRaw.filter(milestone => {
+        const milestoneVisible = visibilityState[sectionId]?.milestones?.[milestone.id] !== false;
+        return milestoneVisible;
+      });
+      
       // Deduplicate by milestone.id to avoid duplicate keys/rendering
       const seenIds = new Set<string>();
-      const sectionMilestones = sectionMilestonesRaw.filter(m => {
+      const sectionMilestones = visibleMilestones.filter(m => {
         if (seenIds.has(m.id)) {
           console.warn(`Duplicate milestone id detected in section ${sectionId}:`, m.id);
           return false;
@@ -203,8 +290,9 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({ task, qu
         return true;
       });
 
-      console.log(`  📊 Section ${sectionId} (${section.name}) has ${sectionMilestones.length} milestones`);
+      console.log(`  📊 Section ${sectionId} (${section.name}) has ${sectionMilestones.length} visible milestones (${sectionMilestonesRaw.length} total)`);
 
+      // Only add section if it has visible milestones or is not filtered
       if (sectionMilestones.length > 0) {
         groups.push({
           sectionId,
@@ -216,11 +304,11 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({ task, qu
       }
     });
 
-    console.log(`🎯 getSectionGroups result: ${groups.length} groups`, 
+    console.log(`🎯 getSectionGroups result: ${groups.length} visible groups`, 
       groups.map(g => ({ sectionId: g.sectionId, milestonesCount: g.milestones.length })));
 
     return groups;
-  }, [quote, hasTimelineColumn, milestonesState, collapsedSections]);
+  }, [quote, hasTimelineColumn, milestonesState, collapsedSections, visibilityState]);
 
   // Calculate milestone position within section groups for alignment
   const getMilestonePosition = useCallback((milestoneId: string): number => {
@@ -252,11 +340,27 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({ task, qu
     });
   }, []);
 
-  // Initialize milestones state on first render
+  // Initialize milestones state on first render and when timeline column changes
   useEffect(() => {
+    console.log('🔄 useEffect - Initializing milestones', { 
+      hasQuote: !!quote, 
+      hasTimelineColumn, 
+      sectionsCount: quote?.sections?.length || 0 
+    });
+    
     const initialMilestones = getMilestonesFromQuote();
+    console.log('📊 Initial milestones found:', initialMilestones.length);
     setMilestonesState(initialMilestones);
-  }, [quote, hasTimelineColumn]); // Use direct dependencies instead of callback
+  }, [quote?.id, hasTimelineColumn, quote?.sections, quote?.columns]); // More specific dependencies
+
+  // Additional effect to sync milestones when quote changes (for create timeline case)
+  useEffect(() => {
+    if (quote?.columns?.some(col => col.id === 'timeline')) {
+      const syncedMilestones = getMilestonesFromQuote();
+      console.log('🔄 Quote changed - syncing milestones:', syncedMilestones.length);
+      setMilestonesState(syncedMilestones);
+    }
+  }, [quote, getMilestonesFromQuote]);
 
   // Ref to track timeline container for auto-scaling
   const timelineContainerRef = useRef<HTMLDivElement>(null);
@@ -269,7 +373,39 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({ task, qu
 
   // Create timeline column and initialize timeline data
   const handleCreateTimeline = () => {
-    if (!quote || !onUpdateQuote) return;
+    console.log('🚀 handleCreateTimeline called', { 
+      quote: !!quote, 
+      onUpdateQuote: !!onUpdateQuote,
+      quoteId: quote?.id,
+      hasQuoteColumns: !!quote?.columns 
+    });
+    
+    if (!quote) {
+      console.error('❌ Cannot create timeline: missing quote');
+      toast({
+        title: "Error",
+        description: "Cannot create timeline: No quote data available. Please create or select a quote first.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!onUpdateQuote) {
+      console.error('❌ Cannot create timeline: missing onUpdateQuote function');
+      toast({
+        title: "Error",
+        description: "Cannot create timeline: Update function not available. This feature requires quote editing permissions.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    console.log('📊 Current quote structure:', {
+      id: quote.id,
+      columnsCount: quote.columns?.length || 0,
+      sectionsCount: quote.sections?.length || 0,
+      hasTimelineColumn: quote.columns?.some(col => col.id === 'timeline')
+    });
     
     // Add timeline column if not exists
     const timelineColumn = {
@@ -314,15 +450,77 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({ task, qu
       sections: updatedSections
     };
     
-    onUpdateQuote(quote.id, updatedQuote);
-    
-    // Update local state
-    setMilestonesState(getMilestonesFromQuote());
-    
-    toast({
-      title: "Timeline Created",
-      description: "Timeline column and data have been initialized.",
+    console.log('💾 Calling onUpdateQuote with:', {
+      quoteId: quote.id,
+      newColumnsCount: updatedColumns.length,
+      newSectionsCount: updatedSections.length
     });
+    
+    try {
+      onUpdateQuote(quote.id, updatedQuote);
+      
+      // Calculate milestones from the updated quote immediately
+      const newMilestones: Milestone[] = [];
+      updatedSections.forEach((section, sectionIndex) => {
+        const items = section.items || [];
+        items.forEach((item, itemIndex) => {
+          let timelineValue = item.customFields?.timeline;
+          
+          // Parse timeline data if it's a string
+          if (typeof timelineValue === 'string' && timelineValue.trim() !== '') {
+            try {
+              timelineValue = JSON.parse(timelineValue);
+            } catch (e) {
+              console.warn(`Failed to parse timeline data:`, timelineValue);
+              return;
+            }
+          }
+          
+          // Create milestone if valid timeline data
+          if (timelineValue && 
+              typeof timelineValue === 'object' && 
+              timelineValue !== null) {
+            
+            const timelineData = timelineValue as any;
+            if (timelineData.start && timelineData.end) {
+            
+            const sectionIdForMilestone = section.id || `section-${sectionIndex}`;
+            const itemIdForMilestone = item.id || `item-${itemIndex}`;
+            const milestoneId = `${sectionIdForMilestone}-${itemIdForMilestone}`;
+            
+            // TypeScript knows timelineValue is not null here due to the checks above
+            const timelineData = timelineValue as { start: string; end: string; color?: string };
+            
+            const milestone: Milestone = {
+              id: milestoneId,
+              name: item.description || `${section.name || 'Section'} - Item ${itemIndex + 1}`,
+              startDate: timelineData.start,
+              endDate: timelineData.end,
+              color: timelineData.color || `hsl(${(sectionIndex * 137.5 + itemIndex * 60) % 360}, 60%, 55%)`,
+              content: `Section: ${section.name || 'Unnamed Section'}`
+            };
+            
+            newMilestones.push(milestone);
+            }
+          }
+        });
+      });
+      
+      console.log('🔄 Immediately setting new milestones after create:', newMilestones.length);
+      setMilestonesState(newMilestones);
+      
+      toast({
+        title: "Timeline Created",
+        description: `Timeline created with ${newMilestones.length} milestones.`,
+      });
+    } catch (error) {
+      console.error('❌ Error calling onUpdateQuote:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create timeline. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Save milestone changes to quote
@@ -610,6 +808,43 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({ task, qu
   const handleToggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
   };
+
+  const handleOpenEditDialog = () => {
+    setIsEditDialogOpen(true);
+  };
+
+  const handleExportTimeline = async () => {
+    try {
+      await exportTimelineToClipboard({
+        task,
+        quote,
+        milestones: milestonesState,
+        settings,
+        clients: clients || [],
+        categories: categories || [],
+        viewMode,
+        timelineScale,
+        displayDate: new Date(),
+        fileName: `timeline-${task.name || task.id || 'export'}-${new Date().toISOString().slice(0, 10)}`
+      });
+      
+      toast({
+        title: T.success || "Success",
+        description: "Timeline exported to clipboard successfully",
+      });
+    } catch (error) {
+      console.error('Export timeline error:', error);
+      toast({
+        title: T.error || "Error",
+        description: "Failed to export timeline. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleVisibilityChange = useCallback((newState: SectionVisibilityState) => {
+    setVisibilityState(newState);
+  }, []);
 
   // Handle Escape key for fullscreen
   useEffect(() => {
@@ -1137,10 +1372,26 @@ const MilestoneBar: React.FC<MilestoneBarProps> = ({ milestone, taskStartDay, sc
         <div className={stylesModule.simpleHeader}>
           <button
             onClick={handleToggleFullscreen}
-            className={stylesModule.fullscreenBtn}
+            className={`${stylesModule.fullscreenBtn} ${stylesModule.controlBtn}`}
             title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           >
             {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+          </button>
+
+          <button
+            onClick={handleExportTimeline}
+            className={`${stylesModule.fullscreenBtn} ${stylesModule.controlBtn}`}
+            title="Export Timeline as Image"
+          >
+            <Image className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={handleOpenEditDialog}
+            className={`${stylesModule.fullscreenBtn} ${stylesModule.controlBtn}`}
+            title="Edit Timeline"
+          >
+            <Edit3 className="w-4 h-4" />
           </button>
         </div>
         
@@ -1167,6 +1418,8 @@ const MilestoneBar: React.FC<MilestoneBarProps> = ({ milestone, taskStartDay, sc
             <CalendarRange className="w-4 h-4" />
           </button>
         </div>
+        
+  {/* editControls removed to avoid duplicate edit button (Edit moved next to fullscreen) */}
         
         <div className={stylesModule.zoomControls}>
           <button
@@ -1203,14 +1456,18 @@ const MilestoneBar: React.FC<MilestoneBarProps> = ({ milestone, taskStartDay, sc
           {/* Column 1: Milestone List */}
           <div className={stylesModule.leftColumn}>
             {/* Status Messages */}
-            {!hasTimelineColumn && hasQuote && (
+            {!hasTimelineColumn && hasQuote && onUpdateQuote && (
               <div className={stylesModule.statusMessage}>
                 <div className={stylesModule.createTimelineMessage}>
                   <Calendar className="w-4 h-4 inline mr-1" />
                   <span>No timeline data found</span>
                   <button
-                    onClick={handleCreateTimeline}
+                    onClick={() => {
+                      console.log('🖱️ Create Timeline button clicked');
+                      handleCreateTimeline();
+                    }}
                     className={stylesModule.createTimelineBtn}
+                    type="button"
                   >
                     Create Timeline
                   </button>
@@ -1218,11 +1475,20 @@ const MilestoneBar: React.FC<MilestoneBarProps> = ({ milestone, taskStartDay, sc
               </div>
             )}
             
-            {hasQuote && !quote && (
+            {!hasTimelineColumn && hasQuote && !onUpdateQuote && (
+              <div className={stylesModule.statusMessage}>
+                <div className={stylesModule.noQuoteMessage}>
+                  <AlertTriangle className="w-4 h-4 inline mr-1" />
+                  Timeline feature requires quote editing permissions.
+                </div>
+              </div>
+            )}
+            
+            {!hasQuote && (
               <div className={stylesModule.statusMessage}>
                 <div className={stylesModule.noQuoteMessage}>
                   <FileText className="w-4 h-4 inline mr-1" />
-                  Quote data loading...
+                  No quote data available. Please create or select a quote first.
                 </div>
               </div>
             )}
@@ -1334,6 +1600,18 @@ const MilestoneBar: React.FC<MilestoneBarProps> = ({ milestone, taskStartDay, sc
           </div>
         </div>
       </div>
+      
+      {/* Timeline Edit Dialog */}
+      <TimelineEditDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        task={task}
+        quote={quote}
+        onUpdateQuote={onUpdateQuote}
+        settings={settings}
+        visibilityState={visibilityState}
+        onVisibilityChange={handleVisibilityChange}
+      />
     </div>
   );
 };

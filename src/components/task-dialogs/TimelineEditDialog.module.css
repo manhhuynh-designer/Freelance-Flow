@@ -1,0 +1,513 @@
+/* Timeline Edit Dialog Styles */
+.timelineEditDialog {
+  min-height: 600px;
+  overflow: hidden;
+}
+
+.timelineEditDialog .dialogContent {
+  overflow: hidden;
+}
+
+/* Tab Content Styling with proper overflow handling */
+.tabsContent {
+  max-height: calc(90vh - 200px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.5rem; /* Outer padding for all content */
+  margin: 0;
+}
+
+/* Custom scrollbar using design system colors (webkit only for better support) */
+.tabsContent::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tabsContent::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 3px;
+}
+
+.tabsContent::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: 3px;
+  border: 1px solid hsl(var(--muted));
+}
+
+.tabsContent::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--primary));
+}
+
+/* Visibility Tab Content Styling */
+.visibilityTabContent .space-y-4 {
+  gap: 1rem;
+}
+
+/* Edit tab content with consistent padding */
+.editTabContent {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+/* Reduce row height for quote tables inside Edit tab - smaller padding for compact rows */
+.editTabContent :global(table th),
+.editTabContent :global(table td) {
+  padding: 0.375rem 0.1rem !important; /* Reduced from 0.5rem 0.75rem */
+  line-height: 1!important;
+}
+
+/* Additional height reduction for table rows */
+.editTabContent :global(tbody tr) {
+  height: auto !important;
+  min-height: unset !important;
+}
+
+/* Reduce input field height in tables */
+.editTabContent :global(table input) {
+  height: 2rem !important; /* Reduced from default 2.5rem */
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.2 !important;
+}
+
+/* Override QuoteManager styling - remove outer border, keep internal structure */
+.editTabContent :global(.w-full) {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Keep TabsList and CardHeader visible with proper styling */
+
+/* Hide QuoteManager CardHeader to avoid duplication with TimelineEditDialog header */
+.editTabContent :global(.w-full > .flex.flex-col:first-child) {
+  display: none !important;
+}
+
+/* Ensure CardContent is visible and properly styled */
+.editTabContent :global(.w-full > .p-6.pt-0) {
+  padding: 0 !important;
+}
+
+/* Make CardContent maintain proper card appearance */
+.editTabContent :global(.w-full > div:last-child) {
+  padding: 0 !important;
+  border: none !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+/* Remove section card borders and use design system spacing */
+.editTabContent :global(.space-y-4 .border) {
+  border: none !important;
+  border-radius: 0 !important;
+  margin-bottom: 0.5rem !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Section headers using design system colors and spacing */
+.editTabContent :global(.bg-muted\/30) {
+  background: hsl(var(--muted)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: calc(var(--radius)) !important;
+  padding: 1rem !important;
+  margin-bottom: 0.1rem !important;
+  position: relative !important;
+}
+
+/* Section title styling consistent with design system */
+.editTabContent :global(.bg-muted\/30 input) {
+  background: transparent !important;
+  border: none !important;
+  font-weight: 600 !important;
+  color: hsl(var(--foreground)) !important;
+  font-size: 1.125rem !important;
+}
+
+/* Remove individual table overflow containers - use main scrollbar only */
+.editTabContent :global(.overflow-x-auto) {
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+/* Section title input styling */
+.editTabContent :global(.bg-muted\/30 input) {
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  color: hsl(var(--foreground)) !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Style section item count badge */
+.editTabContent :global(.bg-muted\/30 .inline-flex.items-center.rounded-full) {
+  background: hsl(var(--primary) / 0.1) !important;
+  color: hsl(var(--primary)) !important;
+  border: 1px solid hsl(var(--primary) / 0.3) !important;
+  font-weight: 600 !important;
+}
+
+/* Table styling using design system */
+.editTabContent :global(.relative.w-full.overflow-auto) {
+  overflow: visible !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: calc(var(--radius)) !important;
+  background: hsl(var(--card)) !important;
+}
+
+/* Table headers */
+.editTabContent :global(thead th) {
+  background: hsl(var(--muted) / 0.5) !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+  font-weight: 600 !important;
+}
+
+/* Table rows */
+.editTabContent :global(tbody tr) {
+  border-bottom: 1px solid hsl(var(--border) / 0.5) !important;
+}
+
+.editTabContent :global(tbody tr:hover) {
+  background: hsl(var(--muted) / 0.3) !important;
+}
+
+/* Remove table container individual scrollbars */
+.editTabContent :global(.overflow-x-auto .relative.w-full.overflow-auto) {
+  overflow: visible !important;
+}
+
+/* Section spacing and organization */
+.editTabContent :global(.space-y-4) {
+  gap: 1rem !important;
+}
+
+/* Section separation using enhanced border and spacing */
+.editTabContent :global(.space-y-4 > div:not(:first-child)) {
+  border-top: 2px solid hsl(var(--primary)) !important;
+  padding-top: 1rem !important;
+  margin-top: 0.5rem !important;
+  position: relative !important;
+}
+
+/* Add visual emphasis line before section separator */
+.editTabContent :global(.space-y-4 > div:not(:first-child))::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -1px !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.5) 50%, transparent 100%) !important;
+}
+
+/* Enhanced section highlight on hover with shadow and border */
+.editTabContent :global(.bg-muted\/30):hover {
+  background: hsl(var(--muted) / 0.9) !important;
+  border-color: hsl(var(--primary) / 0.4) !important;
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.1) !important;
+  transform: translateY(-1px) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Style delete section button */
+.editTabContent :global(.bg-muted\/30 button[class*="text-destructive"]) {
+  color: hsl(var(--destructive)) !important;
+  transition: all 0.2s ease !important;
+}
+
+.editTabContent :global(.bg-muted\/30 button[class*="text-destructive"]:hover) {
+  background: hsl(var(--destructive) / 0.1) !important;
+  color: hsl(var(--destructive)) !important;
+}
+
+/* Ensure all tables use consistent overflow behavior */
+.editTabContent :global(table) {
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+
+/* Remove any remaining individual overflow containers */
+.editTabContent :global(.overflow-x-auto),
+.editTabContent :global(.overflow-auto) {
+  overflow: visible !important;
+}
+
+/* Visibility Controls Specific Styles */
+.sectionCard {
+  transition: all 0.2s ease;
+  border: 1px solid hsl(var(--border));
+  margin-bottom: 2rem;
+  background: hsl(var(--card));
+}
+
+.sectionCard:hover {
+  border-color: hsl(var(--border-hover, var(--border)));
+  box-shadow: 0 2px 8px hsl(var(--shadow) / 0.1);
+}
+
+/* Milestone border styling */
+.sectionCard .border-l-2 {
+  border-left-color: hsl(var(--muted-foreground) / 0.3);
+}
+
+/* Visual indicators for visibility state */
+.sectionCard .text-green-600 {
+  color: hsl(142 76% 36%);
+}
+
+.sectionCard .text-gray-400 {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .timelineEditDialog {
+    min-height: 500px;
+  }
+  
+  .tabsContent {
+    max-height: calc(100vh - 250px);
+    padding: 0.5rem 0;
+  }
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.5rem;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.sectionHeader:hover {
+  background-color: hsl(var(--muted) / 0.3);
+  border-radius: 0.375rem;
+}
+
+.milestonesList {
+  margin-left: 1.5rem;
+  padding-left: 1rem;
+  border-left: 2px solid hsl(var(--border));
+}
+
+.milestoneItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.375rem 0;
+  transition: background-color 0.15s ease;
+}
+
+.milestoneItem:hover {
+  background-color: hsl(var(--muted) / 0.2);
+  border-radius: 0.25rem;
+}
+
+.milestoneItem.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Visibility indicators */
+.visibilityIcon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.visibilityIcon.visible {
+  color: hsl(var(--success, 142 76% 36%));
+}
+
+.visibilityIcon.hidden {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Bulk actions */
+.bulkActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid hsl(var(--border));
+  margin-bottom: 1rem;
+}
+
+/* Summary stats */
+.summaryStats {
+  background-color: hsl(var(--muted) / 0.3);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.statLabel {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.statValue {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+/* Collapse/Expand animations */
+.collapseToggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.collapseToggle[data-expanded="true"] {
+  transform: rotate(90deg);
+}
+
+/* Scrollable areas */
+.scrollArea {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.scrollArea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollArea::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.2);
+  border-radius: 3px;
+}
+
+.scrollArea::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+}
+
+.scrollArea::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Empty states */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+}
+
+.emptyState .icon {
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* Form styling overrides */
+.timelineEditDialog .quoteManager {
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.timelineEditDialog .quoteManagerTitle {
+  display: none; /* Hide duplicate title since we have card title */
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .timelineEditDialog {
+    max-width: 95vw;
+    max-height: 95vh;
+  }
+  
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .bulkActions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .scrollArea {
+    max-height: 300px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .sectionCard {
+    border-width: 2px;
+  }
+  
+  .visibilityIcon.visible {
+    color: #008000;
+  }
+  
+  .visibilityIcon.hidden {
+    color: #808080;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .sectionCard,
+  .milestoneItem,
+  .collapseToggle {
+    transition: none;
+  }
+}
+
+/* Focus states for accessibility */
+.sectionHeader:focus-visible,
+.milestoneItem:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+/* Loading states */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.loadingSpinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

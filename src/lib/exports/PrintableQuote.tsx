@@ -218,7 +218,7 @@ export const PrintableQuote: React.FC<Props> = ({
                 <thead>
                   <tr style={styles.theadTr}>
                     {(quote.columns || defaultColumns).map(col => (
-                      <th key={col.id} style={{ ...styles.th, ...(col.type === 'number' && styles.thRight) }}>
+                      <th key={col.id} style={{ ...styles.th, ...(col.type === 'number' ? styles.thRight : {}) }}>
                         {col.id === "unitPrice" ? `${T.unitPrice} (${currency})` : col.name}
                       </th>
                     ))}
@@ -241,11 +241,51 @@ export const PrintableQuote: React.FC<Props> = ({
                         let formattedValue: string = '';
                         if (col.type === 'number') {
                           formattedValue = formatNumber(displayValue);
+                        } else if (col.id === 'timeline') {
+                          // Special handling for timeline column - parse JSON and format dates
+                          let timelineData = displayValue;
+                          
+                          // Handle both object and JSON string formats
+                          if (typeof timelineData === 'string' && timelineData.trim() !== '') {
+                            try {
+                              timelineData = JSON.parse(timelineData);
+                            } catch (e) {
+                              formattedValue = 'Invalid timeline data';
+                              return (
+                                <td key={col.id} style={styles.td}>
+                                  {formattedValue}
+                                </td>
+                              );
+                            }
+                          }
+                          
+                          if (timelineData && typeof timelineData === 'object' && 
+                              timelineData !== null && 
+                              (timelineData as any).start && 
+                              (timelineData as any).end) {
+                            try {
+                              const start = new Date((timelineData as any).start);
+                              const end = new Date((timelineData as any).end);
+                              if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+                                const startFormatted = format(start, "dd/MM/yyyy");
+                                const endFormatted = format(end, "dd/MM/yyyy");
+                                formattedValue = `${startFormatted} - ${endFormatted}`;
+                              } else {
+                                formattedValue = 'Invalid dates';
+                              }
+                            } catch (e) {
+                              formattedValue = 'Invalid dates';
+                            }
+                          } else {
+                            formattedValue = 'No timeline set';
+                          }
                         } else {
                           formattedValue = String(displayValue);
                         }
+                        
+                        const isNumericColumn = col.type === 'number';
                         return (
-                          <td key={col.id} style={{ ...styles.td, ...(col.type === 'number' && styles.tdRight) }}>
+                          <td key={col.id} style={{ ...styles.td, ...(isNumericColumn ? styles.tdRight : {}) }}>
                             {formattedValue}
                           </td>
                         );
