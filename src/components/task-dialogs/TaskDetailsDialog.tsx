@@ -1282,9 +1282,15 @@ export function TaskDetailsDialog({
                   className={cn(buttonVariants({ variant: "destructive" }))}
                   onClick={() => {
                     try {
-                      if (onDelete) {
-                        onDelete(task.id);
+                      // Soft delete: move task to Trash by setting deletedAt
+                      const updater = onUpdateTask ?? contextUpdateTask;
+                      if (updater) {
+                        updater({ id: task.id, deletedAt: new Date().toISOString() });
                       }
+                      toast({
+                        title: T.taskMovedToTrash,
+                        description: `${T.taskMovedToTrashDesc} ${(settings?.trashAutoDeleteDays ? `(${settings.trashAutoDeleteDays} days auto-delete)` : '')}`.trim(),
+                      });
                       onClose && onClose();
                     } catch (error) {
                       console.error('Error deleting task:', error);
