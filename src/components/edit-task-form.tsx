@@ -841,8 +841,8 @@ export function EditTaskForm({
             taskDescription={watchedDescription || ''}
             taskCategory={categoryName}
             onApplySuggestion={handleApplySuggestion}
-            taskStartDate={form.getValues('dates').from}
-            taskEndDate={form.getValues('dates').to}
+            taskStartDate={form.getValues('dates')?.from}
+            taskEndDate={form.getValues('dates')?.to}
           />
 
           {/* Collaborator Section */}
@@ -936,8 +936,8 @@ export function EditTaskForm({
                         settings={settings}
                         onCopyFromQuote={() => handleCopyFromQuote(index)}
                         showCopyFromQuote={true}
-                        taskStartDate={form.getValues('dates').from}
-                        taskEndDate={form.getValues('dates').to}
+                        taskStartDate={form.getValues('dates')?.from}
+                        taskEndDate={form.getValues('dates')?.to}
                       />
                     </div>
                   ))}

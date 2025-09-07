@@ -5,47 +5,47 @@ This file captures the minimal, concrete knowledge an AI coding agent needs to b
 Keep guidance short and specific. When in doubt, follow existing project files (`README.md`, `src/*`) and mirror patterns already in the codebase.
 
 1) Big-picture architecture
-- Framework: Next.js (app router), React + TypeScript (see `package.json`).
+- Framework: Next.js (App Router), React + TypeScript (see `package.json`). Requires Node 18.17+.
 - UI: Tailwind + shadcn/ui components (components live in `src/components`).
-- Data: Local-first app data persisted in-browser (PouchDB + JSON backups). Look for `src/lib/*` for persistence helpers and `local-backup-manager.tsx` for backup/restore UI.
-- AI: Integrates with Google Gemini (preferred) and optionally OpenAI. AI features are in `src/components/ai/*`, with configuration stored in `appSettings` (see `src/lib/data.ts` and `src/app/dashboard/settings/page.tsx`).
-- Semantic search / Vector DB: lightweight in-memory vector DB scaffold in `src/lib/vector-db/*`. Production replacement should implement the `VectorDB` interface described in `src/lib/vector-db/types.ts`.
+- Data: Local-first data persisted in-browser (PouchDB + JSON backups). See `src/lib/*` for persistence helpers and `src/components/local-backup-manager.tsx` or `src/components/backup-manager.tsx` for backup/restore UI.
+- AI: Google Gemini preferred, OpenAI optional. Features under `src/components/ai/*`. Configuration lives in `appSettings` (see `src/lib/data.ts`, `src/app/dashboard/settings/page.tsx`). Model registry and fallbacks in `src/ai/utils/gemini-models.ts` and `src/ai/utils/gemini-api-service.ts`.
+- Semantic search / Vector DB: In-memory vector DB scaffold under `src/lib/vector-db/*`. Tasks are indexed via `tasks-indexer.ts` and vectors are persisted for offline use via `persistence.ts`. Production adapters must implement `VectorDB` from `src/lib/vector-db/types.ts`.
 
 2) Critical developer workflows (commands)
 - Install deps: `npm install`.
-- Dev server: `npm run dev` (Next.js on localhost:3000). Use `npx vercel dev` if you need to run serverless AI flows alongside Next during local Genkit/dev work (mentioned in README).
+- Dev server: `npm run dev` (Next.js on http://localhost:3000). Optionally `npx vercel dev` if you want Vercel-style serverless during local AI/dev work.
 - Build: `npm run build` (Next production build).
 - Typecheck: `npm run typecheck` (tsc --noEmit).
-- Tests: `npm run test` (vitest). Note: tests are sparse; run full typecheck after changes to prevent regressions.
+- Tests: `npm run test` (vitest). Tests are sparse; run typecheck to catch regressions.
 
 3) Project-specific conventions & patterns
-- Preferred AI provider: Google (Gemini). Code often chooses provider by reading `appSettings.preferredModelProvider` and selects API key from `appSettings.googleApiKey` / `openaiApiKey` — see `src/components/quote-suggestion.tsx`, `src/components/ai/*`, and `src/hooks/useAppData.ts`.
-- Embeddings path: The app provides `/api/embeddings` (see `src/app/api/embeddings/route.ts`), which supports both Google and OpenAI providers. Client calls to generate embeddings typically route through `src/lib/vector-db/embeddings.ts` which will call `/api/embeddings` from the browser.
-- Vector DB: `InMemoryVectorDB` is the default. If adding a remote adapter, implement `VectorDB` and wire into `src/lib/vector-db/service.ts` and `tasks-indexer.ts`.
-- Feature flags & settings: app settings are stored in `appSettings` on the application data object; use existing setters and patterns in `src/hooks/useAppData.ts` and the settings page to update persisted config.
-- UI/Text: bilingual strings live in `src/lib/i18n.ts` and `src/lib/i18n/*` files — update translations in these files rather than hardcoding.
+- Preferred AI provider: Google (Gemini). Provider and keys are read from `appSettings.preferredModelProvider`, `appSettings.googleApiKey`, `appSettings.openaiApiKey`. See `src/components/ai/*`, `src/components/quote-suggestion.tsx`, `src/hooks/useAppData.ts`.
+- Embeddings API: Use `POST /api/embeddings` (`src/app/api/embeddings/route.ts`). It strictly requires `apiKey` in the request body and does not read server env vars. Call via `src/lib/vector-db/embeddings.ts` on the client.
+- Vector DB: `InMemoryVectorDB` by default. To add a remote adapter, implement `VectorDB` and wire it in `src/lib/vector-db/service.ts`. Task indexing persists vectors to PouchDB via `src/lib/vector-db/persistence.ts` and upserts into the DB in `src/lib/vector-db/tasks-indexer.ts`.
+- Feature flags & settings: `appSettings` is persisted with the rest of app data (local-first). Update via hooks/patterns in `src/hooks/useAppData.ts` and the Settings page.
+- UI/Text: bilingual strings live in `src/lib/i18n.ts` and `src/lib/i18n/*`. Don’t hardcode strings.
 
 4) Integration points & external dependencies to watch
-- Google Gemini: Many AI components assume a Gemini-compatible API key and model (see `GEMINI_MODELS` usages in `src/app/dashboard/settings/page.tsx`). Changing defaults requires updating `src/lib/data.ts` and the settings UI.
-- OpenAI support: available but secondary; code paths often branch provider selection. When adding new AI calls, accept `provider` + `apiKey` + `model` inputs.
-- Embeddings API route: `src/app/api/embeddings/route.ts` must be used for client-side embedding requests to avoid exposing secret keys.
+- Google Gemini: Most AI components assume a Gemini key/model. Model registry in `src/ai/utils/gemini-models.ts`. Changing defaults may require updates in `src/lib/data.ts` and Settings UI.
+- OpenAI support: Available but secondary; branch on provider and accept `provider` + `apiKey` + `model` inputs.
+- Embeddings API: `src/app/api/embeddings/route.ts` requires a user-provided `apiKey` in the request body (no server ENV fallback). Keep keys in `appSettings` and pass explicitly from the client.
 
 5) Small actionable rules for editing and PRs
-- Preserve local-first behaviour: don't migrate data to a server unless a clear migration plan is added (update `docs/` and backups). Many users rely on local JSON backups (see `src/components/local-backup-manager.tsx`).
-- When adding AI calls, follow the existing pattern: prefer server-side /api routes for secret usage, accept both Google/OpenAI, and honor `appSettings` when present.
-- Add unit tests for non-UI logic (vector-db adapters, tasks-indexer) using Vitest. For UI changes, prefer manual smoke testing in `npm run dev`.
+- Preserve local-first behaviour: don’t move data server-side unless you add a migration plan (update `docs/` and backup flows). Users rely on JSON backups (see backup components).
+- AI calls: prefer server `/api` routes when secrets are required, respect `appSettings`, support both Google/OpenAI where relevant, and use the embeddings bridge (`src/lib/vector-db/embeddings.ts`) for vector work.
+- Tests: add unit tests for non-UI logic (vector-db adapters, tasks-indexer) with Vitest. For UI, do manual smoke tests on `npm run dev`.
 
 6) Quick file references (examples)
-- AI & embeddings: `src/app/api/embeddings/route.ts`, `src/lib/vector-db/embeddings.ts`, `src/lib/vector-db/tasks-indexer.ts`, `src/components/ai/*`.
-- App settings: `src/lib/data.ts`, `src/hooks/useAppData.ts`, `src/app/dashboard/settings/page.tsx`.
-- Vector DB scaffold: `src/lib/vector-db/*` (types, in-memory adapter, service).
-- Backups/imports: `src/components/local-backup-manager.tsx`, `src/components/data-restore-card.tsx`, `scripts/load-test-data.js`.
+- AI & embeddings: `src/app/api/embeddings/route.ts`, `src/lib/vector-db/embeddings.ts`, `src/lib/vector-db/tasks-indexer.ts`, `src/ai/utils/gemini-models.ts`, `src/ai/utils/gemini-api-service.ts`, `src/components/ai/*`.
+- App settings: `src/lib/data.ts`, `src/lib/types.ts`, `src/hooks/useAppData.ts`, `src/app/dashboard/settings/page.tsx`.
+- Vector DB scaffold: `src/lib/vector-db/*` (types, in-memory adapter, persistence, service).
+- Backups/imports: `src/components/local-backup-manager.tsx`, `src/components/backup-manager.tsx`, `src/components/data-restore-card.tsx`, `scripts/load-test-data.js`.
 
 7) Example tasks & how to approach them
-- Add a new AI-driven feature: 1) add UI in `src/components/ai/`; 2) respect `appSettings` for provider/apiKey/model; 3) call `/api/embeddings` or server-side AI endpoint; 4) add tests for non-UI logic.
-- Replace InMemoryVectorDB with Pinecone: implement `VectorDB` in `src/lib/vector-db/pinecone.ts`, wire to `service.ts`, ensure indexing uses same document shape as `tasks-indexer.ts`.
+- Add a new AI-driven feature: 1) add UI in `src/components/ai/`; 2) respect `appSettings` for provider/apiKey/model; 3) use `/api/embeddings` or a server-side AI endpoint where needed; 4) add tests for non-UI logic.
+- Replace InMemoryVectorDB with Pinecone: implement `VectorDB` in `src/lib/vector-db/pinecone.ts`, wire it in `src/lib/vector-db/service.ts`, ensure indexing uses the same document shape as `tasks-indexer.ts` and persists vectors.
 
 8) Safety & privacy notes
-- The app is explicitly local-first. Don't send user data to third-party services except when the user has provided API keys in settings and explicitly triggers AI features (see i18n FAQ and terms pages).
+- The app is explicitly local-first. Only send user data to third-party AI services when the user has provided API keys in Settings and explicitly uses AI features. Avoid implicit server-side key usage.
 
 If anything above is unclear or you want more detail on a specific area (for example, vector-db contract, AI request shapes, or how `appSettings` are persisted), tell me which part to expand and I will iterate.

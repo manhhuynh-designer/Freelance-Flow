@@ -3,24 +3,38 @@ import { Quote, Task, AppSettings, Client, Category, QuoteColumn, QuoteItem, Col
 import { i18n } from "@/lib/i18n";
 import { format } from "date-fns";
 
+// Minimal server-safe translations used by PrintableQuote
+const fallbackT = {
+  sum: 'Sum',
+  average: 'Average',
+  min: 'Min',
+  max: 'Max',
+  customFormula: 'Custom',
+  groupCategory: 'Category',
+  startDate: 'Start Date',
+  deadline: 'Deadline',
+  unitPrice: 'Unit Price',
+  grandTotal: 'Grand Total',
+};
+
 type Props = {
   quote: Quote;
   task: Task;
   settings: AppSettings;
-  clients: Client[];
-  categories: Category[];
+  clients?: Client[];
+  categories?: Category[];
   clientName?: string;
   categoryName?: string;
-  defaultColumns: QuoteColumn[];
-  calculationResults: Array<{
+  defaultColumns?: QuoteColumn[];
+  calculationResults?: Array<{
     id: string;
     name: string;
     calculation: string;
     result: number | string;
     type: ColumnCalculationType;
   }>;
-  calculateRowValue: (item: QuoteItem, column: QuoteColumn, allColumns: QuoteColumn[]) => number;
-  grandTotal: number;
+  calculateRowValue?: (item: QuoteItem, column: QuoteColumn, allColumns: QuoteColumn[]) => number;
+  grandTotal?: number;
 };
 
 // Component UI báo giá được tối ưu cho việc xuất hình ảnh chuyên nghiệp.
@@ -28,18 +42,35 @@ export const PrintableQuote: React.FC<Props> = ({
   quote, 
   task, 
   settings, 
-  clients, 
-  categories, 
+  clients = [], 
+  categories = [], 
   clientName, 
   categoryName, 
-  defaultColumns, 
-  calculationResults, 
+  defaultColumns = [], 
+  calculationResults = [], 
   calculateRowValue, 
-  grandTotal 
+  grandTotal = 0 
 }) => {
+  // Add defensive checks for required props
+  if (!quote || !task || !settings) {
+    return (
+      <div className="p-4">
+        <h1 className="text-xl font-semibold text-red-600">Error loading quote</h1>
+        <p className="text-sm text-gray-500">Missing required data: quote, task, or settings</p>
+      </div>
+    );
+  }
+
   const currency = settings.currency || 'USD';
   const lang = settings.language === 'vi' ? 'vi-VN' : 'en-US';
-  const T = i18n[settings.language] || i18n.vi;
+  // Build a safe T object (prefer i18n, fallback to minimal)
+  const T = { ...fallbackT, ...(i18n[settings.language] || {}) } as typeof fallbackT & Record<string, string>;
+
+  // Fallback function for calculateRowValue if not provided
+  const safeCalculateRowValue = calculateRowValue || ((item: QuoteItem, column: QuoteColumn) => {
+    if (column.id === 'unitPrice') return Number(item.unitPrice) || 0;
+    return Number(item.customFields?.[column.id]) || 0;
+  });
 
   // Format numbers to have 2 decimal places
   const formatNumber = (v: any) => {
@@ -204,9 +235,9 @@ export const PrintableQuote: React.FC<Props> = ({
           </div>
           <div style={styles.detailsBox}>
             <div style={{...styles.quoteInfo, marginTop: '0'}}>
-              <p style={styles.quoteInfoP}><span style={styles.quoteInfoSpan}>{T.category || 'Danh mục'}:</span> {categoryName || currentCategory?.name || 'Chung'}</p>
-              <p style={styles.quoteInfoP}><span style={styles.quoteInfoSpan}>{T.startDate}:</span> {formatDate(task.startDate)}</p>
-              <p style={styles.quoteInfoP}><span style={styles.quoteInfoSpan}>{T.deadline}:</span> {formatDate(task.deadline)}</p>
+              <p style={styles.quoteInfoP}><span style={styles.quoteInfoSpan}>{T.groupCategory || 'Danh mục'}:</span> {categoryName || currentCategory?.name || 'Chung'}</p>
+              <p style={styles.quoteInfoP}><span style={styles.quoteInfoSpan}>{T.startDate || 'Ngày bắt đầu'}:</span> {formatDate(task.startDate)}</p>
+              <p style={styles.quoteInfoP}><span style={styles.quoteInfoSpan}>{T.deadline || 'Hạn chót'}:</span> {formatDate(task.deadline)}</p>
             </div>
           </div>
         </div>
@@ -230,7 +261,7 @@ export const PrintableQuote: React.FC<Props> = ({
                       {(quote.columns || defaultColumns).map(col => {
                         let displayValue: string | number = '';
                         if (col.type === 'number' && col.rowFormula) {
-                          displayValue = calculateRowValue(item, col, quote.columns || defaultColumns);
+                          displayValue = safeCalculateRowValue(item, col, quote.columns || defaultColumns);
                         } else {
                           const value = (item as any)[col.id] !== undefined
                                 ? (item as any)[col.id]

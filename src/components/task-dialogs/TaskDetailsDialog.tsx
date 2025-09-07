@@ -9,7 +9,7 @@ import {
   TableHead,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { Task, Client, Category, Quote, StatusInfo, QuoteColumn, QuoteTemplate, Collaborator, AppSettings, QuoteSection, ColumnCalculationType, QuoteItem } from "@/lib/types";
+import type { Task, Client, Category, Quote, StatusInfo, QuoteColumn, QuoteTemplate, Collaborator, AppSettings, QuoteSection, ColumnCalculationType, QuoteItem, Milestone } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -54,6 +54,63 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 // IMPORT NEW COMPONENT
 import { TimelineCreatorTab } from "@/components/task-dialogs/TimelineCreatorTab";
 import TimelineEditDialog from "@/components/task-dialogs/TimelineEditDialog";
+// ShareManagerDialog moved to Sidebar for global management
+import { DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+
+// Lightweight Share modal state
+function ShareConfirmModal({ open, onOpenChange, defaultIncludeQuote = true, defaultIncludeTimeline = true, onConfirm, t, isLoading }: { open: boolean; onOpenChange: (v: boolean) => void; defaultIncludeQuote?: boolean; defaultIncludeTimeline?: boolean; onConfirm: (opts: { includeQuote: boolean; includeTimeline: boolean }) => void; t: any; isLoading?: boolean }) {
+  const [includeQuote, setIncludeQuote] = React.useState(defaultIncludeQuote);
+  const [includeTimeline, setIncludeTimeline] = React.useState(defaultIncludeTimeline);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t.share || 'Share'}</DialogTitle>
+          <DialogDescription>{t.shareSelectWhat || 'Select what to include'}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 pt-2">
+          <label className="flex items-center gap-2"><input type="checkbox" checked={includeQuote} onChange={e=>setIncludeQuote(e.target.checked)} disabled={isLoading} /> {t.includeQuote || 'Include Quote'}</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={includeTimeline} onChange={e=>setIncludeTimeline(e.target.checked)} disabled={isLoading} /> {t.includeTimeline || 'Include Timeline'}</label>
+          {isLoading && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              Creating share link...
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">A public, unlisted link will be created.</p>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={()=>onOpenChange(false)} disabled={isLoading}>{t.cancel || 'Cancel'}</Button>
+          <Button onClick={()=>onConfirm({ includeQuote, includeTimeline })} disabled={!includeQuote && !includeTimeline || isLoading}>
+            {isLoading ? 'Creating...' : (t.createLink || 'Create link')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Share result dialog: show created URL and let user copy manually
+function ShareResultDialog({ open, onOpenChange, url, t, onCopy }: { open: boolean; onOpenChange: (v: boolean) => void; url: string; t: any; onCopy: () => void }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t.shareLink || 'Share link created'}</DialogTitle>
+          <DialogDescription>{t.copyToShare || 'Copy this link to share with others'}</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-2">
+          <Input readOnly value={url} onFocus={(e)=>e.currentTarget.select()} />
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={()=>{ window.open(url, '_blank'); }}>{t.open || 'Open'}</Button>
+            <Button onClick={onCopy}>{t.copy || 'Copy'}</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export interface TaskDetailsDialogProps {
   task: Task;
@@ -680,6 +737,137 @@ export function TaskDetailsDialog({
  
     return results;
   }, [taskCollaboratorQuotes, defaultColumns, calculateRowValue, T]);
+
+  // Share button state
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareResultOpen, setShareResultOpen] = useState(false);
+  const [shareResultUrl, setShareResultUrl] = useState<string>('');
+  // Helper function to extract milestones from quote timeline column (same logic as TimelineCreatorTab)
+  const getMilestonesFromQuote = (quoteData?: Quote): Milestone[] => {
+    if (!quoteData?.sections || !quoteData.columns?.some(col => col.id === 'timeline')) {
+      return [];
+    }
+    
+    const milestones: Milestone[] = [];
+    
+    quoteData.sections.forEach((section, sectionIndex) => {
+      const items = section.items || [];
+      items.forEach((item, itemIndex) => {
+        let timelineValue = item.customFields?.timeline;
+        
+        // Handle both object and JSON string formats
+        if (typeof timelineValue === 'string' && timelineValue.trim() !== '') {
+          try {
+            timelineValue = JSON.parse(timelineValue);
+          } catch (e) {
+            console.warn(`Failed to parse timeline data for section ${sectionIndex}, item ${itemIndex}:`, timelineValue);
+            return;
+          }
+        }
+        
+        // Check if timeline data has required start and end dates
+        if (timelineValue && 
+            typeof timelineValue === 'object' && 
+            timelineValue !== null &&
+            timelineValue.start && 
+            timelineValue.end) {
+          
+          // Generate consistent milestone ID
+          const sectionIdForMilestone = section.id || `section-${sectionIndex}`;
+          const itemIdForMilestone = item.id || `item-${itemIndex}`;
+          const milestoneId = `${sectionIdForMilestone}-${itemIdForMilestone}`;
+          
+          const timelineData = timelineValue as { start: string; end: string; color?: string };
+          
+          // Create milestone object
+          const milestone: Milestone = {
+            id: milestoneId,
+            name: item.description || `${section.name || 'Section'} - Item ${itemIndex + 1}`,
+            startDate: timelineData.start,
+            endDate: timelineData.end,
+            color: timelineData.color || `hsl(${(sectionIndex * 137.5 + itemIndex * 60) % 360}, 60%, 55%)`,
+            content: `Section: ${section.name || 'Unnamed Section'}`
+          };
+          
+          milestones.push(milestone);
+        }
+      });
+    });
+    
+    return milestones;
+  };
+
+  const onShareConfirm = async ({ includeQuote, includeTimeline }: { includeQuote: boolean; includeTimeline: boolean }) => {
+    setShareLoading(true);
+    try {
+      // Build snapshot(s)
+      const base = { settings, clients, categories } as any;
+      const snapshots: any = {};
+      if (includeQuote && quote) {
+        snapshots.quote = {
+          kind: 'quote', schemaVersion: 1,
+          quote, task, ...base,
+          clientName: clients.find(c=>c.id===task.clientId)?.name,
+          categoryName: categories.find(c=>c.id===task.categoryId)?.name,
+          defaultColumns: (quote.columns || defaultColumns),
+          calculationResults,
+          // provide a simple calc for server-side viewer
+          grandTotal: totalQuote || 0,
+        };
+      }
+      if (includeTimeline) {
+        // Extract milestones from quote timeline column if available, fallback to task.milestones
+        const milestones = quote ? getMilestonesFromQuote(quote) : (task.milestones || []);
+        console.log('🚀 TaskDetailsDialog share creation - timeline milestones:', {
+          hasQuote: !!quote,
+          hasTimelineColumn: quote?.columns?.some(col => col.id === 'timeline'),
+          quoteSections: quote?.sections?.length || 0,
+          milestonesCount: milestones.length,
+          milestones: milestones.map(m => ({ id: m.id, name: m.name, startDate: m.startDate, endDate: m.endDate, color: m.color }))
+        });
+        snapshots.timeline = {
+          kind: 'timeline', schemaVersion: 1,
+          task, quote: quote || undefined,
+          milestones,
+          ...base,
+          viewMode: 'week',
+          timelineScale: 1,
+          displayDate: new Date(),
+        };
+      }
+      const data = (includeQuote && includeTimeline)
+        ? { kind: 'combined', schemaVersion: 1, ...snapshots }
+        : includeQuote ? snapshots.quote : snapshots.timeline;
+
+      const res = await fetch('/api/share/create', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'accept': 'application/json' },
+        body: JSON.stringify({ data, taskId: task.id }),
+      });
+      const text = await res.text();
+      let out: any = null;
+      try { out = text ? JSON.parse(text) : null; } catch { out = { errorText: text }; }
+      if (!res.ok) {
+        const msg = (out && (out.error || out.message || out.errorText)) || `${res.status} ${res.statusText}`;
+        toast({ variant: 'destructive', title: T.error || 'Error', description: msg });
+        return;
+      }
+      const url = out?.url ? `${window.location.origin}${out.url}` : '';
+      if (url) {
+        setShareResultUrl(url);
+        setShareResultOpen(true);
+      } else {
+        toast({ title: T.saved || 'Created', description: T.createLink || 'Create link' });
+      }
+      setShareOpen(false);
+    } catch (e: any) {
+      console.error(e);
+      toast({ variant: 'destructive', title: T.error || 'Error', description: e?.message || String(e) });
+    } finally {
+      setShareLoading(false);
+    }
+  };
 
   const getDeadlineColor = (deadline: Date): string => {
     const today = new Date();
@@ -1436,6 +1624,24 @@ export function TaskDetailsDialog({
             {T.editTask}
           </Button>
         </div>
+        {/* Footer actions row (existing buttons) */}
+  <div className="flex items-center gap-2 mt-2">
+          <Button variant="outline" size="sm" onClick={()=>setShareOpen(true)}>
+            <LinkIcon className="w-4 h-4 mr-2" /> Share
+          </Button>
+        </div>
+  <ShareConfirmModal open={shareOpen} onOpenChange={setShareOpen} onConfirm={onShareConfirm} t={T} isLoading={shareLoading} />
+        <ShareResultDialog
+          open={shareResultOpen}
+          onOpenChange={setShareResultOpen}
+          url={shareResultUrl}
+          t={T}
+          onCopy={() => {
+            navigator.clipboard.writeText(shareResultUrl).then(()=>{
+              toast({ title: T.linkCopied || 'Link copied to clipboard' });
+            }).catch(()=>{});
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -1,4 +1,16 @@
 export const en_new = {
+// Share
+share: 'Share',
+manageShares: 'Manage Shares',
+shareSelectWhat: 'Select what to include',
+includeQuote: 'Include Quote',
+includeTimeline: 'Include Timeline',
+creating: 'Creating...',
+createLink: 'Create link',
+linkCopied: 'Link copied to clipboard',
+manageSharesTitle: 'Manage Shares',
+manageSharesDesc: 'Copy links, edit, or delete',
+noShares: 'No shares yet',
 newEvent: 'New event',
 stickyNotes: 'Sticky Notes',
 addNote: 'Add Note',

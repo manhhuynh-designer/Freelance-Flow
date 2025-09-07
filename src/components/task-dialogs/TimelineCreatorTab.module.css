@@ -515,6 +515,25 @@
   overflow: hidden;
 }
 
+/* Day cell states for task timeline range */
+.dayCell.withinTaskRange {
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+
+.dayCell.taskStartDay {
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+
+.dayCell.taskEndDay {
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+
 .milestoneBar, .milestone-bar {
   position: relative;
   height: 30px; /* Slightly smaller than milestoneRow (35px) to allow for spacing */

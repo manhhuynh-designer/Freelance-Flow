@@ -18,6 +18,7 @@ import { ClientManager } from "@/components/client-manager";
 import { CollaboratorManager } from "@/components/collaborator-manager";
 import { CategoryManager } from "@/components/category-manager";
 import { QuoteTemplateManager } from "@/components/quote-template-manager";
+import ShareManagerDialog from "@/components/share/ShareManagerDialog";
 import { FixedCostsCard } from '@/components/ai/business/FixedCostsCard';
 import { WIDGETS } from '@/lib/widgets';
 import type { AppSettings } from '@/lib/types';
@@ -71,6 +72,8 @@ export function AppSidebar() {
       isTemplateManagerOpen, setIsTemplateManagerOpen, setAppData,
       isFixedCostManagerOpen, setIsFixedCostManagerOpen } = dashboardContext;
 
+    const [isShareManagerOpen, setIsShareManagerOpen] = useState(false);
+
     const sidebarWidgets = (appData.appSettings.widgets || [])
         .filter(w => w.showInSidebar)
         .map(w => {
@@ -102,6 +105,11 @@ export function AppSidebar() {
                        <SidebarGroupLabel>{T.manage}</SidebarGroupLabel>
                        <SidebarGroupContent>
                        <SidebarMenu>
+                           <SidebarMenuItem>
+                             <SidebarMenuButton onClick={() => setIsShareManagerOpen(true)}>
+                               <FileText />{T.manageShares || 'Manage Shares'}
+                             </SidebarMenuButton>
+                           </SidebarMenuItem>
                            <SidebarMenuItem><Dialog open={isClientManagerOpen} onOpenChange={setIsClientManagerOpen}><DialogTrigger asChild><SidebarMenuButton><Users />{T.manageClients}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.clientManagement}</DialogTitle></DialogHeader><ClientManager clients={appData.clients} tasks={appData.tasks} onAddClient={handleAddClientAndSelect} onEditClient={handleEditClient} onDeleteClient={handleDeleteClient} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
                            <SidebarMenuItem><Dialog open={isCollaboratorManagerOpen} onOpenChange={setIsCollaboratorManagerOpen}><DialogTrigger asChild><SidebarMenuButton><Briefcase />{T.manageCollaborators}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.collaboratorManagement}</DialogTitle></DialogHeader><CollaboratorManager collaborators={appData.collaborators} tasks={appData.tasks} onAddCollaborator={handleAddCollaborator} onEditCollaborator={handleEditCollaborator} onDeleteCollaborator={handleDeleteCollaborator} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
                            <SidebarMenuItem>
@@ -215,6 +223,8 @@ export function AppSidebar() {
                          </SidebarMenu>
                        </SidebarGroupContent>
                      </SidebarGroup>
+                    {/* Global Share Manager Dialog (renders its own DialogContent/Title) */}
+                    <ShareManagerDialog open={isShareManagerOpen} onOpenChange={setIsShareManagerOpen} />
                  </div>
                </div>
            </SidebarContent>

@@ -1,5 +1,17 @@
 // src/lib/i18n/vi/new.ts
 export const vi_new = {
+// Chia sẻ
+share: 'Chia sẻ',
+manageShares: 'Quản lý liên kết',
+shareSelectWhat: 'Chọn nội dung muốn chia sẻ',
+includeQuote: 'Bao gồm Báo giá',
+includeTimeline: 'Bao gồm Timeline',
+creating: 'Đang tạo...',
+createLink: 'Tạo liên kết',
+linkCopied: 'Đã sao chép liên kết',
+manageSharesTitle: 'Quản lý liên kết',
+manageSharesDesc: 'Sao chép, chỉnh sửa hoặc xóa',
+noShares: 'Chưa có liên kết chia sẻ',
 newEvent: 'Sự kiện mới',
  stickyNotes: 'Ghi chú',
 addNotavgCompletion: 'Hoàn thành TB',

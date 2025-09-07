@@ -3,16 +3,22 @@ import { Task, Quote, AppSettings, Milestone, Client, Category } from '@/lib/typ
 import { format, addDays } from 'date-fns';
 import { i18n } from '@/lib/i18n';
 
+// Minimal server-safe translations used by PrintableTimeline
+const fallbackT = {
+  startDate: 'Start Date',
+  deadline: 'Deadline',
+};
+
 type Props = {
   task: Task;
   quote?: Quote;
-  milestones: Milestone[];
+  milestones?: Milestone[];
   settings: AppSettings;
-  clients: Client[];
-  categories: Category[];
-  viewMode: 'day' | 'week' | 'month';
-  timelineScale: number;
-  displayDate: Date;
+  clients?: Client[];
+  categories?: Category[];
+  viewMode?: 'day' | 'week' | 'month';
+  timelineScale?: number;
+  displayDate?: Date;
   fileName?: string;
 };
 
@@ -27,16 +33,27 @@ const MILESTONES_TITLE_HEIGHT = 60; // Increased for larger title text
 export const PrintableTimeline: React.FC<Props> = ({
   task,
   quote,
-  milestones,
+  milestones = [],
   settings,
-  clients,
-  categories,
-  viewMode,
-  timelineScale,
-  displayDate
+  clients = [],
+  categories = [],
+  viewMode = 'month',
+  timelineScale = 1,
+  displayDate = new Date()
 }) => {
+  // Add defensive checks for required props
+  if (!task || !settings) {
+    return (
+      <div className="p-4">
+        <h1 className="text-xl font-semibold text-red-600">Error loading timeline</h1>
+        <p className="text-sm text-gray-500">Missing required data: task or settings</p>
+      </div>
+    );
+  }
+
   const currency = settings.currency || 'USD';
-  const T = i18n[settings.language] || i18n.vi;
+  // Build a safe T object (prefer i18n, fallback to minimal)
+  const T = { ...fallbackT, ...(i18n[settings.language] || {}) } as typeof fallbackT & Record<string, string>;
   const primaryColor = settings.theme?.primary || '#2563eb';
 
   const currentClient = clients.find(c => c.id === task.clientId);
