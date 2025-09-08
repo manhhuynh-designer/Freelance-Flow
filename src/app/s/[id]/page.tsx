@@ -11,21 +11,55 @@ async function getOrigin() {
 }
 
 async function loadShare(id: string) {
-  const origin = await getOrigin();
-  const res = await fetch(`${origin}/api/share/resolve?id=${id}`, { cache: 'no-store' });
-  if (!res.ok) return null;
-  return (await res.json()) as any;
+  try {
+    const origin = await getOrigin();
+    console.log('Share page loadShare:', { id, origin });
+    
+    const url = `${origin}/api/share/resolve?id=${id}`;
+    console.log('Fetching share from:', url);
+    
+    const res = await fetch(url, { 
+      cache: 'no-store',
+      headers: {
+        'User-Agent': 'Share-Page/1.0'
+      }
+    });
+    
+    console.log('Share fetch response:', { 
+      status: res.status, 
+      statusText: res.statusText,
+      ok: res.ok 
+    });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('Share fetch failed:', errorText);
+      return null;
+    }
+    
+    const data = await res.json();
+    console.log('Share data loaded successfully:', { hasData: !!data });
+    return data;
+  } catch (error) {
+    console.error('Error loading share:', error);
+    return null;
+  }
 }
 
 export default async function ShareViewerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  console.log('ShareViewerPage rendering for id:', id);
+  
   const data = await loadShare(id);
+  
   if (!data) {
+    console.log('Share data not found for id:', id);
     return (
       <div className="mx-auto max-w-3xl p-6">
         <meta name="robots" content="noindex,nofollow" />
         <h1 className="text-xl font-semibold">Link not found</h1>
         <p className="text-sm text-gray-500">This share may have been revoked or expired.</p>
+        <p className="text-xs text-gray-400 mt-4">Share ID: {id}</p>
       </div>
     );
   }

@@ -37,20 +37,53 @@ export async function fetchJson<T = unknown>(blobKeyOrUrl: string, opts?: { toke
   
   // If it's not a full URL, we need to construct it
   if (!blobKeyOrUrl.startsWith('http')) {
-    // Try to get the base URL from environment or use the generic domain
-    const baseUrl = process.env.VERCEL_BLOB_STORE_URL || 'https://blob.vercel-storage.com';
+    // On Vercel, use the blob store directly without custom domain
+    // Get the BLOB_READ_WRITE_TOKEN environment to infer the correct domain
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    let baseUrl = 'https://blob.vercel-storage.com';
+    
+    // Try to get the base URL from VERCEL_BLOB_STORE_URL if available
+    if (process.env.VERCEL_BLOB_STORE_URL) {
+      baseUrl = process.env.VERCEL_BLOB_STORE_URL;
+    }
+    
     url = `${baseUrl}${blobKeyOrUrl}`;
   }
   
-  const headers: Record<string, string> = { 'cache-control': 'no-store' };
+  const headers: Record<string, string> = { 
+    'cache-control': 'no-store',
+    'user-agent': 'FreelanceFlow/1.0'
+  };
+  
   // Only add auth header if explicitly required (for private blobs)
   if (opts?.requireAuth && opts?.token) {
     headers['authorization'] = `Bearer ${opts.token}`;
   }
   
-  const res = await fetch(url, { cache: 'no-store', headers });
-  if (!res.ok) throw new Error(`Failed to load blob ${blobKeyOrUrl}: ${res.status} from ${url}`);
-  return (await res.json()) as T;
+  try {
+    const res = await fetch(url, { 
+      cache: 'no-store', 
+      headers,
+      // Add timeout to prevent hanging requests
+      signal: AbortSignal.timeout(10000)
+    });
+    
+    if (!res.ok) {
+      // Better error logging for debugging
+      console.error(`Blob fetch failed: ${res.status} ${res.statusText} for ${url}`);
+      throw new Error(`Failed to load blob ${blobKeyOrUrl}: ${res.status} ${res.statusText}`);
+    }
+    
+    const text = await res.text();
+    if (!text) {
+      throw new Error(`Empty response from blob ${blobKeyOrUrl}`);
+    }
+    
+    return JSON.parse(text) as T;
+  } catch (error: any) {
+    console.error(`Error fetching blob ${blobKeyOrUrl}:`, error);
+    throw new Error(`Failed to load blob ${blobKeyOrUrl}: ${error.message}`);
+  }
 }
 
 export async function loadUserIndex(prefix: string, opts?: { token?: string }): Promise<ShareIndex> {
@@ -104,8 +137,11 @@ export type IdMapEntry = { blobKey: string; userBucket?: string; status?: 'activ
 export async function loadGlobalIdMap(id: string, opts?: { token?: string }): Promise<IdMapEntry | null> {
   try {
     // Don't pass token for reading public blobs
-    return await fetchJson<IdMapEntry>(`/shares/_idmap/${id}.json`);
-  } catch {
+    const result = await fetchJson<IdMapEntry>(`/shares/_idmap/${id}.json`);
+    console.log(`Successfully loaded global ID map for ${id}:`, result);
+    return result;
+  } catch (error: any) {
+    console.error(`Failed to load global ID map for ${id}:`, error.message);
     return null;
   }
 }

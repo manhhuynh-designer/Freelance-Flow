@@ -1,0 +1,39 @@
+{
+  "functions": {
+    "src/app/api/share/resolve/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/share/create/route.ts": {
+      "maxDuration": 15
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/s/:id",
+      "destination": "/s/:id"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/share/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/s/:id",
+      "headers": [
+        {
+          "key": "Cache-Control", 
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    }
+  ],
+  "env": {
+    "VERCEL_BLOB_STORE_URL": "https://blob.vercel-storage.com"
+  }
+}
