@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  // Only allow in development or when VERCEL_ENV is preview
-  if (process.env.NODE_ENV === 'production' && process.env.VERCEL_ENV === 'production') {
+  // Allow in development, preview, or when explicitly testing
+  const isProduction = process.env.NODE_ENV === 'production' && process.env.VERCEL_ENV === 'production';
+  const allowDebug = process.env.ALLOW_DEBUG === 'true' || !isProduction;
+  
+  if (isProduction && !allowDebug) {
     return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
   }
 
