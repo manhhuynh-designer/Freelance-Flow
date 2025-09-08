@@ -37,17 +37,26 @@ export async function fetchJson<T = unknown>(blobKeyOrUrl: string, opts?: { toke
   
   // If it's not a full URL, we need to construct it
   if (!blobKeyOrUrl.startsWith('http')) {
-    // On Vercel, use the blob store directly without custom domain
-    // Get the BLOB_READ_WRITE_TOKEN environment to infer the correct domain
-    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
-    let baseUrl = 'https://blob.vercel-storage.com';
+    // Get base URL from environment with fallback
+    let baseUrl = process.env.VERCEL_BLOB_STORE_URL;
     
-    // Try to get the base URL from VERCEL_BLOB_STORE_URL if available
-    if (process.env.VERCEL_BLOB_STORE_URL) {
-      baseUrl = process.env.VERCEL_BLOB_STORE_URL;
+    if (!baseUrl) {
+      // Fallback to default Vercel blob storage
+      baseUrl = 'https://blob.vercel-storage.com';
+      console.warn('VERCEL_BLOB_STORE_URL not set, using fallback:', baseUrl);
     }
     
-    url = `${baseUrl}${blobKeyOrUrl}`;
+    // Ensure clean URL construction
+    const cleanPath = blobKeyOrUrl.startsWith('/') ? blobKeyOrUrl : '/' + blobKeyOrUrl;
+    url = `${baseUrl}${cleanPath}`;
+    
+    console.log('fetchJson URL construction:', {
+      input: blobKeyOrUrl,
+      baseUrl,
+      cleanPath,
+      finalUrl: url,
+      hasEnvVar: !!process.env.VERCEL_BLOB_STORE_URL
+    });
   }
   
   const headers: Record<string, string> = { 
@@ -61,17 +70,28 @@ export async function fetchJson<T = unknown>(blobKeyOrUrl: string, opts?: { toke
   }
   
   try {
+    console.log('fetchJson attempting fetch:', { url, hasToken: !!opts?.token });
+    
     const res = await fetch(url, { 
       cache: 'no-store', 
       headers,
       // Add timeout to prevent hanging requests
-      signal: AbortSignal.timeout(10000)
+      signal: AbortSignal.timeout(15000) // Increased timeout
+    });
+    
+    console.log('fetchJson response:', { 
+      url, 
+      status: res.status, 
+      statusText: res.statusText,
+      ok: res.ok,
+      contentType: res.headers.get('content-type')
     });
     
     if (!res.ok) {
       // Better error logging for debugging
-      console.error(`Blob fetch failed: ${res.status} ${res.statusText} for ${url}`);
-      throw new Error(`Failed to load blob ${blobKeyOrUrl}: ${res.status} ${res.statusText}`);
+      const errorText = await res.text();
+      console.error(`fetchJson failed: ${res.status} ${res.statusText} for ${url}`, errorText);
+      throw new Error(`Failed to load blob ${blobKeyOrUrl}: ${res.status} ${res.statusText} - ${errorText}`);
     }
     
     const text = await res.text();
@@ -79,7 +99,9 @@ export async function fetchJson<T = unknown>(blobKeyOrUrl: string, opts?: { toke
       throw new Error(`Empty response from blob ${blobKeyOrUrl}`);
     }
     
-    return JSON.parse(text) as T;
+    const parsed = JSON.parse(text) as T;
+    console.log('fetchJson success:', { url, dataKeys: Object.keys(parsed || {}) });
+    return parsed;
   } catch (error: any) {
     console.error(`Error fetching blob ${blobKeyOrUrl}:`, error);
     throw new Error(`Failed to load blob ${blobKeyOrUrl}: ${error.message}`);
