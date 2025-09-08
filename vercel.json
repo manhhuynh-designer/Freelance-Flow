@@ -33,7 +33,5 @@
       ]
     }
   ],
-  "env": {
-    "VERCEL_BLOB_STORE_URL": "https://blob.vercel-storage.com"
-  }
+  "buildCommand": "npm run build"
 }

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       globalIdMap: `/shares/_idmap/${shareId}.json`,
       constructed: process.env.VERCEL_BLOB_STORE_URL ? 
         `${process.env.VERCEL_BLOB_STORE_URL}/shares/_idmap/${shareId}.json` :
-        `https://blob.vercel-storage.com/shares/_idmap/${shareId}.json`
+        'ENV_VAR_NOT_SET - using fallback'
     }
   };
 

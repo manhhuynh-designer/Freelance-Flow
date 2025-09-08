@@ -22,12 +22,15 @@ export async function GET(req: NextRequest) {
     tokenLength: token?.length || 0,
     id,
     idMapPath: id ? `/shares/_idmap/${id}.json` : null,
-    fullIdMapUrl: id ? `https://blob.vercel-storage.com/shares/_idmap/${id}.json` : null,
+    baseUrl: process.env.VERCEL_BLOB_STORE_URL || 'fallback-url',
   };
   
   if (id && token) {
     try {
-      const baseUrl = process.env.VERCEL_BLOB_STORE_URL || 'https://blob.vercel-storage.com';
+      const baseUrl = process.env.VERCEL_BLOB_STORE_URL;
+      if (!baseUrl) {
+        throw new Error('VERCEL_BLOB_STORE_URL not configured');
+      }
       const idMapUrl = `${baseUrl}/shares/_idmap/${id}.json`;
       const headers: Record<string, string> = { 
         'cache-control': 'no-store'

@@ -28,12 +28,25 @@ export async function putJsonBlob(
 
 export async function deleteBlob(pathname: string, opts?: { token?: string }) {
   // pathname can be either full URL or path
-  const url = pathname.startsWith('http') ? pathname : `https://blob.vercel-storage.com${pathname}`;
+  let url = pathname;
+  if (!pathname.startsWith('http')) {
+    const baseUrl = process.env.VERCEL_BLOB_STORE_URL || 'https://blob.vercel-storage.com';
+    url = `${baseUrl}${pathname}`;
+  }
   await del(url, { token: opts?.token } as any);
 }
 
 export async function fetchJson<T = unknown>(blobKeyOrUrl: string, opts?: { token?: string; requireAuth?: boolean }): Promise<T> {
   let url = blobKeyOrUrl;
+  
+  // Debug logging for production issues
+  console.log('fetchJson called with:', {
+    input: blobKeyOrUrl,
+    isFullUrl: blobKeyOrUrl.startsWith('http'),
+    envBlobUrl: process.env.VERCEL_BLOB_STORE_URL,
+    nodeEnv: process.env.NODE_ENV,
+    isVercel: !!process.env.VERCEL
+  });
   
   // If it's not a full URL, we need to construct it
   if (!blobKeyOrUrl.startsWith('http')) {
@@ -57,6 +70,8 @@ export async function fetchJson<T = unknown>(blobKeyOrUrl: string, opts?: { toke
       finalUrl: url,
       hasEnvVar: !!process.env.VERCEL_BLOB_STORE_URL
     });
+  } else {
+    console.log('fetchJson using full URL as-is:', url);
   }
   
   const headers: Record<string, string> = { 
@@ -103,7 +118,12 @@ export async function fetchJson<T = unknown>(blobKeyOrUrl: string, opts?: { toke
     console.log('fetchJson success:', { url, dataKeys: Object.keys(parsed || {}) });
     return parsed;
   } catch (error: any) {
-    console.error(`Error fetching blob ${blobKeyOrUrl}:`, error);
+    console.error(`Error fetching blob ${blobKeyOrUrl}:`, {
+      input: blobKeyOrUrl,
+      constructedUrl: url,
+      error: error.message,
+      isAbortError: error.name === 'AbortError'
+    });
     throw new Error(`Failed to load blob ${blobKeyOrUrl}: ${error.message}`);
   }
 }

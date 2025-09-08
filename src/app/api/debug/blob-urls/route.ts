@@ -17,10 +17,10 @@ export async function GET(request: NextRequest) {
     method1_env_var: process.env.VERCEL_BLOB_STORE_URL ? 
       `${process.env.VERCEL_BLOB_STORE_URL}${testPath}` : 
       'ENV_VAR_NOT_SET',
-    method2_hardcoded: `https://blob.vercel-storage.com${testPath}`,
-    method3_from_token: process.env.BLOB_READ_WRITE_TOKEN ? 
-      `https://dekfhy7aahb69fxy.public.blob.vercel-storage.com${testPath}` : 
-      'TOKEN_NOT_SET'
+    method2_fallback: `https://blob.vercel-storage.com${testPath}`,
+    method3_constructed: process.env.VERCEL_BLOB_STORE_URL ? 
+      `${process.env.VERCEL_BLOB_STORE_URL}${testPath}` : 
+      'ENV_VAR_NOT_SET'
   };
 
   // Test actual fetch to see which works
