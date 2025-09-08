@@ -1,0 +1,880 @@
+ Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+ [dashboard] appData.workSessions Array(0)
+ [dashboard] appData.workSessions Array(0)
+ [DEBUG] loadAppData starting...
+ [worktime] persist: sessions empty — leaving localStorage intact
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ [Vercel Web Analytics] Debug mode is enabled by default in development. No requests will be sent to the server.
+ [Vercel Web Analytics] [pageview] http://localhost:3000/dashboard?statuses=todo%2Cinprogress%2Cdone%2Conhold%2Carchived Object
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ [dashboard] appData.workSessions Array(0)
+ [dashboard] appData.workSessions Array(0)
+ [dashboard] appData.workSessions Array(0)
+ [dashboard] appData.workSessions Array(0)
+ [Vercel Speed Insights] Debug mode is enabled by default in development. No requests will be sent to the server.
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ [DEBUG] loadAppData finished. Task count: 28
+ 📋 28 tasks need indexing, but no Google API key configured. Vector search features will be limited.
+ [dashboard] appData.workSessions Array(0)
+ 📋 28 tasks need indexing, but no Google API key configured. Vector search features will be limited.
+ [dashboard] appData.workSessions Array(0)
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ 📋 28 tasks need indexing, but no Google API key configured. Vector search features will be limited.
+ [dashboard] appData.workSessions Array(0)
+ 📋 28 tasks need indexing, but no Google API key configured. Vector search features will be limited.
+ [dashboard] appData.workSessions Array(0)
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ Language changed to: en
+ Language changed to: en
+ Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+DescriptionWarning.useEffect @ webpack-internal:///…/dist/index.mjs:475
+ Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+DescriptionWarning.useEffect @ webpack-internal:///…/dist/index.mjs:475
+ 🔍 Timeline column check: Object
+ 📅 Task start calculation: Object
+ 📅 Task start calculation: Object
+ 📅 Task end calculation: Object
+ 📅 Task end calculation: Object
+ 📊 getTimelineDays calculation: Object
+ 📊 getTimelineDays calculation: Object
+ 📊 Timeline range calculation: Object
+ 📊 Timeline range calculation: Object
+ 🔍 getSectionGroups processing 2 sections with 0 total milestones
+   📊 Section section-22 (UI/UX Design) has 0 visible milestones (0 total)
+   📊 Section section-1757258692143 (Untitled Section) has 0 visible milestones (0 total)
+ 🎯 getSectionGroups result: 0 visible groups Array(0)
+ 🔍 getSectionGroups processing 2 sections with 0 total milestones
+   📊 Section section-22 (UI/UX Design) has 0 visible milestones (0 total)
+   📊 Section section-1757258692143 (Untitled Section) has 0 visible milestones (0 total)
+ 🎯 getSectionGroups result: 0 visible groups Array(0)
+ 🔍 getSectionGroups processing 2 sections with 0 total milestones
+   📊 Section section-22 (UI/UX Design) has 0 visible milestones (0 total)
+   📊 Section section-1757258692143 (Untitled Section) has 0 visible milestones (0 total)
+ 🎯 getSectionGroups result: 0 visible groups Array(0)
+ 🔍 getSectionGroups processing 2 sections with 0 total milestones
+   📊 Section section-22 (UI/UX Design) has 0 visible milestones (0 total)
+   📊 Section section-1757258692143 (Untitled Section) has 0 visible milestones (0 total)
+ 🎯 getSectionGroups result: 0 visible groups Array(0)
+ 🔍 getSectionGroups processing 2 sections with 0 total milestones
+   📊 Section section-22 (UI/UX Design) has 0 visible milestones (0 total)
+   📊 Section section-1757258692143 (Untitled Section) has 0 visible milestones (0 total)
+ 🎯 getSectionGroups result: 0 visible groups Array(0)
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 0 total milestones
+   📊 Section section-22 (UI/UX Design) has 0 visible milestones (0 total)
+   📊 Section section-1757258692143 (Untitled Section) has 0 visible milestones (0 total)
+ 🎯 getSectionGroups result: 0 visible groups Array(0)
+ 🔍 getSectionGroups processing 2 sections with 0 total milestones
+   📊 Section section-22 (UI/UX Design) has 0 visible milestones (0 total)
+   📊 Section section-1757258692143 (Untitled Section) has 0 visible milestones (0 total)
+ 🎯 getSectionGroups result: 0 visible groups Array(0)
+ 🔍 getSectionGroups processing 2 sections with 0 total milestones
+   📊 Section section-22 (UI/UX Design) has 0 visible milestones (0 total)
+   📊 Section section-1757258692143 (Untitled Section) has 0 visible milestones (0 total)
+ 🎯 getSectionGroups result: 0 visible groups Array(0)
+ 📋 TimelineEditDialog: Using existing columns with timeline
+ 📋 TimelineEditDialog: Using existing columns with timeline
+ 🔄 useEffect - Initializing milestones Object
+ 🔍 getMilestonesFromQuote called: Object
+ 📋 Processing section 0: Object
+ 📝 Processing item 0 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 0: Object
+ 📝 Processing item 1 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 1: Object
+ 📝 Processing item 2 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 2: Object
+ 📝 Processing item 3 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 3: Object
+ 📝 Processing item 4 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 4: Object
+ 📋 Processing section 1: Object
+ 📝 Processing item 0 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 0: Object
+ 📝 Processing item 1 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 1: Object
+ 📝 Processing item 2 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 2: Object
+ 📝 Processing item 3 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 3: Object
+ 🎯 getMilestonesFromQuote result: 9 milestones found Array(9)
+ 📊 Initial milestones found: 9
+ 🔍 getMilestonesFromQuote called: Object
+ 📋 Processing section 0: Object
+ 📝 Processing item 0 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 0: Object
+ 📝 Processing item 1 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 1: Object
+ 📝 Processing item 2 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 2: Object
+ 📝 Processing item 3 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 3: Object
+ 📝 Processing item 4 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 4: Object
+ 📋 Processing section 1: Object
+ 📝 Processing item 0 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 0: Object
+ 📝 Processing item 1 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 1: Object
+ 📝 Processing item 2 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 2: Object
+ 📝 Processing item 3 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 3: Object
+ 🎯 getMilestonesFromQuote result: 9 milestones found Array(9)
+ 🔄 Quote changed - syncing milestones: 9
+ 🔄 useEffect - Initializing milestones Object
+ 🔍 getMilestonesFromQuote called: Object
+ 📋 Processing section 0: Object
+ 📝 Processing item 0 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 0: Object
+ 📝 Processing item 1 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 1: Object
+ 📝 Processing item 2 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 2: Object
+ 📝 Processing item 3 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 3: Object
+ 📝 Processing item 4 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 4: Object
+ 📋 Processing section 1: Object
+ 📝 Processing item 0 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 0: Object
+ 📝 Processing item 1 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 1: Object
+ 📝 Processing item 2 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 2: Object
+ 📝 Processing item 3 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 3: Object
+ 🎯 getMilestonesFromQuote result: 9 milestones found Array(9)
+ 📊 Initial milestones found: 9
+ 🔍 getMilestonesFromQuote called: Object
+ 📋 Processing section 0: Object
+ 📝 Processing item 0 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 0: Object
+ 📝 Processing item 1 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 1: Object
+ 📝 Processing item 2 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 2: Object
+ 📝 Processing item 3 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 3: Object
+ 📝 Processing item 4 in section 0: Object
+ ✅ Valid timeline data found for section 0, item 4: Object
+ 📋 Processing section 1: Object
+ 📝 Processing item 0 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 0: Object
+ 📝 Processing item 1 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 1: Object
+ 📝 Processing item 2 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 2: Object
+ 📝 Processing item 3 in section 1: Object
+ ✅ Valid timeline data found for section 1, item 3: Object
+ 🎯 getMilestonesFromQuote result: 9 milestones found Array(9)
+ 🔄 Quote changed - syncing milestones: 9
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🎨 CSS milestone render (unclamped): Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🎯 Drag move constraint check: Object
+ 🎯 Drag end - initial state: Object
+ 🔧 Move duration check: Object
+ 🔧 Final clamp check: Object
+ 💾 Save boundary check: Object
+ 🎯 Drag end result: Object
+ ❌ No changes detected, not saving
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues.
+resolveExtensions @ webpack-internal:///…e/dist/index.js:903
+ 📋 28 tasks need indexing, but no Google API key configured. Vector search features will be limited.
+ [dashboard] appData.workSessions Array(0)
+ 📋 28 tasks need indexing, but no Google API key configured. Vector search features will be limited.
+ [dashboard] appData.workSessions Array(0)
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ EditTaskForm onSubmit called with: Object
+ Raw collaborator quotes from form: Array(1)
+ Form quote 0: {
+  "collaboratorId": "",
+  "hasCollaboratorId": false,
+  "collaboratorIdTrimmed": "",
+  "sections": [
+    {
+      "id": "section-22",
+      "name": "UI/UX Design",
+      "items": [
+        {
+          "id": "item-28",
+          "description": "Cerebro UI Prototype",
+          "unitPrice": 2000000,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-12\",\"end\":\"2025-06-14\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.4115327197865455",
+          "description": "gggg",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-04\",\"end\":\"2025-06-09\",\"color\":\"hsl(60, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.3300588990087333",
+          "description": "hhh",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-10\",\"end\":\"2025-06-13\",\"color\":\"hsl(120, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.5730194671013037",
+          "description": "kjkj",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-09T00:00:00.000Z\",\"end\":\"2025-06-11T00:00:00.000Z\",\"color\":\"hsl(180, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.5691754033228147",
+          "description": "klklk",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-08\",\"end\":\"2025-06-10\",\"color\":\"hsl(240, 60%, 55%)\"}"
+          }
+        }
+      ]
+    },
+    {
+      "id": "section-1757258692143",
+      "name": "Untitled Section",
+      "items": [
+        {
+          "id": "item-1757258705756-0.4165776267778406",
+          "description": "fsdfsddasd",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-03T00:00:00.000Z\",\"end\":\"2025-06-14T00:00:00.000Z\",\"color\":\"hsl(0, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.10967599181897558",
+          "description": "hgjhg",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-08T00:00:00.000Z\",\"end\":\"2025-06-13T00:00:00.000Z\",\"color\":\"hsl(60, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.6463215145086415",
+          "description": "khjkh",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-09T00:00:00.000Z\",\"end\":\"2025-06-12T00:00:00.000Z\",\"color\":\"hsl(120, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.4132776039954913",
+          "description": "ghjgj",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-09T00:00:00.000Z\",\"end\":\"2025-06-11T00:00:00.000Z\",\"color\":\"hsl(180, 60%, 55%)\"}"
+          }
+        }
+      ]
+    }
+  ],
+  "sectionsLength": 2,
+  "sectionsWithItems": [
+    {
+      "id": "section-22",
+      "name": "UI/UX Design",
+      "items": [
+        {
+          "id": "item-28",
+          "description": "Cerebro UI Prototype",
+          "unitPrice": 2000000,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-12\",\"end\":\"2025-06-14\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.4115327197865455",
+          "description": "gggg",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-04\",\"end\":\"2025-06-09\",\"color\":\"hsl(60, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.3300588990087333",
+          "description": "hhh",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-10\",\"end\":\"2025-06-13\",\"color\":\"hsl(120, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.5730194671013037",
+          "description": "kjkj",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-09T00:00:00.000Z\",\"end\":\"2025-06-11T00:00:00.000Z\",\"color\":\"hsl(180, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.5691754033228147",
+          "description": "klklk",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-08\",\"end\":\"2025-06-10\",\"color\":\"hsl(240, 60%, 55%)\"}"
+          }
+        }
+      ]
+    },
+    {
+      "id": "section-1757258692143",
+      "name": "Untitled Section",
+      "items": [
+        {
+          "id": "item-1757258705756-0.4165776267778406",
+          "description": "fsdfsddasd",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-03T00:00:00.000Z\",\"end\":\"2025-06-14T00:00:00.000Z\",\"color\":\"hsl(0, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.10967599181897558",
+          "description": "hgjhg",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-08T00:00:00.000Z\",\"end\":\"2025-06-13T00:00:00.000Z\",\"color\":\"hsl(60, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.6463215145086415",
+          "description": "khjkh",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-09T00:00:00.000Z\",\"end\":\"2025-06-12T00:00:00.000Z\",\"color\":\"hsl(120, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.4132776039954913",
+          "description": "ghjgj",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-09T00:00:00.000Z\",\"end\":\"2025-06-11T00:00:00.000Z\",\"color\":\"hsl(180, 60%, 55%)\"}"
+          }
+        }
+      ]
+    }
+  ]
+}
+ Filtered collaborator quotes: Object
+ Submitting edited task with values: Object
+ handleEditTask called with: Object
+ Processing collaborator quotes update: Object
+ Entry 0: {
+  "collaboratorId": "",
+  "hasCollaboratorId": false,
+  "sections": [
+    {
+      "id": "section-22",
+      "name": "UI/UX Design",
+      "items": [
+        {
+          "id": "item-28",
+          "description": "Cerebro UI Prototype",
+          "unitPrice": 2000000,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-12\",\"end\":\"2025-06-14\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.4115327197865455",
+          "description": "gggg",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-04\",\"end\":\"2025-06-09\",\"color\":\"hsl(60, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.3300588990087333",
+          "description": "hhh",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-10\",\"end\":\"2025-06-13\",\"color\":\"hsl(120, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.5730194671013037",
+          "description": "kjkj",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-09T00:00:00.000Z\",\"end\":\"2025-06-11T00:00:00.000Z\",\"color\":\"hsl(180, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.5691754033228147",
+          "description": "klklk",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-08\",\"end\":\"2025-06-10\",\"color\":\"hsl(240, 60%, 55%)\"}"
+          }
+        }
+      ]
+    },
+    {
+      "id": "section-1757258692143",
+      "name": "Untitled Section",
+      "items": [
+        {
+          "id": "item-1757258705756-0.4165776267778406",
+          "description": "fsdfsddasd",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-03T00:00:00.000Z\",\"end\":\"2025-06-14T00:00:00.000Z\",\"color\":\"hsl(0, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.10967599181897558",
+          "description": "hgjhg",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-08T00:00:00.000Z\",\"end\":\"2025-06-13T00:00:00.000Z\",\"color\":\"hsl(60, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.6463215145086415",
+          "description": "khjkh",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-09T00:00:00.000Z\",\"end\":\"2025-06-12T00:00:00.000Z\",\"color\":\"hsl(120, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.4132776039954913",
+          "description": "ghjgj",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-09T00:00:00.000Z\",\"end\":\"2025-06-11T00:00:00.000Z\",\"color\":\"hsl(180, 60%, 55%)\"}"
+          }
+        }
+      ]
+    }
+  ],
+  "isSectionsArray": true,
+  "sectionsLength": 2,
+  "sectionsWithItems": [
+    {
+      "id": "section-22",
+      "name": "UI/UX Design",
+      "items": [
+        {
+          "id": "item-28",
+          "description": "Cerebro UI Prototype",
+          "unitPrice": 2000000,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-12\",\"end\":\"2025-06-14\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.4115327197865455",
+          "description": "gggg",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-04\",\"end\":\"2025-06-09\",\"color\":\"hsl(60, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.3300588990087333",
+          "description": "hhh",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-10\",\"end\":\"2025-06-13\",\"color\":\"hsl(120, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.5730194671013037",
+          "description": "kjkj",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-09T00:00:00.000Z\",\"end\":\"2025-06-11T00:00:00.000Z\",\"color\":\"hsl(180, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.5691754033228147",
+          "description": "klklk",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-08\",\"end\":\"2025-06-10\",\"color\":\"hsl(240, 60%, 55%)\"}"
+          }
+        }
+      ]
+    },
+    {
+      "id": "section-1757258692143",
+      "name": "Untitled Section",
+      "items": [
+        {
+          "id": "item-1757258705756-0.4165776267778406",
+          "description": "fsdfsddasd",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-03T00:00:00.000Z\",\"end\":\"2025-06-14T00:00:00.000Z\",\"color\":\"hsl(0, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.10967599181897558",
+          "description": "hgjhg",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-08T00:00:00.000Z\",\"end\":\"2025-06-13T00:00:00.000Z\",\"color\":\"hsl(60, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.6463215145086415",
+          "description": "khjkh",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-09T00:00:00.000Z\",\"end\":\"2025-06-12T00:00:00.000Z\",\"color\":\"hsl(120, 60%, 55%)\"}"
+          }
+        },
+        {
+          "id": "item-1757258705756-0.4132776039954913",
+          "description": "ghjgj",
+          "unitPrice": 0,
+          "customFields": {
+            "timeline": "{\"start\":\"2025-06-09T00:00:00.000Z\",\"end\":\"2025-06-11T00:00:00.000Z\",\"color\":\"hsl(180, 60%, 55%)\"}"
+          }
+        }
+      ]
+    }
+  ]
+}
+ Valid collaborator entries after filtering: Array(1)
+ Collaborator IDs to remove: Array(0)
+ Processing valid collaborator entries: Array(1)
+ New collaborator entries to create: Array(0)
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 📋 28 tasks need indexing, but no Google API key configured. Vector search features will be limited.
+ [dashboard] appData.workSessions Array(0)
+ 📋 28 tasks need indexing, but no Google API key configured. Vector search features will be limited.
+ [dashboard] appData.workSessions Array(0)
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 Timeline column check: Object
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 🔍 getSectionGroups processing 2 sections with 9 total milestones
+   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+ 🎯 getSectionGroups result: 2 visible groups Array(2)
+ 📋 28 tasks need indexing, but no Google API key configured. Vector search features will be limited.
+ [dashboard] appData.workSessions Array(0)
+ 📋 28 tasks need indexing, but no Google API key configured. Vector search features will be limited.
+ [dashboard] appData.workSessions Array(0)
+ 📋 28 tasks need indexing, but no Google API key configured. Vector search features will be limited.
+ [dashboard] appData.workSessions Array(0)
+ 📋 28 tasks need indexing, but no Google API key configured. Vector search features will be limited.
+ [dashboard] appData.workSessions Array(0)
+ 📊 Dashboard Content data status: Object
+ 📊 Dashboard Content data status: Object
+ 🔍 Timeline column check: Object
+ 📅 Task start calculation: Object
+ 📅 Task start calculation: Object
+ 📅 Task end calculation: Object
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:714 📅 Task end calculation: Object
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:276 🔍 getSectionGroups processing 2 sections with 9 total milestones
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:326 🎯 getSectionGroups result: 2 visible groups Array(2)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:276 🔍 getSectionGroups processing 2 sections with 9 total milestones
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:326 🎯 getSectionGroups result: 2 visible groups Array(2)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:276 🔍 getSectionGroups processing 2 sections with 9 total milestones
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:326 🎯 getSectionGroups result: 2 visible groups Array(2)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:125 🔍 Timeline column check: Object
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:276 🔍 getSectionGroups processing 2 sections with 9 total milestones
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:326 🎯 getSectionGroups result: 2 visible groups Array(2)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:276 🔍 getSectionGroups processing 2 sections with 9 total milestones
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:326 🎯 getSectionGroups result: 2 visible groups Array(2)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:276 🔍 getSectionGroups processing 2 sections with 9 total milestones
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:326 🎯 getSectionGroups result: 2 visible groups Array(2)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\hooks\useAppData.ts:252 📋 28 tasks need indexing, but no Google API key configured. Vector search features will be limited.
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\contexts\dashboard-context.tsx:29 [dashboard] appData.workSessions Array(0)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\hooks\useAppData.ts:252 📋 28 tasks need indexing, but no Google API key configured. Vector search features will be limited.
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\contexts\dashboard-context.tsx:29 [dashboard] appData.workSessions Array(0)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\dashboard-content.tsx:64 📊 Dashboard Content data status: Object
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\dashboard-content.tsx:64 📊 Dashboard Content data status: Object
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:125 🔍 Timeline column check: Object
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:276 🔍 getSectionGroups processing 2 sections with 9 total milestones
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:326 🎯 getSectionGroups result: 2 visible groups Array(2)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:276 🔍 getSectionGroups processing 2 sections with 9 total milestones
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:326 🎯 getSectionGroups result: 2 visible groups Array(2)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:276 🔍 getSectionGroups processing 2 sections with 9 total milestones
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:326 🎯 getSectionGroups result: 2 visible groups Array(2)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:125 🔍 Timeline column check: Object
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:276 🔍 getSectionGroups processing 2 sections with 9 total milestones
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:326 🎯 getSectionGroups result: 2 visible groups Array(2)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:276 🔍 getSectionGroups processing 2 sections with 9 total milestones
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:326 🎯 getSectionGroups result: 2 visible groups Array(2)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:276 🔍 getSectionGroups processing 2 sections with 9 total milestones
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-22 (UI/UX Design) has 5 visible milestones (5 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:312   📊 Section section-1757258692143 (Untitled Section) has 4 visible milestones (4 total)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineCreatorTab.tsx:326 🎯 getSectionGroups result: 2 visible groups Array(2)
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineEditDialog.tsx:104 📋 TimelineEditDialog: Using existing columns with timeline
+E:\FREELANCE\linkweb\Freelance-flow\app ver 1.2\src\components\task-dialogs\TimelineEditDialog.tsx:104 📋 TimelineEditDialog: Using existing columns with timeline

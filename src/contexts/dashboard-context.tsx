@@ -270,7 +270,9 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
             taskId: idToEdit,
             hasCollaboratorQuotes: !!(values as any).collaboratorQuotes,
             collaboratorQuotesCount: Array.isArray((values as any).collaboratorQuotes) ? (values as any).collaboratorQuotes.length : 0,
-            collaboratorQuotesData: (values as any).collaboratorQuotes
+            collaboratorQuotesData: (values as any).collaboratorQuotes,
+            valuesKeys: Object.keys(values),
+            fullValues: values
         });
         
         setAppData(prev => {
@@ -279,9 +281,16 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
             // Update task
             newPrev.tasks = newPrev.tasks.map((t: Task) => {
                 if (t.id !== idToEdit) return t;
-                // Don't override collaboratorIds and collaboratorQuotes from values if we're updating them below
-                const { collaboratorQuotes: _, ...valuesWithoutCollabQuotes } = values as any;
-                return { ...t, ...valuesWithoutCollabQuotes };
+                // Extract collaboratorIds and collaboratorQuotes from values to handle separately
+                const { collaboratorQuotes: _, collaboratorIds, ...valuesWithoutCollabQuotes } = values as any;
+                
+                // Keep existing collaboratorQuotes mappings for now, will be updated below if needed
+                // But update collaboratorIds if provided
+                return { 
+                    ...t, 
+                    ...valuesWithoutCollabQuotes,
+                    collaboratorIds: collaboratorIds || t.collaboratorIds || []
+                };
             });
 
             // If we have an updated sections payload, update the linked quote's sections and total
@@ -309,11 +318,27 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                 // Update collaborator quotes: values.collaboratorQuotes is array of { collaboratorId, sections }
                 if (Array.isArray((values as any).collaboratorQuotes)) {
                     const collabArr = (values as any).collaboratorQuotes as any[];
-                    console.log('Processing collaborator quotes update:', collabArr);
+                    console.log('Processing collaborator quotes update:', {
+                        incomingQuotes: collabArr,
+                        taskId: idToEdit,
+                        existingTaskMappings: targetTask.collaboratorQuotes,
+                        hasQuoteColumns: !!collaboratorQuoteColumns
+                    });
                     
-                    // Filter out empty entries (no collaboratorId or empty sections)
+                    // Debug each entry before filtering
+                    collabArr.forEach((ci, index) => {
+                        console.log(`Entry ${index}:`, JSON.stringify({
+                            collaboratorId: ci?.collaboratorId,
+                            hasCollaboratorId: !!ci?.collaboratorId,
+                            sections: ci?.sections,
+                            isSectionsArray: Array.isArray(ci?.sections),
+                            sectionsLength: Array.isArray(ci?.sections) ? ci.sections.length : 'N/A',
+                            sectionsWithItems: Array.isArray(ci?.sections) ? ci.sections.filter((s: any) => Array.isArray(s?.items) && s.items.length > 0) : 'N/A'
+                        }, null, 2));
+                    });
+                    
+                    // Filter out empty entries (only check for valid sections/items, collaboratorId can be empty)
                     const validCollabEntries = collabArr.filter(ci => 
-                        ci?.collaboratorId && 
                         Array.isArray(ci.sections) && 
                         ci.sections.length > 0 &&
                         ci.sections.some((s: any) => Array.isArray(s.items) && s.items.length > 0)
@@ -323,7 +348,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                     
                     // Find which collaborator IDs should be removed (were in form but are now invalid/empty)
                     const formCollabIds = collabArr.map(ci => ci?.collaboratorId).filter(Boolean);
-                    const validCollabIds = validCollabEntries.map(ci => ci.collaboratorId);
+                    const validCollabIds = validCollabEntries.map(ci => ci.collaboratorId).filter(Boolean);
                     const removedCollabIds = formCollabIds.filter(id => !validCollabIds.includes(id));
                     
                     console.log('Collaborator IDs to remove:', removedCollabIds);
@@ -355,6 +380,8 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                     }
                     
                     if (validCollabEntries.length > 0) {
+                        console.log('Processing valid collaborator entries:', validCollabEntries);
+                        
                         // First, update existing collaborator quotes by mapping
                         newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).map((cq: any) => {
                             // Find mapping entry in task to get collaboratorId associated with this collaborator quote id
@@ -381,8 +408,9 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
 
                         // Then, create collaborator quotes for any NEW collaborator entries not present in current mappings
                         const existingMappings = targetTask.collaboratorQuotes || [];
-                        const existingCollabIds = new Set<string>(existingMappings.map((m: any) => m.collaboratorId || ''));
-                        const newEntries = validCollabEntries.filter(ci => ci?.collaboratorId && !existingCollabIds.has(ci.collaboratorId));
+                        const existingCollabIds = new Set<string>((existingMappings.map((m: any) => m.collaboratorId).filter(Boolean)));
+                        // Treat entries without collaboratorId as drafts; always create a new quote for them
+                        const newEntries = validCollabEntries.filter(ci => !ci?.collaboratorId || !existingCollabIds.has(ci.collaboratorId));
                         
                         console.log('New collaborator entries to create:', newEntries);
                         
@@ -395,11 +423,14 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                                     ...(newPrev.collaboratorQuotes || []),
                                     created
                                 ];
-                                // Update task mapping and collaboratorIds
+                                // Always link the quote to the task; when collaboratorId is empty, store empty string as draft mapping
                                 newPrev.tasks = newPrev.tasks.map((t: Task) => {
                                     if (t.id !== idToEdit) return t;
-                                    const updatedMappings = [...(t.collaboratorQuotes || []), { collaboratorId: entry.collaboratorId, quoteId: created.id }];
-                                    const updatedCollaboratorIds = Array.from(new Set([...(t.collaboratorIds || []), entry.collaboratorId]));
+                                    const updatedMappings = [...(t.collaboratorQuotes || []), { collaboratorId: (entry.collaboratorId || ''), quoteId: created.id }];
+                                    // Only update collaboratorIds when we have a non-empty collaboratorId
+                                    const updatedCollaboratorIds = (entry.collaboratorId && entry.collaboratorId.trim() !== '')
+                                        ? Array.from(new Set([...(t.collaboratorIds || []), entry.collaboratorId]))
+                                        : (t.collaboratorIds || []);
                                     return { ...t, collaboratorQuotes: updatedMappings, collaboratorIds: updatedCollaboratorIds } as Task;
                                 });
                             });

@@ -79,7 +79,7 @@ const formSchema = z.object({
   })).min(1, "A quote must have at least one section."),
   collaboratorQuotes: z.array(
     z.object({
-      collaboratorId: z.string().optional().default(''),
+      collaboratorId: z.string().default(''), // Allow empty string, validation happens during submission
       sections: z.array(
         z.object({
           id: z.string(),
@@ -295,7 +295,8 @@ export function EditTaskForm({
               })) || [],
             })) || [],
           };
-        })
+  })
+  // Keep quotes even when collaboratorId is empty (draft entries)
       );
     }
     return [];
@@ -395,6 +396,41 @@ export function EditTaskForm({
       });
       return;
     }
+    
+    // Extract collaborator IDs from collaborator quotes and filter valid quotes
+    console.log('Raw collaborator quotes from form:', values.collaboratorQuotes);
+    
+    (values.collaboratorQuotes || []).forEach((quote, index) => {
+      console.log(`Form quote ${index}:`, JSON.stringify({
+        collaboratorId: quote.collaboratorId,
+        hasCollaboratorId: !!quote.collaboratorId,
+        collaboratorIdTrimmed: quote.collaboratorId?.trim(),
+        sections: quote.sections,
+        sectionsLength: quote.sections ? quote.sections.length : 'null/undefined',
+        sectionsWithItems: quote.sections ? quote.sections.filter(s => s.items && s.items.length > 0) : 'no sections'
+      }, null, 2));
+    });
+    
+    const validCollaboratorQuotes = (values.collaboratorQuotes || []).filter(quote => 
+      // Allow saving even without collaboratorId if there's actual cost data
+      quote.sections && 
+      quote.sections.length > 0 &&
+      quote.sections.some(section => section.items && section.items.length > 0)
+    );
+    
+    // Only include non-empty collaboratorIds when updating task
+    const collaboratorIds = validCollaboratorQuotes
+      .map(quote => quote.collaboratorId)
+      .filter((id): id is string => !!id && id.trim() !== "");
+    
+    console.log('Filtered collaborator quotes:', {
+      originalCount: values.collaboratorQuotes?.length || 0,
+      validCount: validCollaboratorQuotes.length,
+      collaboratorIds,
+      validQuotes: validCollaboratorQuotes,
+      allFormData: values
+    });
+    
     const filteredBriefLinks = values.briefLink?.filter(link => link.trim() !== "") || [];
     const filteredDriveLinks = values.driveLink?.filter(link => link.trim() !== "") || [];
     const filteredValues: any = {
@@ -403,8 +439,19 @@ export function EditTaskForm({
       driveLink: filteredDriveLinks,
       startDate: values.dates.from,
       deadline: values.dates.to,
+      collaboratorIds, // Add extracted collaborator IDs
+      collaboratorQuotes: validCollaboratorQuotes, // Use filtered valid quotes
     };
     delete filteredValues.dates;
+    
+    console.log('Submitting edited task with values:', {
+      taskId: taskToEdit.id,
+      collaboratorIds,
+      collaboratorQuotesCount: validCollaboratorQuotes.length,
+      hasColumns: !!currentColumns,
+      hasCollaboratorColumns: !!currentCollaboratorColumns
+    });
+    
     onFormSubmit(filteredValues, currentColumns, currentCollaboratorColumns, taskToEdit.id);
     if (typeof window !== 'undefined') {
       try {
@@ -867,12 +914,21 @@ export function EditTaskForm({
                       variant="outline" 
                       size="sm"
                       onClick={() => {
+                        const taskStart = safeParseDate(taskToEdit?.startDate, defaultDate);
+                        const taskEnd = safeParseDate(taskToEdit?.deadline, defaultDate);
                         const newQuote = {
                           collaboratorId: '',
                           sections: [{
                             id: `section-${Date.now()}`,
                             name: T.untitledSection,
-                            items: [{ description: "", unitPrice: 0, customFields: {} }]
+                            items: [{ 
+                              id: `item-${Date.now()}`,
+                              description: "", 
+                              unitPrice: 0, 
+                              customFields: {
+                                timeline: createInitialTimelineData(taskStart, taskEnd, 0, 1)
+                              } 
+                            }]
                           }]
                         };
                         collabAppendQuote(newQuote);
@@ -894,8 +950,8 @@ export function EditTaskForm({
                               <FormItem>
                                 <FormLabel>{T.collaborator}</FormLabel>
                                 <Select 
-                                  onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} 
-                                  value={field.value || '__none__'}
+                                  onValueChange={(value) => field.onChange(value)} 
+                                  value={field.value || ''}
                                 >
                                   <FormControl>
                                     <SelectTrigger>
@@ -950,12 +1006,21 @@ export function EditTaskForm({
                         variant="outline" 
                         size="sm"
                         onClick={() => {
+                          const taskStart = safeParseDate(taskToEdit?.startDate, defaultDate);
+                          const taskEnd = safeParseDate(taskToEdit?.deadline, defaultDate);
                           const newQuote = {
                             collaboratorId: '',
                             sections: [{
                               id: `section-${Date.now()}`,
                               name: T.untitledSection,
-                              items: [{ description: "", unitPrice: 0, customFields: {} }]
+                              items: [{ 
+                                id: `item-${Date.now()}`,
+                                description: "", 
+                                unitPrice: 0, 
+                                customFields: {
+                                  timeline: createInitialTimelineData(taskStart, taskEnd, 0, 1)
+                                } 
+                              }]
                             }]
                           };
                           collabAppendQuote(newQuote);
