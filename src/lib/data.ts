@@ -291,3 +291,21 @@ export const initialAppData: AppData = {
         widgets: []
     }
 };
+
+// A true "empty" dataset used when user requests a full clean (no sample/demo data retained)
+// Keep settings structure but allow user to start fresh. We clone settings to avoid accidental mutation.
+export const emptyAppData: AppData = {
+  tasks: [],
+  events: [],
+  notes: [],
+  workSessions: [],
+  expenses: [],
+  fixedCosts: [],
+  quotes: [],
+  collaboratorQuotes: [],
+  clients: [],
+  collaborators: [],
+  quoteTemplates: [],
+  categories: [],
+  appSettings: { ...(initialAppData.appSettings ? JSON.parse(JSON.stringify(initialAppData.appSettings)) : {}) }
+};

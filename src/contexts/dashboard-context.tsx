@@ -6,7 +6,7 @@ import { useAppData } from '@/hooks/useAppData';
 import { useWorkTimeData } from '@/hooks/useWorkTimeData';
 import { buildWorkTimeStats } from '@/lib/helpers/time-analyzer';
 import { useActionBuffer } from '@/hooks/useActionBuffer';
-import { initialAppData } from '@/lib/data';
+import { initialAppData, emptyAppData } from '@/lib/data';
 import { BackupService } from '@/lib/backup-service';
 import { PouchDBService } from '@/lib/pouchdb-service';
 import { browserLocal } from '@/lib/browser';
@@ -266,14 +266,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
         const idToEdit = taskId || values.id;
         if (!idToEdit) return;
         
-        console.log('handleEditTask called with:', {
-            taskId: idToEdit,
-            hasCollaboratorQuotes: !!(values as any).collaboratorQuotes,
-            collaboratorQuotesCount: Array.isArray((values as any).collaboratorQuotes) ? (values as any).collaboratorQuotes.length : 0,
-            collaboratorQuotesData: (values as any).collaboratorQuotes,
-            valuesKeys: Object.keys(values),
-            fullValues: values
-        });
+    // handleEditTask invoked
         
         setAppData(prev => {
             const newPrev = { ...prev } as AppData;
@@ -318,24 +311,10 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                 // Update collaborator quotes: values.collaboratorQuotes is array of { collaboratorId, sections }
                 if (Array.isArray((values as any).collaboratorQuotes)) {
                     const collabArr = (values as any).collaboratorQuotes as any[];
-                    console.log('Processing collaborator quotes update:', {
-                        incomingQuotes: collabArr,
-                        taskId: idToEdit,
-                        existingTaskMappings: targetTask.collaboratorQuotes,
-                        hasQuoteColumns: !!collaboratorQuoteColumns
-                    });
+                    // processing collaborator quotes update
                     
                     // Debug each entry before filtering
-                    collabArr.forEach((ci, index) => {
-                        console.log(`Entry ${index}:`, JSON.stringify({
-                            collaboratorId: ci?.collaboratorId,
-                            hasCollaboratorId: !!ci?.collaboratorId,
-                            sections: ci?.sections,
-                            isSectionsArray: Array.isArray(ci?.sections),
-                            sectionsLength: Array.isArray(ci?.sections) ? ci.sections.length : 'N/A',
-                            sectionsWithItems: Array.isArray(ci?.sections) ? ci.sections.filter((s: any) => Array.isArray(s?.items) && s.items.length > 0) : 'N/A'
-                        }, null, 2));
-                    });
+                    // entries debug removed
                     
                     // Filter out empty entries (only check for valid sections/items, collaboratorId can be empty)
                     const validCollabEntries = collabArr.filter(ci => 
@@ -344,14 +323,14 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                         ci.sections.some((s: any) => Array.isArray(s.items) && s.items.length > 0)
                     );
                     
-                    console.log('Valid collaborator entries after filtering:', validCollabEntries);
+                    // valid collaborator entries computed
                     
                     // Find which collaborator IDs should be removed (were in form but are now invalid/empty)
                     const formCollabIds = collabArr.map(ci => ci?.collaboratorId).filter(Boolean);
                     const validCollabIds = validCollabEntries.map(ci => ci.collaboratorId).filter(Boolean);
                     const removedCollabIds = formCollabIds.filter(id => !validCollabIds.includes(id));
                     
-                    console.log('Collaborator IDs to remove:', removedCollabIds);
+                    // collaborator IDs to remove computed
                     
                     // Remove collaborator quotes for collaborators that are no longer valid
                     if (removedCollabIds.length > 0 && targetTask.collaboratorQuotes) {
@@ -359,7 +338,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                             .filter(mapping => removedCollabIds.includes(mapping.collaboratorId))
                             .map(mapping => mapping.quoteId);
                         
-                        console.log('Collaborator quote IDs to remove:', quotesToRemove);
+                        // collaborator quote IDs to remove computed
                         
                         // Remove from collaboratorQuotes array
                         newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).filter(cq => 
@@ -380,7 +359,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                     }
                     
                     if (validCollabEntries.length > 0) {
-                        console.log('Processing valid collaborator entries:', validCollabEntries);
+                        // processing valid collaborator entries
                         
                         // First, update existing collaborator quotes by mapping
                         newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).map((cq: any) => {
@@ -399,7 +378,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                                         }, 0);
                                         return acc + sumItems;
                                     }, 0);
-                                    console.log(`Updated existing collaborator quote ${cq.id} for collaborator ${mapping.collaboratorId}`);
+                                    // updated existing collaborator quote
                                     return { ...cq, sections: secs, total, columns: collaboratorQuoteColumns ?? cq.columns };
                                 }
                             }
@@ -412,12 +391,12 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                         // Treat entries without collaboratorId as drafts; always create a new quote for them
                         const newEntries = validCollabEntries.filter(ci => !ci?.collaboratorId || !existingCollabIds.has(ci.collaboratorId));
                         
-                        console.log('New collaborator entries to create:', newEntries);
+                        // new collaborator entries to create computed
                         
                         if (newEntries.length > 0) {
                             newEntries.forEach((entry: any) => {
                                 const created = createCollaboratorQuoteFrom(entry, collaboratorQuoteColumns);
-                                console.log(`Created new collaborator quote ${created.id} for collaborator ${entry.collaboratorId}`);
+                                // created new collaborator quote entity
                                 // Append new collaborator quote entity
                                 newPrev.collaboratorQuotes = [
                                     ...(newPrev.collaboratorQuotes || []),
@@ -517,7 +496,8 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
 
     // Clear only main data (keep backups)
     const handleClearOnlyData = useCallback(() => {
-        setAppData(() => ({ ...initialAppData } as AppData));
+        // Use truly empty data (no samples) so user starts clean
+        setAppData(() => ({ ...emptyAppData } as AppData));
         // Also clear persisted docs and legacy localStorage AI blocks so cards show cleared state
         (async () => {
             try {
@@ -542,7 +522,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
 
     // Clear main data and backups together
     const handleClearDataAndBackups = useCallback(() => {
-        setAppData(() => ({ ...initialAppData } as AppData));
+        setAppData(() => ({ ...emptyAppData } as AppData));
         try { BackupService.clearAllBackups?.(); } catch {}
         // Ensure persisted documents and legacy local keys are cleared as well
         (async () => {

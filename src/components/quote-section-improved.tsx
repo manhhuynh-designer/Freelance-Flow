@@ -28,11 +28,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Calendar } from "./ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { 
   PlusCircle, 
   Trash2, 
@@ -88,6 +87,111 @@ const createInitialTimelineData = (startDate?: Date, endDate?: Date, itemIndex =
     end: itemEnd.toISOString(),
     color: `hsl(${(itemIndex * 60) % 360}, 60%, 55%)`
   });
+};
+
+// Timeline Editor Component
+const TimelineEditor = ({ field, taskStartDate, taskEndDate }: {
+  field: any;
+  taskStartDate?: Date;
+  taskEndDate?: Date;
+}) => {
+  let timelineObj: any = null;
+  if (field.value) {
+    if (typeof field.value === 'string') {
+      try { timelineObj = JSON.parse(field.value); } catch { /* ignore */ }
+    } else if (typeof field.value === 'object') {
+      timelineObj = field.value;
+    }
+  }
+  if (!timelineObj || !timelineObj.start || !timelineObj.end) {
+    // Initialize default if missing
+    const now = new Date();
+    const week = new Date(Date.now() + 6 * 24*60*60*1000);
+    timelineObj = { start: now.toISOString(), end: week.toISOString(), color: 'hsl(210,60%,55%)' };
+    field.onChange(JSON.stringify(timelineObj));
+  }
+  const startDate = new Date(timelineObj.start);
+  const endDate = new Date(timelineObj.end);
+
+  const formatDate = (date: Date) => {
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    return `${day}/${month}`;
+  };
+
+  const updateDate = (isStart: boolean, newDate: Date) => {
+    // Clamp within task range if provided
+    if (taskStartDate && newDate < taskStartDate) newDate = taskStartDate;
+    if (taskEndDate && newDate > taskEndDate) newDate = taskEndDate;
+    
+    const updates: any = {};
+    if (isStart) {
+      updates.start = newDate.toISOString();
+      // Don't auto-adjust end date - keep it independent
+    } else {
+      updates.end = newDate.toISOString();
+      // Don't auto-adjust start date - keep it independent
+    }
+    
+    const next = { ...timelineObj, ...updates };
+    field.onChange(JSON.stringify(next));
+  };
+
+  const DraggableDate = ({ date, isStart }: { date: Date; isStart: boolean }) => {
+    const [isDragging, setIsDragging] = React.useState(false);
+    const dragStartRef = React.useRef({ x: 0, initialDate: date.getTime() });
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsDragging(true);
+      dragStartRef.current = { x: e.clientX, initialDate: date.getTime() };
+      
+      const handleMouseMove = (e: MouseEvent) => {
+        const deltaX = e.clientX - dragStartRef.current.x;
+        const daysDelta = Math.round(deltaX / 10); // 10px per day
+        
+        if (Math.abs(daysDelta) >= 1) {
+          const newTime = dragStartRef.current.initialDate + (daysDelta * 24 * 60 * 60 * 1000);
+          const newDate = new Date(newTime);
+          
+          updateDate(isStart, newDate);
+          
+          // Update reference point for smooth dragging
+          dragStartRef.current.x = e.clientX;
+          dragStartRef.current.initialDate = newTime;
+        }
+      };
+
+      const handleMouseUp = () => {
+        setIsDragging(false);
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    };
+
+    return (
+      <span
+        className={`text-xs cursor-ew-resize select-none px-1 py-0.5 rounded transition-colors ${
+          isDragging ? 'bg-blue-100 cursor-grabbing' : 'hover:bg-gray-100'
+        }`}
+        onMouseDown={handleMouseDown}
+        title={`Kéo trái/phải để thay đổi ${isStart ? 'ngày bắt đầu' : 'ngày kết thúc'}`}
+      >
+        {formatDate(date)}
+      </span>
+    );
+  };
+
+  return (
+    <div className="flex gap-1 items-center">
+      <DraggableDate date={startDate} isStart={true} />
+      <span className="text-[10px] text-gray-400">-</span>
+      <DraggableDate date={endDate} isStart={false} />
+    </div>
+  );
 };
 
 interface QuoteSectionComponentProps {
@@ -773,28 +877,12 @@ export const QuoteSectionComponent = (props: QuoteSectionComponentProps) => {
                             <FormItem>
                               <FormControl>
                                 {col.id === 'timeline' ? (
-                                  // Special handling for timeline column - display as read-only formatted text
-                                  <div className="px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-sm">
-                                    {(() => {
-                                      let timelineData = field.value;
-                                      
-                                      // Handle both object and JSON string formats
-                                      if (typeof timelineData === 'string') {
-                                        try {
-                                          timelineData = JSON.parse(timelineData);
-                                        } catch (e) {
-                                          return 'Invalid timeline data';
-                                        }
-                                      }
-                                      
-                                      if (timelineData && typeof timelineData === 'object' && timelineData.start && timelineData.end) {
-                                        const start = new Date(timelineData.start).toLocaleDateString();
-                                        const end = new Date(timelineData.end).toLocaleDateString();
-                                        return `${start} - ${end}`;
-                                      }
-                                      return 'No timeline set';
-                                    })()}
-                                  </div>
+                                  // Draggable timeline editor with date picker
+                                  <TimelineEditor 
+                                    field={field} 
+                                    taskStartDate={taskStartDate} 
+                                    taskEndDate={taskEndDate}
+                                  />
                                 ) : (
                                   <Input 
                                     type={col.type === 'date' ? 'text' : col.type} 

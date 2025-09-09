@@ -40,10 +40,17 @@ export class ExcelBackupService {
         ['Sheet Contents:'],
         ['Tasks', 'All project tasks with details'],
         ['Clients', 'Client contact information'],
-        ['Quotes', 'Quote templates and data'],
+        ['Quotes', 'Quote summary (base properties)'],
+        ['Quotes_Sections', 'Each quote section (quoteId, sectionId, name, order)'],
+        ['Quotes_Items', 'Each quote item (quoteId, sectionId, itemId, description, unitPrice, quantity, customFieldsJSON)'],
+        ['Quotes_Payments', 'Each payment entry for quotes'],
         ['Collaborators', 'Team member information'],
         ['Categories', 'Project categories'],
+        ['CollabQuotes', 'Collaborator quotes summary'],
+        ['CollabQuotes_Sections', 'Sections for collaborator quotes'],
+        ['CollabQuotes_Items', 'Items for collaborator quote sections'],
         ['Settings', 'Application settings'],
+        ['AI Data', 'Serialized AI / filter preset JSON blobs'],
         [''],
         ['Note: This file can be imported back into Freelance Flow'],
         ['or viewed/edited in Excel or Google Sheets']
@@ -63,6 +70,7 @@ export class ExcelBackupService {
           'Category ID': task.categoryId || '',
           'Quote ID': task.quoteId || '',
           'Collaborator IDs': Array.isArray(task.collaboratorIds) ? task.collaboratorIds.join(', ') : '',
+          'Collaborator Quotes': Array.isArray(task.collaboratorQuotes) ? task.collaboratorQuotes.map(q => `${q.collaboratorId}:${q.quoteId}`).join(' | ') : '',
           'Brief Links': Array.isArray(task.briefLink) ? task.briefLink.join(', ') : '',
           'Drive Links': Array.isArray(task.driveLink) ? task.driveLink.join(', ') : '',
           'Created At': task.createdAt || '',
@@ -88,7 +96,7 @@ export class ExcelBackupService {
         XLSX.utils.book_append_sheet(workbook, clientsSheet, 'Clients');
       }
 
-      // Add Quotes sheet
+      // Add Quotes related sheets (summary + sections / items / payments)
       if (data.quotes && data.quotes.length > 0) {
         const quotesData = data.quotes.map((quote: Quote) => ({
           ID: quote.id,
@@ -99,11 +107,60 @@ export class ExcelBackupService {
           'Items Count': quote.sections ? quote.sections.reduce((acc, section) => acc + (section.items?.length || 0), 0) : 0,
           'Payments Count': quote.payments ? quote.payments.length : 0
         }));
-        const quotesSheet = XLSX.utils.json_to_sheet(quotesData);
-        XLSX.utils.book_append_sheet(workbook, quotesSheet, 'Quotes');
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(quotesData), 'Quotes');
+
+        // Sections
+        const quoteSectionsRows: any[] = [];
+        const quoteItemsRows: any[] = [];
+        const quotePaymentsRows: any[] = [];
+        data.quotes.forEach((quote: Quote) => {
+          quote.sections?.forEach((section, sIndex) => {
+            quoteSectionsRows.push({
+              QuoteID: quote.id,
+              SectionID: section.id,
+              Name: section.name,
+              Order: sIndex
+            });
+            section.items?.forEach((item, iIndex) => {
+              quoteItemsRows.push({
+                QuoteID: quote.id,
+                SectionID: section.id,
+                ItemID: item.id,
+                Description: item.description,
+                UnitPrice: item.unitPrice,
+                Quantity: item.quantity ?? 1,
+                Order: iIndex,
+                CustomFieldsJSON: item.customFields ? JSON.stringify(item.customFields) : ''
+              });
+            });
+          });
+          quote.payments?.forEach((p, pIndex) => {
+            quotePaymentsRows.push({
+              QuoteID: quote.id,
+              PaymentID: p.id,
+              Status: p.status,
+              Date: p.date || '',
+              Method: p.method || '',
+              Notes: p.notes || '',
+              Amount: p.amount ?? '',
+              AmountType: p.amountType || '',
+              Percent: p.percent ?? '',
+              Order: pIndex
+            });
+          });
+        });
+        if (quoteSectionsRows.length) {
+          XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(quoteSectionsRows), 'Quotes_Sections');
+        }
+        if (quoteItemsRows.length) {
+          XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(quoteItemsRows), 'Quotes_Items');
+        }
+        if (quotePaymentsRows.length) {
+          XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(quotePaymentsRows), 'Quotes_Payments');
+        }
       }
 
-      // Add Collaborators sheet
+  // Add Collaborators sheet
       if (data.collaborators && data.collaborators.length > 0) {
         const collaboratorsData = data.collaborators.map((collaborator: Collaborator) => ({
           ID: collaborator.id,
@@ -126,6 +183,46 @@ export class ExcelBackupService {
         }));
         const categoriesSheet = XLSX.utils.json_to_sheet(categoriesData);
         XLSX.utils.book_append_sheet(workbook, categoriesSheet, 'Categories');
+      }
+
+      // Add Collaborator Quotes (summary + sections + items)
+      if (data.collaboratorQuotes && data.collaboratorQuotes.length > 0) {
+        const cqSummary = data.collaboratorQuotes.map(cq => ({
+          ID: cq.id,
+            CollaboratorID: cq.collaboratorId,
+            Total: cq.total || 0,
+            PaymentStatus: cq.paymentStatus || '',
+            AmountPaid: cq.amountPaid || 0,
+            SectionsCount: cq.sections?.length || 0,
+            ItemsCount: cq.sections?.reduce((a, s) => a + (s.items?.length || 0), 0) || 0
+        }));
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(cqSummary), 'CollabQuotes');
+        const cqSections: any[] = [];
+        const cqItems: any[] = [];
+        data.collaboratorQuotes.forEach(cq => {
+          cq.sections?.forEach((section, sIndex) => {
+            cqSections.push({
+              CollabQuoteID: cq.id,
+              SectionID: section.id,
+              Name: section.name,
+              Order: sIndex
+            });
+            section.items?.forEach((item, iIndex) => {
+              cqItems.push({
+                CollabQuoteID: cq.id,
+                SectionID: section.id,
+                ItemID: item.id,
+                Description: item.description,
+                UnitPrice: item.unitPrice,
+                Quantity: item.quantity ?? 1,
+                Order: iIndex,
+                CustomFieldsJSON: item.customFields ? JSON.stringify(item.customFields) : ''
+              });
+            });
+          });
+        });
+        if (cqSections.length) XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(cqSections), 'CollabQuotes_Sections');
+        if (cqItems.length) XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(cqItems), 'CollabQuotes_Items');
       }
 
       // Add Quote Templates sheet
@@ -190,7 +287,8 @@ export class ExcelBackupService {
       // Add AI/local-only data as JSON strings in a dedicated sheet
       const aiDataRows: any[] = [];
       // Prefer including centralized `aiAnalyses` when available (stored in appData / PouchDB)
-      if (anyData.aiAnalyses) aiDataRows.push({ Key: 'aiAnalyses', JSON: JSON.stringify(anyData.aiAnalyses) });
+  if (anyData.aiAnalyses) aiDataRows.push({ Key: 'aiAnalyses', JSON: JSON.stringify(anyData.aiAnalyses) });
+  if (anyData.aiProductivityAnalyses) aiDataRows.push({ Key: 'aiProductivityAnalyses', JSON: JSON.stringify(anyData.aiProductivityAnalyses) });
       if (anyData.aiPersistentData) aiDataRows.push({ Key: 'freelance-flow-ai-persistent-data', JSON: JSON.stringify(anyData.aiPersistentData) });
       if (anyData.aiWritingPresets) aiDataRows.push({ Key: 'ai-writing-presets', JSON: JSON.stringify(anyData.aiWritingPresets) });
       if (anyData.aiWritingHistory) aiDataRows.push({ Key: 'ai-writing-history', JSON: JSON.stringify(anyData.aiWritingHistory) });
@@ -241,7 +339,13 @@ export class ExcelBackupService {
           categoryId: row['Category ID'] || '',
           quoteId: row['Quote ID'] || '',
           collaboratorIds: row['Collaborator IDs'] ? row['Collaborator IDs'].split(', ').filter(Boolean) : [],
-          collaboratorQuotes: [],
+          collaboratorQuotes: row['Collaborator Quotes'] ? String(row['Collaborator Quotes']).split('|').map((pair: string) => {
+            const trimmed = pair.trim();
+            if (!trimmed) return null;
+            const [collabId, quoteId] = trimmed.split(':');
+            if (!collabId || !quoteId) return null;
+            return { collaboratorId: collabId, quoteId };
+          }).filter(Boolean) as any : [],
           briefLink: row['Brief Links'] ? row['Brief Links'].split(', ').filter(Boolean) : [],
           driveLink: row['Drive Links'] ? row['Drive Links'].split(', ').filter(Boolean) : [],
           createdAt: row['Created At'] || new Date().toISOString(),
@@ -253,6 +357,131 @@ export class ExcelBackupService {
           progress: row.Progress || 0,
           dependencies: []
         }));
+      }
+      // Reconstruct Quotes (if summary + sections/items present)
+      if (workbook.SheetNames.includes('Quotes')) {
+        const quotesSheet = workbook.Sheets['Quotes'];
+        const quotesRows: any[] = XLSX.utils.sheet_to_json(quotesSheet);
+        const quotesMap: Map<string, any> = new Map();
+        quotesRows.forEach(r => {
+          const id = r.ID || r.Id || r.id;
+          if (!id) return;
+          quotesMap.set(id, {
+            id,
+            total: Number(r.Total) || 0,
+            status: r.Status || 'draft',
+            amountPaid: Number(r['Amount Paid']) || 0,
+            sections: [] as any[],
+            payments: [] as any[],
+          });
+        });
+        if (workbook.SheetNames.includes('Quotes_Sections')) {
+          const sheet = workbook.Sheets['Quotes_Sections'];
+            const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+          rows.forEach(sec => {
+            const qid = sec.QuoteID; if (!qid || !quotesMap.has(qid)) return;
+            const q = quotesMap.get(qid);
+            q.sections.push({
+              id: sec.SectionID || sec.Id || '',
+              name: sec.Name || '',
+              items: [] as any[]
+            });
+          });
+        }
+        if (workbook.SheetNames.includes('Quotes_Items')) {
+          const sheet = workbook.Sheets['Quotes_Items'];
+          const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+          // Build section map for quick assignment
+          const sectionMap: Map<string, any> = new Map();
+          quotesMap.forEach(q => q.sections.forEach((s: any) => sectionMap.set(`${q.id}:${s.id}`, s)));
+          rows.forEach(it => {
+            const qid = it.QuoteID; const sid = it.SectionID;
+            if (!qid || !sid) return;
+            const secKey = `${qid}:${sid}`;
+            const sec = sectionMap.get(secKey);
+            if (!sec) return;
+            let customFields: any = undefined;
+            if (it.CustomFieldsJSON) { try { customFields = JSON.parse(it.CustomFieldsJSON); } catch {/* ignore */} }
+            sec.items.push({
+              id: it.ItemID || '',
+              description: it.Description || '',
+              unitPrice: Number(it.UnitPrice) || 0,
+              quantity: Number(it.Quantity) || 1,
+              customFields
+            });
+          });
+        }
+        if (workbook.SheetNames.includes('Quotes_Payments')) {
+          const sheet = workbook.Sheets['Quotes_Payments'];
+          const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+          rows.forEach(p => {
+            const qid = p.QuoteID; if (!qid || !quotesMap.has(qid)) return;
+            const q = quotesMap.get(qid);
+            q.payments.push({
+              id: p.PaymentID || '',
+              status: p.Status || 'scheduled',
+              date: p.Date || undefined,
+              method: p.Method || undefined,
+              notes: p.Notes || undefined,
+              amount: p.Amount !== '' && p.Amount != null ? Number(p.Amount) : undefined,
+              amountType: p.AmountType || undefined,
+              percent: p.Percent !== '' && p.Percent != null ? Number(p.Percent) : undefined,
+            });
+          });
+        }
+        const reconstructedQuotes = Array.from(quotesMap.values());
+        if (reconstructedQuotes.length) {
+          importedData.quotes = reconstructedQuotes as any;
+        }
+      }
+
+      // Reconstruct Collaborator Quotes
+      if (workbook.SheetNames.includes('CollabQuotes')) {
+        const sheet = workbook.Sheets['CollabQuotes'];
+        const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+        const map: Map<string, any> = new Map();
+        rows.forEach(r => {
+          const id = r.ID || r.Id || r.id; if (!id) return;
+          map.set(id, {
+            id,
+            collaboratorId: r.CollaboratorID || '',
+            total: Number(r.Total) || 0,
+            paymentStatus: r.PaymentStatus || 'pending',
+            amountPaid: Number(r.AmountPaid) || 0,
+            sections: [] as any[]
+          });
+        });
+        if (workbook.SheetNames.includes('CollabQuotes_Sections')) {
+          const secSheet = workbook.Sheets['CollabQuotes_Sections'];
+          const rowsSec: any[] = XLSX.utils.sheet_to_json(secSheet);
+          rowsSec.forEach(sec => {
+            const cqid = sec.CollabQuoteID; if (!cqid || !map.has(cqid)) return;
+            const cq = map.get(cqid);
+            cq.sections.push({ id: sec.SectionID || '', name: sec.Name || '', items: [] as any[] });
+          });
+        }
+        if (workbook.SheetNames.includes('CollabQuotes_Items')) {
+          const itemSheet = workbook.Sheets['CollabQuotes_Items'];
+          const itemRows: any[] = XLSX.utils.sheet_to_json(itemSheet);
+          const sectionMap: Map<string, any> = new Map();
+          map.forEach(cq => cq.sections.forEach((s: any) => sectionMap.set(`${cq.id}:${s.id}`, s)));
+          itemRows.forEach(it => {
+            const cqid = it.CollabQuoteID; const sid = it.SectionID; if (!cqid || !sid) return;
+            const key = `${cqid}:${sid}`;
+            const sec = sectionMap.get(key); if (!sec) return;
+            let customFields: any = undefined;
+            if (it.CustomFieldsJSON) { try { customFields = JSON.parse(it.CustomFieldsJSON); } catch {/* ignore */} }
+            sec.items.push({
+              id: it.ItemID || '',
+              description: it.Description || '',
+              unitPrice: Number(it.UnitPrice) || 0,
+              quantity: Number(it.Quantity) || 1,
+              customFields
+            });
+          });
+        }
+        const collabQuotes = Array.from(map.values());
+        if (collabQuotes.length) importedData.collaboratorQuotes = collabQuotes as any;
       }
 
       // Import Clients
@@ -339,6 +568,7 @@ export class ExcelBackupService {
           }
         });
   if (map['aiAnalyses']) (importedData as any).aiAnalyses = map['aiAnalyses'];
+  if (map['aiProductivityAnalyses']) (importedData as any).aiProductivityAnalyses = map['aiProductivityAnalyses'];
   if (map['freelance-flow-ai-persistent-data']) (importedData as any).aiPersistentData = map['freelance-flow-ai-persistent-data'];
         if (map['ai-writing-presets']) (importedData as any).aiWritingPresets = map['ai-writing-presets'];
         if (map['ai-writing-history']) (importedData as any).aiWritingHistory = map['ai-writing-history'];
@@ -388,8 +618,8 @@ export class ExcelBackupService {
       }
 
       // Use default values for complex data that can't be easily represented in Excel
-      importedData.quotes = [];
-      importedData.collaboratorQuotes = [];
+  importedData.quotes = importedData.quotes || [];
+  importedData.collaboratorQuotes = importedData.collaboratorQuotes || [];
       importedData.quoteTemplates = [];
       importedData.notes = [];
       importedData.events = [];

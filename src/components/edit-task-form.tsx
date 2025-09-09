@@ -381,12 +381,7 @@ export function EditTaskForm({
     const currentColumns = columns;
     const currentCollaboratorColumns = collaboratorColumns;
     
-    console.log('EditTaskForm onSubmit called with:', {
-      hasCollaboratorQuotes: !!(values.collaboratorQuotes),
-      collaboratorQuotesLength: values.collaboratorQuotes?.length || 0,
-      collaboratorQuotesData: values.collaboratorQuotes,
-      taskToEdit: taskToEdit?.id
-    });
+  // onSubmit invoked
     
     if (!taskToEdit) {
       toast({
@@ -398,18 +393,7 @@ export function EditTaskForm({
     }
     
     // Extract collaborator IDs from collaborator quotes and filter valid quotes
-    console.log('Raw collaborator quotes from form:', values.collaboratorQuotes);
-    
-    (values.collaboratorQuotes || []).forEach((quote, index) => {
-      console.log(`Form quote ${index}:`, JSON.stringify({
-        collaboratorId: quote.collaboratorId,
-        hasCollaboratorId: !!quote.collaboratorId,
-        collaboratorIdTrimmed: quote.collaboratorId?.trim(),
-        sections: quote.sections,
-        sectionsLength: quote.sections ? quote.sections.length : 'null/undefined',
-        sectionsWithItems: quote.sections ? quote.sections.filter(s => s.items && s.items.length > 0) : 'no sections'
-      }, null, 2));
-    });
+  // prepare collaborator quotes
     
     const validCollaboratorQuotes = (values.collaboratorQuotes || []).filter(quote => 
       // Allow saving even without collaboratorId if there's actual cost data
@@ -423,13 +407,7 @@ export function EditTaskForm({
       .map(quote => quote.collaboratorId)
       .filter((id): id is string => !!id && id.trim() !== "");
     
-    console.log('Filtered collaborator quotes:', {
-      originalCount: values.collaboratorQuotes?.length || 0,
-      validCount: validCollaboratorQuotes.length,
-      collaboratorIds,
-      validQuotes: validCollaboratorQuotes,
-      allFormData: values
-    });
+  // filtered collaborator quotes prepared
     
     const filteredBriefLinks = values.briefLink?.filter(link => link.trim() !== "") || [];
     const filteredDriveLinks = values.driveLink?.filter(link => link.trim() !== "") || [];
@@ -444,13 +422,7 @@ export function EditTaskForm({
     };
     delete filteredValues.dates;
     
-    console.log('Submitting edited task with values:', {
-      taskId: taskToEdit.id,
-      collaboratorIds,
-      collaboratorQuotesCount: validCollaboratorQuotes.length,
-      hasColumns: !!currentColumns,
-      hasCollaboratorColumns: !!currentCollaboratorColumns
-    });
+  // submitting edited task
     
     onFormSubmit(filteredValues, currentColumns, currentCollaboratorColumns, taskToEdit.id);
     if (typeof window !== 'undefined') {

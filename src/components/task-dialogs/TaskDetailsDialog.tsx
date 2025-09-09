@@ -416,11 +416,6 @@ export function TaskDetailsDialog({
   
   // Stable update handler to prevent infinite loops in child components
   const stableUpdateTaskHandler = useCallback((updatedTask: Partial<Task> & { id: string }) => {
-    console.log('TaskDetailsDialog: Saving task update', {
-      taskId: updatedTask.id,
-      milestonesCount: updatedTask.milestones?.length
-    });
-    
     const handler = onUpdateTask ?? contextUpdateTask;
     if (handler) {
       handler(updatedTask);
@@ -462,7 +457,6 @@ export function TaskDetailsDialog({
 
   // Ensure T is always reactive to language changes
   const T = useMemo(() => {
-    console.log('Language changed to:', settings.language); // Debug log
     const lang = (i18n as any)[settings.language];
     if (!lang) {
       console.warn('Language not found, falling back to vi');
@@ -819,13 +813,7 @@ export function TaskDetailsDialog({
       if (includeTimeline) {
         // Extract milestones from quote timeline column if available, fallback to task.milestones
         const milestones = quote ? getMilestonesFromQuote(quote) : (task.milestones || []);
-        console.log('🚀 TaskDetailsDialog share creation - timeline milestones:', {
-          hasQuote: !!quote,
-          hasTimelineColumn: quote?.columns?.some(col => col.id === 'timeline'),
-          quoteSections: quote?.sections?.length || 0,
-          milestonesCount: milestones.length,
-          milestones: milestones.map(m => ({ id: m.id, name: m.name, startDate: m.startDate, endDate: m.endDate, color: m.color }))
-        });
+  // timeline snapshot prepared
         snapshots.timeline = {
           kind: 'timeline', schemaVersion: 1,
           task, quote: quote || undefined,

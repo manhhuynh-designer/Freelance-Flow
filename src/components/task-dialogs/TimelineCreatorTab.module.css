@@ -410,6 +410,35 @@
   font-size: 0.6rem; /* Reduced for compact layout */
   color: hsl(var(--muted-foreground));
   font-weight: 400;
+  /* Additional styles for draggable date editor */
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+
+/* Styles for draggable date elements within milestone dates */
+.milestoneDates span[title*="Kéo"] {
+  cursor: ew-resize !important;
+  padding: 2px 4px;
+  border-radius: 2px;
+  transition: background-color 0.15s ease;
+}
+
+.milestoneDates span[title*="Kéo"]:hover {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+.milestoneDates span[title*="Kéo"]:active {
+  background-color: hsl(var(--primary) / 0.1);
+  cursor: grabbing !important;
+}
+
+/* Milestone Date Editor - prevent DndContext conflicts */
+.milestone-date-editor {
+  pointer-events: auto;
+  isolation: isolate; /* Create new stacking context */
+  position: relative;
+  z-index: 10; /* Ensure it's above other elements */
 }
 
 .colorBtn {

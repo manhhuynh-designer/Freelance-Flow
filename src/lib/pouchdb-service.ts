@@ -1,18 +1,34 @@
 import { initialAppData } from '@/lib/data';
 import type { AppData } from '@/lib/types';
-import type PouchDB from 'pouchdb-browser';
 
-let db: PouchDB.Database | null = null;
-let dbPromise: Promise<PouchDB.Database> | null = null;
+// Import PouchDB statically to avoid module conflicts
+let db: any = null;
+let dbPromise: Promise<any> | null = null;
 
-async function getDb(): Promise<PouchDB.Database> {
+async function getDb(): Promise<any> {
   if (db) return db;
   if (dbPromise) return dbPromise;
   
   dbPromise = (async () => {
-    const PouchDBModule = await import('pouchdb-browser');
-    db = new PouchDBModule.default('freelance_flow_data');
-    return db;
+    try {
+      // Use require instead of import to avoid webpack bundling issues
+      const PouchDB = typeof window !== 'undefined' 
+        ? (await import('pouchdb-browser')).default
+        : null;
+      
+      if (!PouchDB) {
+        throw new Error('PouchDB is only available in browser environment');
+      }
+      
+      db = new PouchDB('freelance_flow_data');
+      console.log('✅ PouchDB initialized successfully');
+      return db;
+    } catch (error) {
+      console.error('❌ Failed to initialize PouchDB:', error);
+      // Reset promise so we can retry
+      dbPromise = null;
+      throw error;
+    }
   })();
   return dbPromise;
 }
@@ -24,13 +40,21 @@ export type DocumentID =
   | 'fixedCosts' | 'expenses' | 'aiAnalyses' | 'aiProductivityAnalyses'; // ADDED
 
 // Keep a utility to hard-reset the DB when explicitly requested by the app (not used automatically).
-async function destroyAndRecreateDb(): Promise<PouchDB.Database> {
+async function destroyAndRecreateDb(): Promise<any> {
   console.warn("[DEBUG] Destroying existing DB by explicit request...");
-  const PouchDBModule = await import('pouchdb-browser');
-  const oldDb = new PouchDBModule.default('freelance_flow_data');
+  
+  const PouchDB = typeof window !== 'undefined' 
+    ? (await import('pouchdb-browser')).default
+    : null;
+    
+  if (!PouchDB) {
+    throw new Error('PouchDB is only available in browser environment');
+  }
+  
+  const oldDb = new PouchDB('freelance_flow_data');
   await oldDb.destroy();
   console.log("[DEBUG] DB Destroyed. Recreating...");
-  db = new PouchDBModule.default('freelance_flow_data');
+  db = new PouchDB('freelance_flow_data');
   dbPromise = Promise.resolve(db);
   return db;
 }
