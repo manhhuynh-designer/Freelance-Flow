@@ -313,32 +313,32 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                     const collabArr = (values as any).collaboratorQuotes as any[];
                     // processing collaborator quotes update
                     
-                    // Debug each entry before filtering
-                    // entries debug removed
-                    
-                    // Filter out empty entries (only check for valid sections/items, collaboratorId can be empty)
+                    // Filter out empty entries (only check for valid sections/items)
                     const validCollabEntries = collabArr.filter(ci => 
                         Array.isArray(ci.sections) && 
                         ci.sections.length > 0 &&
                         ci.sections.some((s: any) => Array.isArray(s.items) && s.items.length > 0)
                     );
                     
-                    // valid collaborator entries computed
+                    // Split existing mappings into identified vs draft (empty collaboratorId)
+                    const existingMappings = (targetTask.collaboratorQuotes || []) as Array<{ collaboratorId: string; quoteId: string }>;
+                    const existingIdMappings = existingMappings.filter(m => !!m.collaboratorId && m.collaboratorId.trim() !== '');
+                    const existingDraftMappings = existingMappings.filter(m => !m.collaboratorId || m.collaboratorId.trim() === '');
+
+                    // Desired IDs from form
+                    const desiredIdEntries = validCollabEntries.filter(ci => !!ci.collaboratorId && ci.collaboratorId.trim() !== '');
+                    const desiredDraftEntries = validCollabEntries.filter(ci => !ci.collaboratorId || ci.collaboratorId.trim() === '');
+
+                    // Determine removals for identified collaborators
+                    const existingCollabIds = new Set<string>(existingIdMappings.map(m => m.collaboratorId));
+                    const desiredCollabIds = new Set<string>(desiredIdEntries.map(ci => ci.collaboratorId as string));
+                    const removedCollabIds = Array.from(existingCollabIds).filter(id => !desiredCollabIds.has(id));
                     
-                    // Find which collaborator IDs should be removed (were in form but are now invalid/empty)
-                    const formCollabIds = collabArr.map(ci => ci?.collaboratorId).filter(Boolean);
-                    const validCollabIds = validCollabEntries.map(ci => ci.collaboratorId).filter(Boolean);
-                    const removedCollabIds = formCollabIds.filter(id => !validCollabIds.includes(id));
-                    
-                    // collaborator IDs to remove computed
-                    
-                    // Remove collaborator quotes for collaborators that are no longer valid
+                    // Remove collaborator quotes for collaborators that are no longer present in the form
                     if (removedCollabIds.length > 0 && targetTask.collaboratorQuotes) {
                         const quotesToRemove = targetTask.collaboratorQuotes
                             .filter(mapping => removedCollabIds.includes(mapping.collaboratorId))
                             .map(mapping => mapping.quoteId);
-                        
-                        // collaborator quote IDs to remove computed
                         
                         // Remove from collaboratorQuotes array
                         newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).filter(cq => 
@@ -357,17 +357,45 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                             return { ...t, collaboratorQuotes: updatedMappings, collaboratorIds: updatedCollaboratorIds } as Task;
                         });
                     }
+
+                    // Handle draft removals by count: if fewer draft entries in form than existing draft mappings, remove surplus
+                    const draftDesiredCount = desiredDraftEntries.length;
+                    const draftExistingCount = existingDraftMappings.length;
+                    if (draftExistingCount > draftDesiredCount) {
+                        const surplus = draftExistingCount - draftDesiredCount;
+                        // Remove last N draft mappings and their quotes
+                        const draftsToRemove = existingDraftMappings.slice(-surplus);
+                        const quotesToRemove = draftsToRemove.map(m => m.quoteId);
+                        newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).filter(cq => !quotesToRemove.includes(cq.id));
+                        newPrev.tasks = newPrev.tasks.map((t: Task) => {
+                            if (t.id !== idToEdit) return t;
+                            const updatedMappings = (t.collaboratorQuotes || []).filter(m => !quotesToRemove.includes(m.quoteId));
+                            return { ...t, collaboratorQuotes: updatedMappings } as Task;
+                        });
+                    }
                     
                     if (validCollabEntries.length > 0) {
-                        // processing valid collaborator entries
-                        
+                        // Always use the latest mappings from newPrev after potential removals above
+                        const currentTask = (newPrev.tasks || []).find((t: Task) => t.id === idToEdit) as Task | undefined;
+                        const currentMappings = (currentTask?.collaboratorQuotes || []) as Array<{ collaboratorId: string; quoteId: string }>;
+                        const currentIdMappings = currentMappings.filter(m => !!m.collaboratorId && m.collaboratorId.trim() !== '');
+                        const currentDraftMappings = currentMappings.filter(m => !m.collaboratorId || m.collaboratorId.trim() === '');
+
                         // First, update existing collaborator quotes by mapping
                         newPrev.collaboratorQuotes = (newPrev.collaboratorQuotes || []).map((cq: any) => {
                             // Find mapping entry in task to get collaboratorId associated with this collaborator quote id
-                            const mapping = targetTask.collaboratorQuotes?.find((m: any) => m.quoteId === cq.id) || null;
+                            const mapping = currentMappings.find((m: any) => m.quoteId === cq.id) || null;
                             // If mapping exists, try to find the incoming update by collaboratorId
                             if (mapping) {
-                                const incoming = validCollabEntries.find(ci => ci.collaboratorId === mapping.collaboratorId);
+                                let incoming = null as any;
+                                if (mapping.collaboratorId && mapping.collaboratorId.trim() !== '') {
+                                    // Identified collaborator: match by collaboratorId
+                                    incoming = desiredIdEntries.find(ci => ci.collaboratorId === mapping.collaboratorId) || null;
+                                } else {
+                                    // Draft: pair by order with desired draft entries
+                                    const draftIndex = currentDraftMappings.findIndex(m => m.quoteId === cq.id);
+                                    if (draftIndex >= 0 && desiredDraftEntries[draftIndex]) incoming = desiredDraftEntries[draftIndex];
+                                }
                                 if (incoming) {
                                     const secs = Array.isArray(incoming.sections) ? incoming.sections : cq.sections || [];
                                     const total = secs.reduce((acc: number, s: any) => {
@@ -384,34 +412,42 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                             }
                             return cq;
                         });
-
+                        
                         // Then, create collaborator quotes for any NEW collaborator entries not present in current mappings
-                        const existingMappings = targetTask.collaboratorQuotes || [];
-                        const existingCollabIds = new Set<string>((existingMappings.map((m: any) => m.collaboratorId).filter(Boolean)));
-                        // Treat entries without collaboratorId as drafts; always create a new quote for them
-                        const newEntries = validCollabEntries.filter(ci => !ci?.collaboratorId || !existingCollabIds.has(ci.collaboratorId));
-                        
-                        // new collaborator entries to create computed
-                        
-                        if (newEntries.length > 0) {
-                            newEntries.forEach((entry: any) => {
+                        const existingIdsSet = new Set<string>(currentIdMappings.map(m => m.collaboratorId));
+                        const newIdEntries = desiredIdEntries.filter(ci => !!ci.collaboratorId && !existingIdsSet.has(ci.collaboratorId));
+                        if (newIdEntries.length > 0) {
+                            newIdEntries.forEach((entry: any) => {
                                 const created = createCollaboratorQuoteFrom(entry, collaboratorQuoteColumns);
-                                // created new collaborator quote entity
                                 // Append new collaborator quote entity
                                 newPrev.collaboratorQuotes = [
                                     ...(newPrev.collaboratorQuotes || []),
                                     created
                                 ];
-                                // Always link the quote to the task; when collaboratorId is empty, store empty string as draft mapping
+                                // Link the quote to the task and update collaboratorIds
                                 newPrev.tasks = newPrev.tasks.map((t: Task) => {
                                     if (t.id !== idToEdit) return t;
-                                    const updatedMappings = [...(t.collaboratorQuotes || []), { collaboratorId: (entry.collaboratorId || ''), quoteId: created.id }];
-                                    // Only update collaboratorIds when we have a non-empty collaboratorId
-                                    const updatedCollaboratorIds = (entry.collaboratorId && entry.collaboratorId.trim() !== '')
-                                        ? Array.from(new Set([...(t.collaboratorIds || []), entry.collaboratorId]))
-                                        : (t.collaboratorIds || []);
+                                    const updatedMappings = [...(t.collaboratorQuotes || []), { collaboratorId: entry.collaboratorId, quoteId: created.id }];
+                                    const updatedCollaboratorIds = Array.from(new Set([...(t.collaboratorIds || []), entry.collaboratorId]));
                                     return { ...t, collaboratorQuotes: updatedMappings, collaboratorIds: updatedCollaboratorIds } as Task;
                                 });
+                            });
+                        }
+
+                        // Create draft quotes if there are more desired drafts than existing
+                        const draftToCreate = Math.max(0, desiredDraftEntries.length - currentDraftMappings.length);
+                        for (let i = 0; i < draftToCreate; i++) {
+                            const entry = desiredDraftEntries[currentDraftMappings.length + i];
+                            if (!entry) continue;
+                            const created = createCollaboratorQuoteFrom({ ...entry, collaboratorId: '' }, collaboratorQuoteColumns);
+                            newPrev.collaboratorQuotes = [
+                                ...(newPrev.collaboratorQuotes || []),
+                                created
+                            ];
+                            newPrev.tasks = newPrev.tasks.map((t: Task) => {
+                                if (t.id !== idToEdit) return t;
+                                const updatedMappings = [...(t.collaboratorQuotes || []), { collaboratorId: '', quoteId: created.id }];
+                                return { ...t, collaboratorQuotes: updatedMappings } as Task;
                             });
                         }
                     }
