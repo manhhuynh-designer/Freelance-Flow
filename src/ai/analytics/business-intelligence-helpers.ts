@@ -182,7 +182,7 @@ export function calculateFinancialSummary(appData: AppData, dateRange: { from?: 
   // số tiền lấy amountPaid nếu có, ngược lại lấy full total của CTV quote.
   const collaboratorCosts = tasksAll.reduce((sum, t) => {
     const links = t.collaboratorQuotes || [];
-    const sub = links.reduce((s, link) => {
+    const taskCollabCost = links.reduce((s, link) => {
       const cq = collabQuoteById.get(link.quoteId);
       if (!cq) return s;
       const total = computeCollabQuoteTotal(cq);
@@ -191,87 +191,96 @@ export function calculateFinancialSummary(appData: AppData, dateRange: { from?: 
       const taskPaidDate = t.quoteId ? getMainQuotePaidDate(quoteById.get(t.quoteId)) : undefined;
       const pd = taskPaidDate || t.deadline || t.endDate || t.startDate;
       if (!inRange(pd)) return s;
+      console.log(`💰 Collaborator cost for task "${t.name}": ${amount} (quote ${link.quoteId})`);
       return s + amount;
     }, 0);
-    return sum + sub;
+    return sum + taskCollabCost;
   }, 0);
 
-  // Fixed costs for the selected date range
-    const calculateFixedCosts = () => {
-        if (!appData?.fixedCosts || appData.fixedCosts.length === 0) return 0;
+  // Fixed costs for the selected date range (aligned with monthly overlap logic)
+  const calculateFixedCosts = () => {
+    if (!appData?.fixedCosts || appData.fixedCosts.length === 0) return 0;
 
-        // Use the same date range logic as the component
-        let fromDate: Date, toDate: Date;
-        
-        if (dateRange?.from && dateRange?.to) {
-            fromDate = new Date(dateRange.from);
-            toDate = new Date(dateRange.to);
-        } else {
-            // Default to current month if no date range selected
-            const now = new Date();
-            fromDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const hasRange = !!(dateRange?.from && dateRange?.to);
+    const nowLocal = new Date();
+
+    const result = appData.fixedCosts.reduce((total, cost) => {
+      if (!cost.isActive) return total;
+
+      const costStart = new Date(cost.startDate);
+      const costEnd = cost.endDate ? new Date(cost.endDate) : nowLocal;
+
+      // Helper: compute overlap-inclusive days between two date spans
+      const overlapDays = (fromA: Date, toA: Date, fromB: Date, toB: Date) => {
+        const start = new Date(Math.max(fromA.getTime(), fromB.getTime()));
+        const end = new Date(Math.min(toA.getTime(), toB.getTime()));
+        if (end < start) return 0;
+        return Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      };
+
+      // Frequency handling
+      if (cost.frequency === 'once') {
+        if (hasRange) {
+          const fromDate = new Date(dateRange.from!);
+          const toDate = new Date(dateRange.to!);
+          const costAmount = (costStart >= fromDate && costStart <= toDate) ? cost.amount : 0;
+          if (costAmount > 0) {
+            console.log(`💰 Fixed cost (once) "${cost.name}": ${costAmount}`);
+          }
+          return total + costAmount;
         }
+        // all-time: include if within active window (which it always is by definition of start)
+        console.log(`💰 Fixed cost (once, all-time) "${cost.name}": ${cost.amount}`);
+        return total + cost.amount;
+      }
 
-        // Calculate exact number of days in the selected range (inclusive)
-        const rangeDays = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      // Daily rates
+      const dailyRate = cost.frequency === 'weekly'
+        ? (cost.amount / 7)
+        : cost.frequency === 'monthly'
+          ? (cost.amount / 30.44)
+          : (cost.amount / 365.25); // yearly
 
-        return appData.fixedCosts.reduce((total, cost) => {
-            if (!cost.isActive) return total;
+      if (hasRange) {
+        // Overlap between selected range and cost active window
+        const fromDate = new Date(dateRange.from!);
+        const toDate = new Date(dateRange.to!);
+        const days = overlapDays(fromDate, toDate, costStart, costEnd);
+        if (days <= 0) return total;
+        const costAmount = dailyRate * days;
+        console.log(`💰 Fixed cost (${cost.frequency}) "${cost.name}": ${costAmount} (${days} days at ${dailyRate.toFixed(2)}/day)`);
+        return total + costAmount;
+      }
 
-            const startDate = new Date(cost.startDate);
-            const endDate = cost.endDate ? new Date(cost.endDate) : null;
+      // All-time: sum over the cost's active window
+      const days = overlapDays(costStart, costEnd, costStart, costEnd);
+      if (days <= 0) return total;
+      const costAmount = dailyRate * days;
+      console.log(`💰 Fixed cost (${cost.frequency}, all-time) "${cost.name}": ${costAmount} (${days} days at ${dailyRate.toFixed(2)}/day)`);
+      return total + costAmount;
+    }, 0);
 
-            // Check if cost applies to the selected range
-            if (startDate > toDate || (endDate && endDate < fromDate)) {
-                return total;
-            }
-
-            // Calculate daily rate based on frequency
-            let dailyRate = 0;
-            
-            switch (cost.frequency) {
-                case 'once':
-                    // One-time cost applies if start date is in range
-                    if (startDate >= fromDate && startDate <= toDate) {
-                        return total + cost.amount;
-                    }
-                    return total;
-                case 'weekly':
-                    // Weekly cost = amount per week / 7 days
-                    dailyRate = cost.amount / 7;
-                    break;
-                case 'monthly':
-                    // Monthly cost = amount per month / 30.44 days (average)
-                    dailyRate = cost.amount / 30.44;
-                    break;
-                case 'yearly':
-                    // Yearly cost = amount per year / 365.25 days (average)
-                    dailyRate = cost.amount / 365.25;
-                    break;
-            }
-
-            // Calculate total cost for the selected range: daily rate × number of days
-            const costForRange = dailyRate * rangeDays;
-            return total + costForRange;
-        }, 0);
-    };
+    console.log(`💰 Total fixed costs: ${result}`);
+    return result;
+  };
 
   const fixedCosts = calculateFixedCosts();
   const costs = collaboratorCosts + fixedCosts;
   
-  // This aligns with the new payment status logic
+  // Profit = Revenue - Total Costs (collaborator + fixed)
   const profit = revenue - costs;
 
   console.log('📊 Financial Summary Debug:', {
     tasksConsidered: tasksAll.length,
     completedTasks: tasksAll.filter(t => t.status === 'done').length,
-        revenue,
-  collaboratorCosts,
-        // Sum only paid payments within range. Priority:
-        // payment.date -> collaboratorQuote.paidDate -> mainQuote.paidDate/earliest paid payment -> task dates
-        profit
-    });
+    revenue,
+    collaboratorCosts,
+    fixedCosts,
+    totalCosts: costs,
+    // Sum only paid payments within range. Priority:
+    // payment.date -> collaboratorQuote.paidDate -> mainQuote.paidDate/earliest paid payment -> task dates
+    profit
+  });
 
   return { revenue, costs, profit };
 }
@@ -279,14 +288,19 @@ export function calculateFinancialSummary(appData: AppData, dateRange: { from?: 
  * Phân tích cơ cấu doanh thu theo khách hàng.
  */
 export function calculateRevenueBreakdown(appData: AppData, dateRange: { from?: Date; to?: Date }): { name: string; value: number }[] {
+  // Normalize date-in-range check to match Financial Summary
   const toDate = (d?: string | Date) => (d ? new Date(d) : undefined);
   const inRange = (d?: string | Date) => {
     const dt = toDate(d);
     if (!dt) return false;
     const from = dateRange.from ? new Date(dateRange.from) : undefined;
     const to = dateRange.to ? new Date(dateRange.to) : undefined;
-    if (from && dt < from) return false;
-    if (to && dt > to) return false;
+    if (from) from.setHours(0, 0, 0, 0);
+    if (to) to.setHours(23, 59, 59, 999);
+    const check = new Date(dt);
+    check.setHours(12, 0, 0, 0);
+    if (from && check < from) return false;
+    if (to && check > to) return false;
     return true;
   };
   const getTaskDate = (t: Task) => t.endDate || t.deadline || t.startDate;
@@ -297,7 +311,7 @@ export function calculateRevenueBreakdown(appData: AppData, dateRange: { from?: 
   // Get translation helper
   const T = i18n[appData?.appSettings?.language || 'en'];
 
-  // Group revenue by client for tasks in range (paid amounts from done tasks only)
+  // Group revenue by client for tasks in range (paid amounts only, any non-archived status)
   const computeQuoteTotal = (q2?: Quote): number => {
     if (!q2?.sections) return (q2 as any)?.total || 0;
     const cols = (q2.columns || [{ id: 'description', name: 'Description', type: 'text' }, { id: 'unitPrice', name: 'Unit Price', type: 'number', calculation: { type: 'sum' } }] as QuoteColumn[]);
@@ -326,7 +340,6 @@ export function calculateRevenueBreakdown(appData: AppData, dateRange: { from?: 
   const totalsByClient = new Map<string, number>();
   for (const t of appData.tasks || []) {
     if (t.deletedAt || t.status === 'archived') continue;
-    if (t.status !== 'done') continue;
     const q = t.quoteId ? quoteById.get(t.quoteId) : undefined;
     let amount = 0;
     if (q) {
@@ -334,28 +347,21 @@ export function calculateRevenueBreakdown(appData: AppData, dateRange: { from?: 
       if (Array.isArray(payments) && payments.length > 0) {
         amount = payments.reduce((s, p) => {
           if (!p || p.status !== 'paid') return s;
-          // Enhanced fallback chain for payment date
           const pd = p.date || (q as any).paidDate || t.deadline || t.endDate || t.startDate;
           if (!inRange(pd)) return s;
           const totalComputed = computeQuoteTotal(q);
           const inc = p.amountType === 'percent'
             ? (totalComputed * Math.max(0, Math.min(100, p.percent ?? 0)) / 100)
-            : (p.amount || 0);
+            : Math.max(0, Number(p.amount || 0));
           return s + (inc || 0);
         }, 0);
       } else if (typeof (q as any).amountPaid === 'number') {
-        // Enhanced fallback for direct amountPaid
         const pd = (q as any).paidDate || t.deadline || t.endDate || t.startDate;
-        amount = inRange(pd) ? ((q as any).amountPaid || 0) : 0;
+        amount = inRange(pd) ? Math.max(0, Number((q as any).amountPaid || 0)) : 0;
       } else if ((q as any).status === 'paid') {
-        // If quote marked as paid with no explicit payments, count full total on paidDate (or task date)
         const pd = (q as any).paidDate || t.deadline || t.endDate || t.startDate;
         const total = computeQuoteTotal(q);
         amount = inRange(pd) ? total : 0;
-      } else if (q.total && q.total > 0) {
-        // Fallback: use quote total if no payment info but task is done
-        const pd = t.endDate || t.deadline || t.startDate;
-        amount = inRange(pd) ? (q.total || 0) : 0;
       }
     }
     // Only include if amount determined by a payment/completion falling in range
@@ -893,6 +899,11 @@ export function calculateMonthlyFinancials(appData: AppData, dateRange: { from?:
   const useAllTime = !dateRange.from || !dateRange.to;
 
   const toDate = (d?: string | Date) => (d ? new Date(d) : undefined);
+  // Normalize date range like Financial Summary (start-of-day/end-of-day)
+  const normFrom = dateRange.from ? new Date(dateRange.from) : undefined;
+  const normTo = dateRange.to ? new Date(dateRange.to) : undefined;
+  if (normFrom) normFrom.setHours(0, 0, 0, 0);
+  if (normTo) normTo.setHours(23, 59, 59, 999);
   
   const tasksAll = (appData.tasks || []).filter(t => !t?.deletedAt && t?.status !== 'archived');
   const quoteById = new Map<string, Quote>((appData.quotes || []).map(q => [q.id, q]));
@@ -907,23 +918,53 @@ export function calculateMonthlyFinancials(appData: AppData, dateRange: { from?:
     }
   };
 
+  // Helper to compute quote total (rowFormula-aware), mirroring summary
+  const calcRowVal = (item: any, column: QuoteColumn, allCols: QuoteColumn[]): number => {
+    try {
+      if ((column as any).rowFormula) {
+        const rowVals: Record<string, number> = {};
+        allCols.forEach(c => {
+          if (c.type === 'number' && c.id !== column.id) {
+            const val = c.id === 'unitPrice' ? Number(item.unitPrice) || 0 : Number(item.customFields?.[c.id]) || 0;
+            rowVals[c.id] = val;
+          }
+        });
+        let expr = (column as any).rowFormula as string;
+        Object.entries(rowVals).forEach(([cid, val]) => { expr = expr.replaceAll(cid, String(val)); });
+        // eslint-disable-next-line no-eval
+        const r = eval(expr);
+        return !isNaN(r) ? Number(r) : 0;
+      }
+      if (column.id === 'unitPrice') return Number(item.unitPrice) || 0;
+      return Number(item.customFields?.[column.id]) || 0;
+    } catch { return 0; }
+  };
+  const computeQuoteTotal = (q?: Quote): number => {
+    if (!q?.sections) return (q as any)?.total || 0;
+    const cols = (q.columns || [{ id: 'description', name: 'Description', type: 'text' }, { id: 'unitPrice', name: 'Unit Price', type: 'number', calculation: { type: 'sum' } }] as QuoteColumn[]);
+    const unitCol = cols.find(c => c.id === 'unitPrice');
+    if (!unitCol) return (q as any)?.total || 0;
+    const computed = q.sections.reduce((acc, sec) => acc + (sec.items?.reduce((ia, it) => ia + calcRowVal(it, unitCol, cols), 0) || 0), 0);
+    return computed > 0 ? computed : ((q as any)?.total || 0);
+  };
+
   // 1. Process Revenue (align with Financial Summary: include PAID payments from any non-archived task)
   tasksAll.forEach(t => {
     const q = t.quoteId ? quoteById.get(t.quoteId) : undefined;
     if (!q) return;
 
     const payments = (q as any).payments as any[] | undefined;
-    if (Array.isArray(payments) && payments.length > 0) {
+  if (Array.isArray(payments) && payments.length > 0) {
       payments.forEach(p => {
         if (p && p.status === 'paid') {
           // Fallback chain: payment date -> quote paid date -> task deadline -> task end date -> task start date
           const paymentDate = toDate(p.date || (q as any).paidDate || t.deadline || t.endDate || t.startDate);
-          if (paymentDate && (useAllTime || (dateRange.from && dateRange.to && paymentDate >= dateRange.from && paymentDate <= dateRange.to))) {
+      if (paymentDate && (useAllTime || (normFrom && normTo && paymentDate >= normFrom && paymentDate <= normTo))) {
             const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
             ensureMonth(monthKey);
-            const total = q.total || 0; // fallback to total if not calculated.
+            const total = computeQuoteTotal(q);
             const amount = p.amountType === 'percent'
-              ? (total * (p.percent ?? 0) / 100)
+              ? (total * Math.max(0, Math.min(100, p.percent ?? 0)) / 100)
               : (p.amount || 0);
             monthlyMap.get(monthKey)!.revenue += amount;
           }
@@ -932,7 +973,7 @@ export function calculateMonthlyFinancials(appData: AppData, dateRange: { from?:
     } else if (typeof (q as any).amountPaid === 'number') {
       // Handle quotes with direct amountPaid (fallback even if no paidDate)
       const paymentDate = toDate((q as any).paidDate || t.deadline || t.endDate || t.startDate);
-      if (paymentDate && (useAllTime || (dateRange.from && dateRange.to && paymentDate >= dateRange.from && paymentDate <= dateRange.to))) {
+    if (paymentDate && (useAllTime || (normFrom && normTo && paymentDate >= normFrom && paymentDate <= normTo))) {
         const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
         ensureMonth(monthKey);
         monthlyMap.get(monthKey)!.revenue += (q as any).amountPaid;
@@ -949,9 +990,9 @@ export function calculateMonthlyFinancials(appData: AppData, dateRange: { from?:
       if (!cq) return;
 
       const mainQuotePaidDate = t.quoteId ? getMainQuotePaidDate(quoteById.get(t.quoteId)) : undefined;
-      const paymentDate = toDate(mainQuotePaidDate || t.deadline || t.endDate || t.startDate);
+  const paymentDate = toDate(mainQuotePaidDate || t.deadline || t.endDate || t.startDate);
       if (!paymentDate) return;
-      if (useAllTime || (dateRange.from && dateRange.to && paymentDate >= dateRange.from && paymentDate <= dateRange.to)) {
+  if (useAllTime || (normFrom && normTo && paymentDate >= normFrom && paymentDate <= normTo)) {
         const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
         ensureMonth(monthKey);
         const amount = typeof (cq as any).amountPaid === 'number' ? (cq as any).amountPaid : ((cq as any).total ?? 0);
@@ -979,66 +1020,100 @@ export function calculateMonthlyFinancials(appData: AppData, dateRange: { from?:
       while (current <= end) {
         const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
         ensureMonth(monthKey);
-        
         const daysInMonth = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate();
+        const monthStart = new Date(current.getFullYear(), current.getMonth(), 1);
+        monthStart.setHours(0, 0, 0, 0);
+        const monthEnd = new Date(current.getFullYear(), current.getMonth(), daysInMonth);
+        monthEnd.setHours(23, 59, 59, 999);
 
         (appData.fixedCosts || []).forEach(cost => {
-            if (cost.isActive) {
-                const costStart = new Date(cost.startDate);
-                const costEnd = cost.endDate ? new Date(cost.endDate) : end;
-                if(costStart <= end && costEnd && costEnd >= start) {
-                    let monthlyCost = 0;
-                    switch(cost.frequency) {
-                        case 'once':
-                            if (costStart.getFullYear() === current.getFullYear() && costStart.getMonth() === current.getMonth()) {
-                                monthlyCost = cost.amount;
-                            }
-                            break;
-                        case 'monthly':
-                            monthlyCost = cost.amount;
-                            break;
-                        case 'weekly':
-                            monthlyCost = (cost.amount / 7) * daysInMonth;
-                            break;
-                        case 'yearly':
-                            monthlyCost = cost.amount / 12;
-                            break;
-                    }
-                    monthlyMap.get(monthKey)!.costs += monthlyCost;
-                }
+          if (!cost.isActive) return;
+          const costStart = new Date(cost.startDate);
+          const costEnd = cost.endDate ? new Date(cost.endDate) : end;
+          // Check any overlap with selected range at all
+          if (costStart > end || (costEnd && costEnd < start)) return;
+
+          // Compute overlap between this month and the selected period and the cost active window
+          const overlapStart = new Date(Math.max(monthStart.getTime(), start.getTime(), costStart.getTime()));
+          const overlapEnd = new Date(Math.min(monthEnd.getTime(), end.getTime(), (costEnd ? costEnd.getTime() : end.getTime())));
+          if (overlapEnd < overlapStart) return;
+
+          let monthlyCost = 0;
+          switch (cost.frequency) {
+            case 'once': {
+              // Count only if the one-time date falls inside both the selected range and this month
+              if (costStart >= overlapStart && costStart <= overlapEnd) {
+                monthlyCost = cost.amount;
+              }
+              break;
             }
+            case 'weekly': {
+              const overlapDays = Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+              const dailyRate = cost.amount / 7;
+              monthlyCost = dailyRate * overlapDays;
+              break;
+            }
+            case 'monthly': {
+              const overlapDays = Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+              const dailyRate = cost.amount / 30.44;
+              monthlyCost = dailyRate * overlapDays;
+              break;
+            }
+            case 'yearly': {
+              const overlapDays = Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+              const dailyRate = cost.amount / 365.25;
+              monthlyCost = dailyRate * overlapDays;
+              break;
+            }
+          }
+          if (monthlyCost > 0) {
+            monthlyMap.get(monthKey)!.costs += monthlyCost;
+          }
         });
 
         current.setMonth(current.getMonth() + 1);
       }
     } else {
-      // All-time: iterate per fixed cost active period months
+      // All-time: iterate months but use exact overlap with each cost's active window
       (appData.fixedCosts || []).forEach(cost => {
         if (!cost.isActive) return;
-        const startDate = new Date(cost.startDate);
-        const endDate = cost.endDate ? new Date(cost.endDate) : new Date();
-        const iter = new Date(startDate);
+        const costStart = new Date(cost.startDate);
+        const costEnd = cost.endDate ? new Date(cost.endDate) : new Date();
+        const iter = new Date(costStart);
         iter.setDate(1);
-        while (iter <= endDate) {
-          const daysInMonth = new Date(iter.getFullYear(), iter.getMonth() + 1, 0).getDate();
-          let monthlyCost = 0;
-          switch (cost.frequency) {
-            case 'once':
-              if (startDate.getFullYear() === iter.getFullYear() && startDate.getMonth() === iter.getMonth()) {
-                monthlyCost = cost.amount;
+        while (iter <= costEnd) {
+          const year = iter.getFullYear();
+          const month = iter.getMonth();
+          const monthStart = new Date(year, month, 1);
+          const monthEnd = new Date(year, month + 1, 0);
+          const overlapStart = new Date(Math.max(monthStart.getTime(), costStart.getTime()));
+          const overlapEnd = new Date(Math.min(monthEnd.getTime(), costEnd.getTime()));
+          if (overlapEnd >= overlapStart) {
+            let monthlyCost = 0;
+            switch (cost.frequency) {
+              case 'once':
+                if (costStart.getFullYear() === year && costStart.getMonth() === month) {
+                  monthlyCost = cost.amount;
+                }
+                break;
+              case 'weekly': {
+                const days = Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                monthlyCost = (cost.amount / 7) * days;
+                break;
               }
-              break;
-            case 'monthly':
-              monthlyCost = cost.amount;
-              break;
-            case 'weekly':
-              monthlyCost = (cost.amount / 7) * daysInMonth;
-              break;
-            case 'yearly':
-              monthlyCost = cost.amount / 12;
-              break;
+              case 'monthly': {
+                const days = Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                monthlyCost = (cost.amount / 30.44) * days;
+                break;
+              }
+              case 'yearly': {
+                const days = Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                monthlyCost = (cost.amount / 365.25) * days;
+                break;
+              }
+            }
+            addMonthlyCost(year, month, monthlyCost);
           }
-          addMonthlyCost(iter.getFullYear(), iter.getMonth(), monthlyCost);
           iter.setMonth(iter.getMonth() + 1);
         }
       });

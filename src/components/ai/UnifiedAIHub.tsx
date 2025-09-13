@@ -94,13 +94,13 @@ export default function UnifiedAIHub() {
             </TabsContent>
 
             <TabsContent value="predictions" className="h-full overflow-y-auto m-0 p-6">
-              <div className="max-w-7xl mx-auto">
+              <div className="w-full">
                 <PredictionDashboard />
               </div>
             </TabsContent>
 
             <TabsContent value="business" className="h-full overflow-y-auto m-0 p-6">
-              <div className="max-w-7xl mx-auto">
+              <div className="w-full">
                 <BusinessDashboard />
               </div>
             </TabsContent>

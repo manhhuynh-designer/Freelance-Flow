@@ -86,6 +86,7 @@ export function FinancialSummaryCard({ summary, currency = 'USD', locale, taskDe
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'revenue' | 'costs' | 'future-revenue' | 'lost-revenue' | 'fixed-costs' | null>(null);
+  const rangeCtx = null; // Remove analytics range context
   const [period, setPeriod] = useState<Period>('all');
   // Anchors for period selection
   const now = new Date();

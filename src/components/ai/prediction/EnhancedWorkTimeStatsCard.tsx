@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDashboard } from '../../../contexts/dashboard-context';
-import { TimeRangePicker } from './TimeRangePicker';
+import { PeriodRangeSelector } from './PeriodRangeSelector';
 import { ProductivityChart } from './ProductivityChart';
 import { buildWorkTimeStats } from '@/lib/helpers/time-analyzer';
 import { DateRange } from 'react-day-picker';
@@ -51,7 +51,7 @@ export function EnhancedWorkTimeStatsCard({ onStats, externalRange, setExternalR
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <CardTitle>{T?.productivityAnalysis || 'Productivity Analysis'}</CardTitle>
-            <TimeRangePicker date={dateRange} setDate={setDateRange} />
+            <PeriodRangeSelector date={dateRange} setDate={setDateRange} />
         </div>
       </CardHeader>
       <CardContent className="space-y-6">

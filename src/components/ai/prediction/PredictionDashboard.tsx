@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Brain, AlertTriangle, Loader2, Settings } from 'lucide-react';
+import { Brain, AlertTriangle, Loader2, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TaskDetailsDialog } from '@/components/task-dialogs/TaskDetailsDialog';
 import { TaskEditDialog } from '@/components/task-dialogs/TaskEditDialog';
@@ -339,7 +339,7 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
 
   return (
     <div className={cn("space-y-6", className)}>
-      {/* Minimal header: only Analyze button */}
+      {/* Header with Analyze button and toggle panel button */}
       <div className="flex justify-end">
         <div className="flex items-center gap-3">
           <Button
@@ -359,6 +359,21 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
               </>
             )}
           </Button>
+          {(aiInsights.length > 0 || isLoading) && (
+            <Button
+              onClick={() => setShowAnalysisPanel(!showAnalysisPanel)}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 transition-all duration-300 hover:scale-105"
+              title={showAnalysisPanel ? "Hide AI Panel" : "Show AI Panel"}
+            >
+              {showAnalysisPanel ? (
+                <ChevronRight className="w-4 h-4 transition-transform duration-300" />
+              ) : (
+                <ChevronLeft className="w-4 h-4 transition-transform duration-300" />
+              )}
+            </Button>
+          )}
           {!hasApiKeyInSettings && ( // Use hasApiKeyInSettings
             <Button variant="outline" size="sm" asChild>
               <a href="/dashboard/settings" className="flex items-center gap-1"><Settings className="w-3 h-3" />Settings</a>
@@ -387,7 +402,7 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
       )}>
         <div className={cn(
           "space-y-6 transition-all duration-500",
-          showAnalysisPanel ? "lg:w-[60%]" : "lg:w-[70%] xl:w-[65%] mx-auto"
+          showAnalysisPanel ? "lg:w-[66.67%]" : "lg:w-[70%] xl:w-[65%] mx-auto"
         )}>
           <EnhancedWorkTimeStatsCard 
             onStats={setProductivityStats} 
@@ -402,7 +417,8 @@ Return ONLY a valid JSON array (3-5) of StructuredInsight objects: [{"category":
           />
         </div>
         <div className={cn(
-          "space-y-6 transition-all duration-500 origin-right",
+          "space-y-6 transition-all duration-500 ease-in-out transform origin-right",
+          showAnalysisPanel ? "lg:w-[33.33%] opacity-100 translate-x-0 scale-100" : "lg:w-0 opacity-0 -translate-x-4 scale-95 pointer-events-none overflow-hidden"
         )}>
           {(isLoading || aiInsights.length > 0) && (
             <Card className="transition-opacity duration-500">

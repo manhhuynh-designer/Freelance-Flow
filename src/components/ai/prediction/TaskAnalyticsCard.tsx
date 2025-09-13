@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { TimeRangePicker } from './TimeRangePicker';
+import { PeriodRangeSelector } from './PeriodRangeSelector';
 import { PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useDashboard } from '../../../contexts/dashboard-context';
 import * as H from './task-analytics.helpers';
@@ -125,29 +125,31 @@ export function TaskAnalyticsCard({ onAnalyticsUpdate, dateRange, setDateRange }
     <div className="space-y-4">
           <div className="flex items-start justify-between flex-wrap gap-3">
             <CardTitle className="mr-4">{T?.taskAnalytics || 'Task Analytics'}</CardTitle>
-            <div className="flex flex-wrap gap-3 w-full md:w-auto">
-              <div className="flex-shrink-0">
-                <TimeRangePicker date={dateRange} setDate={setDateRange} />
-              </div>
-              <Select value={groupBy} onValueChange={v => setGroupBy(v as H.GroupBy)}>
-                <SelectTrigger className="h-9 px-3 w-[130px] md:w-[140px] text-sm"><SelectValue placeholder={T?.groupLabel || 'Group'} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="status">{T?.groupStatus || 'Status'}</SelectItem>
-                  <SelectItem value="client">{T?.groupClient || 'Client'}</SelectItem>
-                  <SelectItem value="category">{T?.groupCategory || 'Category'}</SelectItem>
-                </SelectContent>
-              </Select>
-  <Select value={comparison} onValueChange={v => setComparison(v as ComparisonMode)}>
-    <SelectTrigger className="h-9 px-3 w-[150px] md:w-[160px] text-sm"><SelectValue placeholder={T?.comparisonLabel || 'Comparison'} /></SelectTrigger>
-                <SelectContent>
-          <SelectItem value="none">{T?.noComparison || 'No Comparison'}</SelectItem>
-          <SelectItem value="previousPeriod">{T?.previousPeriod || 'Previous Period'}</SelectItem>
-      <SelectItem value="previousWeek">{T?.previousWeek || 'Previous Week'}</SelectItem>
-      <SelectItem value="previousMonth">{T?.previousMonth || 'Previous Month'}</SelectItem>
-      <SelectItem value="previousYear">{T?.previousYear || 'Previous Year'}</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex-shrink-0">
+              <PeriodRangeSelector date={dateRange} setDate={setDateRange} />
             </div>
+          </div>
+          
+          {/* Separate row for Group and Comparison filters */}
+          <div className="flex flex-wrap gap-3">
+            <Select value={groupBy} onValueChange={v => setGroupBy(v as H.GroupBy)}>
+              <SelectTrigger className="h-9 px-3 w-[130px] md:w-[140px] text-sm border border-border/50 shadow-none"><SelectValue placeholder={T?.groupLabel || 'Group'} /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="status">{T?.groupStatus || 'Status'}</SelectItem>
+                <SelectItem value="client">{T?.groupClient || 'Client'}</SelectItem>
+                <SelectItem value="category">{T?.groupCategory || 'Category'}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={comparison} onValueChange={v => setComparison(v as ComparisonMode)}>
+              <SelectTrigger className="h-9 px-3 w-[150px] md:w-[160px] text-sm border border-border/50 shadow-none"><SelectValue placeholder={T?.comparisonLabel || 'Comparison'} /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{T?.noComparison || 'No Comparison'}</SelectItem>
+                <SelectItem value="previousPeriod">{T?.previousPeriod || 'Previous Period'}</SelectItem>
+                <SelectItem value="previousWeek">{T?.previousWeek || 'Previous Week'}</SelectItem>
+                <SelectItem value="previousMonth">{T?.previousMonth || 'Previous Month'}</SelectItem>
+                <SelectItem value="previousYear">{T?.previousYear || 'Previous Year'}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </CardHeader>

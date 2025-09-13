@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, Brain, Settings, AlertTriangle } from 'lucide-react';
+import { Loader2, Brain, Settings, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { PouchDBService } from '@/lib/pouchdb-service';
 import { cn } from '@/lib/utils';
@@ -261,6 +261,21 @@ export function BusinessDashboard() {
               </>
             )}
           </Button>
+          {(analysis || isAiLoading) && (
+            <Button
+              onClick={() => setIsAnalysisPanelVisible(!isAnalysisPanelVisible)}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 transition-all duration-300 hover:scale-105"
+              title={isAnalysisPanelVisible ? "Hide AI Panel" : "Show AI Panel"}
+            >
+              {isAnalysisPanelVisible ? (
+                <ChevronRight className="w-4 h-4 transition-transform duration-300" />
+              ) : (
+                <ChevronLeft className="w-4 h-4 transition-transform duration-300" />
+              )}
+            </Button>
+          )}
           {!hasApiKeyInSettings && (
             <Button variant="outline" size="sm" asChild>
               <a href="/dashboard/settings" className="flex items-center gap-1"><Settings className="w-3 h-3" />Settings</a>
@@ -282,8 +297,8 @@ export function BusinessDashboard() {
         </Alert>
       )}
       
-      <div className={cn("flex flex-col lg:flex-row gap-6 items-start transition-all duration-500", isAnalysisPanelVisible ? "" : "lg:justify-center")}>
-        <div className={cn("space-y-6 transition-all duration-500", isAnalysisPanelVisible ? "lg:w-[60%]" : "lg:w-[70%] xl:w-[65%] mx-auto")}>
+      <div className={cn("flex flex-col lg:flex-row gap-6 items-start transition-all duration-500")}>
+        <div className={cn("space-y-6 transition-all duration-500", isAnalysisPanelVisible ? "lg:w-[66.67%]" : "lg:w-[100%]")}>
           <FinancialSummaryCard 
             summary={summary}
             currency={appData?.appSettings?.currency || 'USD'}
@@ -299,12 +314,11 @@ export function BusinessDashboard() {
           />
         </div>
         
-        <div className={cn("space-y-6 transition-all duration-500 origin-right", isAnalysisPanelVisible ? "lg:w-[40%] opacity-100 translate-x-0" : "lg:w-0 opacity-0 -translate-x-4 pointer-events-none overflow-hidden")}>
+        <div className={cn("space-y-6 transition-all duration-500 ease-in-out transform", isAnalysisPanelVisible ? "lg:w-[33.33%] opacity-100 translate-x-0 scale-100" : "lg:w-0 opacity-0 -translate-x-4 scale-95 pointer-events-none overflow-hidden")}>
           {(isAiLoading || analysis) && (
            <AIBusinessAnalysisCard 
                 analysis={analysis}
                 isLoading={isAiLoading}
-                // onGenerate={handleAiAnalysis} // Remove this, as the button is now outside
                 analysisTimestamp={analysisTimestamp}
            />
           )}
