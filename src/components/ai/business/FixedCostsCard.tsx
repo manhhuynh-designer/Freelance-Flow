@@ -336,6 +336,99 @@ export function FixedCostsCard({ dateRange, currency = 'USD', locale, embedded =
                 </CardContent>
               </Card>
 
+              {/* Summary of All Fixed Costs */}
+              {fixedCosts.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      Fixed Costs Summary
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Total Per Day</p>
+                        <p className="text-lg font-bold text-blue-800 dark:text-blue-200">
+                          {(() => {
+                            const totalDaily = fixedCosts.filter((cost) => cost.isActive).reduce((total: number, cost: FixedCost) => {
+                              let dailyRate = 0;
+                              switch (cost.frequency) {
+                                case 'once':
+                                  dailyRate = 0; // One-time costs don't contribute to daily recurring
+                                  break;
+                                case 'weekly':
+                                  dailyRate = cost.amount / 7;
+                                  break;
+                                case 'monthly':
+                                  dailyRate = cost.amount / 30.44;
+                                  break;
+                                case 'yearly':
+                                  dailyRate = cost.amount / 365.25;
+                                  break;
+                              }
+                              return total + dailyRate;
+                            }, 0);
+                            return formatCurrency(totalDaily);
+                          })()}
+                        </p>
+                      </div>
+                      <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                        <p className="text-xs text-green-600 dark:text-green-400 mb-1">Total Per Month</p>
+                        <p className="text-lg font-bold text-green-800 dark:text-green-200">
+                          {(() => {
+                            const totalMonthly = fixedCosts.filter((cost) => cost.isActive).reduce((total: number, cost: FixedCost) => {
+                              let monthlyRate = 0;
+                              switch (cost.frequency) {
+                                case 'once':
+                                  monthlyRate = 0; // One-time costs don't contribute to monthly recurring
+                                  break;
+                                case 'weekly':
+                                  monthlyRate = cost.amount * 4.33;
+                                  break;
+                                case 'monthly':
+                                  monthlyRate = cost.amount;
+                                  break;
+                                case 'yearly':
+                                  monthlyRate = cost.amount / 12;
+                                  break;
+                              }
+                              return total + monthlyRate;
+                            }, 0);
+                            return formatCurrency(totalMonthly);
+                          })()}
+                        </p>
+                      </div>
+                      <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                        <p className="text-xs text-purple-600 dark:text-purple-400 mb-1">Total Per Year</p>
+                        <p className="text-lg font-bold text-purple-800 dark:text-purple-200">
+                          {(() => {
+                            const totalYearly = fixedCosts.filter((cost) => cost.isActive).reduce((total: number, cost: FixedCost) => {
+                              let yearlyRate = 0;
+                              switch (cost.frequency) {
+                                case 'once':
+                                  yearlyRate = 0; // One-time costs don't contribute to yearly recurring
+                                  break;
+                                case 'weekly':
+                                  yearlyRate = cost.amount * 52.14;
+                                  break;
+                                case 'monthly':
+                                  yearlyRate = cost.amount * 12;
+                                  break;
+                                case 'yearly':
+                                  yearlyRate = cost.amount;
+                                  break;
+                              }
+                              return total + yearlyRate;
+                            }, 0);
+                            return formatCurrency(totalYearly);
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Fixed Costs Table */}
               {fixedCosts.length > 0 && (
                 <Card>
