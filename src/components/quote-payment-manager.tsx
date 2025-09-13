@@ -54,8 +54,9 @@ export function QuotePaymentManager({ quote, settings, totalFromPrice, onUpdateQ
     return quote.payments;
   }, [quote?.payments]);
   const amountPaid = useMemo(() => {
+    // Only count payments marked as 'paid'
     return payments.reduce((s, p) => {
-      if (!p) return s;
+      if (!p || p.status !== 'paid') return s;
       if (p.amountType === 'percent') {
         const pct = Math.max(0, Math.min(100, p.percent ?? 0));
         return s + (grandTotal * pct / 100);
@@ -135,8 +136,9 @@ export function QuotePaymentManager({ quote, settings, totalFromPrice, onUpdateQ
     if (!quote || !onUpdateQuote) return;
     const list = [...(quote.payments || [])];
     list.splice(index, 1);
+    // Recompute paid total considering only entries with status 'paid'
     const newAmountPaid = list.reduce((s, p) => {
-      if (!p) return s;
+      if (!p || p.status !== 'paid') return s;
       if (p.amountType === 'percent') {
         const pct = Math.max(0, Math.min(100, p.percent ?? 0));
         return s + (grandTotal * pct / 100);
