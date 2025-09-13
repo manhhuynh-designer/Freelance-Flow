@@ -27,32 +27,10 @@ export async function GET(req: NextRequest) {
   console.log(`[Share Resolve] Found map for ${id}:`, { blobKey: map.blobKey, status: map.status });
 
   try {
-    // Try load via stored blobKey (pathname or full URL)
-    let blob: any = null;
-    let lastError: Error | null = null;
-    
-    try {
-      console.log(`[Share Resolve] Trying to fetch blob: ${map.blobKey}`);
-      blob = await fetchJson(map.blobKey);
-    } catch (e: any) {
-      lastError = e;
-      console.warn(`[Share Resolve] First attempt failed for ${map.blobKey}:`, e.message);
-      
-      // Fallback: if blobKey was full URL and failed due to host mismatch, try interpreting as pathname
-      if (map.blobKey?.startsWith('http')) {
-        try {
-          const pathname = new URL(map.blobKey).pathname;
-          console.log(`[Share Resolve] Trying fallback with pathname: ${pathname}`);
-          blob = await fetchJson(pathname);
-          console.log(`[Share Resolve] Fallback successful`);
-        } catch (e2: any) {
-          console.error(`[Share Resolve] Fallback also failed:`, e2.message);
-          throw lastError; // throw original error
-        }
-      } else {
-        throw lastError;
-      }
-    }
+  // Always prioritize the original stored blobKey as-is (no fallback rewrite)
+  // blobKey may be a pathname or a full URL; fetchJson handles both but we won't rewrite on failures
+  console.log(`[Share Resolve] Fetching blob (original key): ${map.blobKey}`);
+  const blob: any = await fetchJson(map.blobKey);
     
     if (!blob) {
       console.error(`[Share Resolve] Blob is null or empty`);

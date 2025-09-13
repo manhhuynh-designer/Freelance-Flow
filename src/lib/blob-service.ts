@@ -27,13 +27,20 @@ export async function putJsonBlob(
 }
 
 export async function deleteBlob(pathname: string, opts?: { token?: string }) {
-  // pathname can be either full URL or path
-  let url = pathname;
-  if (!pathname.startsWith('http')) {
-    const baseUrl = process.env.VERCEL_BLOB_STORE_URL || 'https://blob.vercel-storage.com';
-    url = `${baseUrl}${pathname}`;
+  // Try raw pathname first
+  try {
+    await del(pathname, { token: opts?.token } as any);
+    return;
+  } catch (e) {
+    // Fallback to absolute URL if pathname form is not accepted
+    try {
+      const baseUrl = process.env.VERCEL_BLOB_STORE_URL || 'https://blob.vercel-storage.com';
+      const url = pathname.startsWith('http') ? pathname : `${baseUrl}${pathname}`;
+      await del(url, { token: opts?.token } as any);
+    } catch (e2) {
+      throw e2;
+    }
   }
-  await del(url, { token: opts?.token } as any);
 }
 
 export async function fetchJson<T = unknown>(blobKeyOrUrl: string, opts?: { token?: string; requireAuth?: boolean }): Promise<T> {
@@ -130,8 +137,8 @@ export async function fetchJson<T = unknown>(blobKeyOrUrl: string, opts?: { toke
 
 export async function loadUserIndex(prefix: string, opts?: { token?: string }): Promise<ShareIndex> {
   try {
-    // Don't pass token for reading public blobs
-    const index = await fetchJson<ShareIndex>(`${prefix}/index.json`);
+  // Don't pass token for reading public blobs; add cache buster to avoid CDN staleness
+  const index = await fetchJson<ShareIndex>(`${prefix}/index.json?ts=${Date.now()}`);
     return ShareIndexSchema.parse(index);
   } catch {
     return { items: [] };
@@ -140,6 +147,37 @@ export async function loadUserIndex(prefix: string, opts?: { token?: string }): 
 
 export async function saveUserIndex(prefix: string, index: ShareIndex, opts?: { token?: string }) {
   await putJsonBlob(`${prefix}/index.json`, index, { token: opts?.token, allowOverwrite: true });
+}
+
+export function resolveBlobUrl(blobKeyOrUrl: string): string {
+  if (blobKeyOrUrl.startsWith('http')) return blobKeyOrUrl;
+  const baseUrl = process.env.VERCEL_BLOB_STORE_URL || 'https://blob.vercel-storage.com';
+  const cleanPath = blobKeyOrUrl.startsWith('/') ? blobKeyOrUrl : '/' + blobKeyOrUrl;
+  return `${baseUrl}${cleanPath}`;
+}
+
+export async function checkBlobExists(blobKeyOrUrl: string): Promise<boolean> {
+  const url = resolveBlobUrl(blobKeyOrUrl);
+  try {
+    const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}ts=${Date.now()}`, {
+      method: 'HEAD',
+      cache: 'no-store',
+      headers: { 'cache-control': 'no-store', 'user-agent': 'FreelanceFlow/1.0' },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (res.status === 200) return true;
+    if (res.status === 404) return false;
+    // Fallback to GET for providers not supporting HEAD fully
+    const getRes = await fetch(`${url}${url.includes('?') ? '&' : '?'}ts=${Date.now()}`, {
+      method: 'GET',
+      cache: 'no-store',
+      headers: { 'cache-control': 'no-store', 'user-agent': 'FreelanceFlow/1.0' },
+      signal: AbortSignal.timeout(10000),
+    });
+    return getRes.ok;
+  } catch {
+    return false;
+  }
 }
 
 export function buildSharePaths(userBucket: string, id: string) {
@@ -171,15 +209,25 @@ export async function saveGlobalIdMap(
   entry: { blobKey: string; userBucket?: string; status?: 'active'|'revoked'; expiresAt?: string|null },
   opts?: { token?: string }
 ) {
-  await putJsonBlob(`/shares/_idmap/${id}.json`, entry, { token: opts?.token, allowOverwrite: true });
+  // Merge with existing to preserve userBucket and other fields unless explicitly overridden
+  let merged = entry;
+  try {
+    const existing = await loadGlobalIdMap(id);
+    if (existing) {
+      merged = { ...existing, ...entry };
+    }
+  } catch {
+    // ignore
+  }
+  await putJsonBlob(`/shares/_idmap/${id}.json`, merged, { token: opts?.token, allowOverwrite: true });
 }
 
 export type IdMapEntry = { blobKey: string; userBucket?: string; status?: 'active'|'revoked'; expiresAt?: string|null };
 
 export async function loadGlobalIdMap(id: string, opts?: { token?: string }): Promise<IdMapEntry | null> {
   try {
-    // Don't pass token for reading public blobs
-    const result = await fetchJson<IdMapEntry>(`/shares/_idmap/${id}.json`);
+  // Don't pass token for reading public blobs; add cache buster
+  const result = await fetchJson<IdMapEntry>(`/shares/_idmap/${id}.json?ts=${Date.now()}`);
     console.log(`Successfully loaded global ID map for ${id}:`, result);
     return result;
   } catch (error: any) {

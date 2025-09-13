@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
 import authOptions from '@/lib/nextauth';
 import { MAX_SHARE_PAYLOAD_BYTES, ShareBlobSchema, ShareRecord, ShareSnapshotSchema } from '@/types/share';
 import { buildSharePaths, loadUserIndex, putJsonBlob, saveGlobalIdMap, saveUserIndex, fetchJson } from '@/lib/blob-service';

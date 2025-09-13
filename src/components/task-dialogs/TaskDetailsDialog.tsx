@@ -1462,161 +1462,164 @@ export function TaskDetailsDialog({
             />
           )}
         </div>
-        {/* Actions (Delete/Duplicate/Edit) - always visible below main content */}
-        <div className="flex justify-between items-center pt-4 border-t mt-6">
+        {/* Unified actions row: Share (left) | Edit/Duplicate/Delete (right) */}
+        <div className="flex items-center justify-between pt-4 border-t mt-6">
+          {/* Left: Share */}
           <div className="flex items-center gap-2">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" className="bg-destructive/10 hover:bg-destructive/20 text-destructive border-2 border-destructive">
-                <Trash2 className="w-4 h-4 mr-2" />
-                {T.deleteTask}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{T.moveToTrash}?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {T.moveToTrashDescription}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{T.cancel}</AlertDialogCancel>
-                <AlertDialogAction
-                  className={cn(buttonVariants({ variant: "destructive" }))}
-                  onClick={() => {
-                    try {
-                      // Soft delete: move task to Trash by setting deletedAt
-                      const updater = onUpdateTask ?? contextUpdateTask;
-                      if (updater) {
-                        updater({ id: task.id, deletedAt: new Date().toISOString() });
-                      }
-                      toast({
-                        title: T.taskMovedToTrash,
-                        description: `${T.taskMovedToTrashDesc} ${(settings?.trashAutoDeleteDays ? `(${settings.trashAutoDeleteDays} days auto-delete)` : '')}`.trim(),
-                      });
-                      onClose && onClose();
-                    } catch (error) {
-                      console.error('Error deleting task:', error);
-                    }
-                  }}
-                >
-                  {T.confirmMoveToTrash}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          {/* Duplicate Task button */}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              try {
-                // Build prefill values for create form from current task
-                const prefill: any = {
-                  name: `${task.name} [Copy]`,
-                  description: task.description || '',
-                  briefLink: Array.isArray(task.briefLink) ? [...task.briefLink] : [],
-                  driveLink: Array.isArray(task.driveLink) ? [...task.driveLink] : [],
-                  clientId: task.clientId || (clients.length > 0 ? clients[0].id : ''), // fallback to first client id if available
-                  collaboratorIds: Array.isArray(task.collaboratorIds) ? [...task.collaboratorIds] : [],
-                  categoryId: task.categoryId || (categories.length > 0 ? categories[0].id : ''), // fallback to first category id if available
-                  status: task.status,
-                  subStatusId: task.subStatusId || '',
-                  dates: {
-                    from: task.startDate ? new Date(task.startDate as any) : undefined,
-                    to: task.deadline ? new Date(task.deadline as any) : undefined,
-                  },
-                };
-
-                // Prefill quote columns and sections
-                const quoteColumns = (quote?.columns && quote.columns.length > 0)
-                  ? quote.columns.map(col => ({ ...col }))
-                  : [
-                      { id: 'description', name: T.description, type: 'text' },
-                      { id: 'unitPrice', name: `${T.unitPrice} (${settings.currency})`, type: 'number', calculation: { type: 'sum' as const } },
-                    ];
-                const quoteSections = (quote?.sections || []).map(sec => ({
-                  id: `section-${Date.now()}-${Math.random()}`,
-                  name: sec.name,
-                  items: (sec.items || []).map(it => ({
-                    id: `item-${Date.now()}-${Math.random()}`,
-                    description: it.description,
-                    unitPrice: it.unitPrice,
-                    customFields: it.customFields ? { ...it.customFields } : {},
-                  }))
-                }));
-                if (quoteSections.length > 0) prefill.sections = quoteSections;
-
-                // Prefill collaborator quotes, columns, and sections
-                let collabQuotes: any[] = [];
-                let collabColumns: any[] = [];
-                if (task.collaboratorQuotes && collaboratorQuotes) {
-                  collabQuotes = task.collaboratorQuotes.map(cq => {
-                    const q = collaboratorQuotes.find(x => x.id === cq.quoteId);
-                    if (!q) return { collaboratorId: cq.collaboratorId, sections: [] };
-                    // Copy columns for this collaborator quote
-                    if (q.columns && q.columns.length > 0) {
-                      collabColumns = q.columns.map(col => ({ ...col }));
-                    }
-                    return {
-                      collaboratorId: cq.collaboratorId,
-                      sections: (q.sections || []).map(sec => ({
-                        id: `section-${Date.now()}-${Math.random()}`,
-                        name: sec.name,
-                        items: (sec.items || []).map(it => ({
-                          id: `item-${Date.now()}-${Math.random()}`,
-                          description: it.description,
-                          unitPrice: it.unitPrice,
-                          customFields: it.customFields ? { ...it.customFields } : {},
-                        }))
-                      }))
-                    };
-                  });
-                }
-                if (collabQuotes.length > 0) prefill.collaboratorQuotes = collabQuotes;
-
-                // Dispatch event for dashboard header to open create dialog prefilled
-                if (typeof window !== 'undefined') {
-                  window.dispatchEvent(new CustomEvent('task:duplicateOpen', {
-                    detail: {
-                      values: prefill,
-                      columns: quoteColumns,
-                      collaboratorColumns: collabColumns.length > 0 ? collabColumns : quoteColumns,
-                    }
-                  }));
-                }
-                // Keep details dialog open; user will switch to create dialog
-              } catch (err) {
-                console.error('Duplicate task failed:', err);
-              }
-            }}
-          >
-            <CopyPlus className="w-4 h-4 mr-2" />
-            {T.duplicateTask || 'Duplicate Task'}
-          </Button>
+            <Button variant="outline" size="icon" onClick={() => setShareOpen(true)} title={T.share || 'Share'}>
+              <LinkIcon className="w-4 h-4" />
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              try {
-                // Trigger parent edit (which sets isEditingTask true)
-                // Do NOT call onClose here so selectedTask remains for the edit dialog
-                onEdit?.();
-              } catch (error) {
-                console.error('Error opening edit dialog:', error);
-              }
-            }}
-          >
-            <Pencil className="w-4 h-4 mr-2" />
-            {T.editTask}
-          </Button>
-        </div>
-        {/* Footer actions row (existing buttons) */}
-  <div className="flex items-center gap-2 mt-2">
-          <Button variant="outline" size="sm" onClick={()=>setShareOpen(true)}>
-            <LinkIcon className="w-4 h-4 mr-2" /> Share
-          </Button>
+          {/* Right: Edit, Duplicate, Delete (icon-only) */}
+          <div className="flex items-center gap-1">
+            {/* Edit task */}
+            <Button
+              variant="ghost"
+              size="icon"
+              title={T.editTask || 'Edit Task'}
+              onClick={() => {
+                try {
+                  onEdit?.();
+                } catch (error) {
+                  console.error('Error opening edit dialog:', error);
+                }
+              }}
+            >
+              <Pencil className="w-4 h-4" />
+            </Button>
+
+            {/* Duplicate task */}
+            <Button
+              variant="ghost"
+              size="icon"
+              title={T.duplicateTask || 'Duplicate Task'}
+              onClick={() => {
+                try {
+                  // Build prefill values for create form from current task
+                  const prefill: any = {
+                    name: `${task.name} [Copy]`,
+                    description: task.description || '',
+                    briefLink: Array.isArray(task.briefLink) ? [...task.briefLink] : [],
+                    driveLink: Array.isArray(task.driveLink) ? [...task.driveLink] : [],
+                    clientId: task.clientId || (clients.length > 0 ? clients[0].id : ''),
+                    collaboratorIds: Array.isArray(task.collaboratorIds) ? [...task.collaboratorIds] : [],
+                    categoryId: task.categoryId || (categories.length > 0 ? categories[0].id : ''),
+                    status: task.status,
+                    subStatusId: task.subStatusId || '',
+                    dates: {
+                      from: task.startDate ? new Date(task.startDate as any) : undefined,
+                      to: task.deadline ? new Date(task.deadline as any) : undefined,
+                    },
+                  };
+
+                  // Prefill quote columns and sections
+                  const quoteColumns = (quote?.columns && quote.columns.length > 0)
+                    ? quote.columns.map(col => ({ ...col }))
+                    : [
+                        { id: 'description', name: T.description, type: 'text' },
+                        { id: 'unitPrice', name: `${T.unitPrice} (${settings.currency})`, type: 'number', calculation: { type: 'sum' as const } },
+                      ];
+                  const quoteSections = (quote?.sections || []).map(sec => ({
+                    id: `section-${Date.now()}-${Math.random()}`,
+                    name: sec.name,
+                    items: (sec.items || []).map(it => ({
+                      id: `item-${Date.now()}-${Math.random()}`,
+                      description: it.description,
+                      unitPrice: it.unitPrice,
+                      customFields: it.customFields ? { ...it.customFields } : {},
+                    }))
+                  }));
+                  if (quoteSections.length > 0) prefill.sections = quoteSections;
+
+                  // Prefill collaborator quotes, columns, and sections
+                  let collabQuotes: any[] = [];
+                  let collabColumns: any[] = [];
+                  if (task.collaboratorQuotes && collaboratorQuotes) {
+                    collabQuotes = task.collaboratorQuotes.map(cq => {
+                      const q = collaboratorQuotes.find(x => x.id === cq.quoteId);
+                      if (!q) return { collaboratorId: cq.collaboratorId, sections: [] };
+                      if (q.columns && q.columns.length > 0) {
+                        collabColumns = q.columns.map(col => ({ ...col }));
+                      }
+                      return {
+                        collaboratorId: cq.collaboratorId,
+                        sections: (q.sections || []).map(sec => ({
+                          id: `section-${Date.now()}-${Math.random()}`,
+                          name: sec.name,
+                          items: (sec.items || []).map(it => ({
+                            id: `item-${Date.now()}-${Math.random()}`,
+                            description: it.description,
+                            unitPrice: it.unitPrice,
+                            customFields: it.customFields ? { ...it.customFields } : {},
+                          }))
+                        }))
+                      };
+                    });
+                  }
+                  if (collabQuotes.length > 0) prefill.collaboratorQuotes = collabQuotes;
+
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('task:duplicateOpen', {
+                      detail: {
+                        values: prefill,
+                        columns: quoteColumns,
+                        collaboratorColumns: collabColumns.length > 0 ? collabColumns : quoteColumns,
+                      }
+                    }));
+                  }
+                } catch (err) {
+                  console.error('Duplicate task failed:', err);
+                }
+              }}
+            >
+              <CopyPlus className="w-4 h-4" />
+            </Button>
+
+            {/* Delete task with confirm */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive"
+                  title={T.deleteTask}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{T.moveToTrash}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {T.moveToTrashDescription}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{T.cancel}</AlertDialogCancel>
+                  <AlertDialogAction
+                    className={cn(buttonVariants({ variant: "destructive" }))}
+                    onClick={() => {
+                      try {
+                        const updater = onUpdateTask ?? contextUpdateTask;
+                        if (updater) {
+                          updater({ id: task.id, deletedAt: new Date().toISOString() });
+                        }
+                        toast({
+                          title: T.taskMovedToTrash,
+                          description: `${T.taskMovedToTrashDesc} ${(settings?.trashAutoDeleteDays ? `(${settings.trashAutoDeleteDays} days auto-delete)` : '')}`.trim(),
+                        });
+                        onClose && onClose();
+                      } catch (error) {
+                        console.error('Error deleting task:', error);
+                      }
+                    }}
+                  >
+                    {T.confirmMoveToTrash}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
   <ShareConfirmModal open={shareOpen} onOpenChange={setShareOpen} onConfirm={onShareConfirm} t={T} isLoading={shareLoading} />
         <ShareResultDialog

@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { i18n } from '@/lib/i18n';
+import { signIn } from 'next-auth/react';
 import { Link as LinkIcon, Copy, Trash2, ExternalLink } from 'lucide-react';
 
 type Props = { open: boolean; onOpenChange: (v: boolean) => void };
@@ -11,6 +12,8 @@ export default function ShareManagerDialog({ open, onOpenChange }: Props) {
   const [loading, setLoading] = React.useState(false);
   const [items, setItems] = React.useState<any[]>([]);
   const [error, setError] = React.useState<string>('');
+  const [deletingId, setDeletingId] = React.useState<string>('');
+  const [purging, setPurging] = React.useState<Array<{ id: string; title: string; url: string; startedAt: number }>>([]);
   const { toast } = useToast();
   const T = i18n.vi;
   const load = async () => {
@@ -69,6 +72,20 @@ export default function ShareManagerDialog({ open, onOpenChange }: Props) {
     setLoading(false);
   };
   React.useEffect(() => { if (open) load(); }, [open]);
+  // While dialog is open, refresh periodically to avoid staleness from other tabs/actions
+  React.useEffect(() => {
+    if (!open) return;
+    const id = setInterval(() => { load(); }, 15000); // 15s lightweight refresh
+    return () => clearInterval(id);
+  }, [open]);
+
+  const handleOpenChange = React.useCallback((v: boolean) => {
+    onOpenChange(v);
+    if (v) {
+      // Ensure fresh load right when the dialog opens
+      load();
+    }
+  }, [onOpenChange]);
 
   const copyLink = async (id: string) => {
     try {
@@ -79,23 +96,44 @@ export default function ShareManagerDialog({ open, onOpenChange }: Props) {
 
   const deleteShare = async (id: string) => {
     try {
+      if (deletingId) return;
+      setDeletingId(id);
+      const found = items.find(x => x.id === id);
+      const capturedTitle = found?.title || found?.taskName || 'Untitled';
+      const capturedUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/s/${id}`;
+      // Optimistically hide from list immediately to avoid duplication with purging section
+      setItems(prev => prev.filter(x => x.id !== id));
       const res = await fetch(`/api/share/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
+      if (!res.ok && res.status !== 401) {
         let txt = '';
         try { txt = await res.text(); } catch {}
         const msg = txt || `${res.status} ${res.statusText}`;
-        toast({ variant: 'destructive', title: 'Delete failed', description: msg });
+        toast({ variant: 'destructive', title: 'Không xoá được liên kết', description: 'Vui lòng thử lại.' });
+        // Reload to restore item if server-side delete failed
+        load();
+        setDeletingId('');
         return;
       }
-      // Optimistic remove for realtime UX
-      setItems(prev => prev.filter(x => x.id !== id));
-      toast({ title: 'Deleted' });
+      // Show a purging state for up to ~1 minute while CDN cache clears
+      setPurging(prev => {
+        const next = [...prev, { id, title: capturedTitle, url: capturedUrl, startedAt: Date.now() }];
+        // Auto-hide after 65s
+        setTimeout(() => {
+          setPurging(curr => curr.filter(p => p.id !== id));
+        }, 65000);
+        return next;
+      });
+      // Silent refresh in background (avoid flicker); no need to block UX
+      load();
+      toast({ title: 'Đã xoá liên kết', description: 'Có thể mất một chút thời gian để biến mất hoàn toàn.' });
     } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Network error', description: e?.message || String(e) });
+      toast({ variant: 'destructive', title: 'Lỗi mạng', description: 'Vui lòng kiểm tra kết nối và thử lại.' });
+    } finally {
+      setTimeout(() => setDeletingId(''), 100);
     }
   };
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>{T.manageSharesTitle || 'Manage Shares'}</DialogTitle>
@@ -104,9 +142,37 @@ export default function ShareManagerDialog({ open, onOpenChange }: Props) {
         <div className="space-y-3">
           {loading ? <div className="text-sm text-muted-foreground">Loading...</div> : null}
           {!!error && (
-            <div className="text-sm text-red-600">{error === 'Unauthorized' ? 'Please sign in to manage your shares.' : error}</div>
+            <div className="text-sm text-red-600 flex items-center gap-2">
+              <span>{error === 'Unauthorized' ? 'Please sign in to manage your shares.' : error}</span>
+              {error === 'Unauthorized' ? (
+                <Button variant="outline" size="sm" onClick={() => signIn()}>
+                  Sign in
+                </Button>
+              ) : null}
+            </div>
           )}
-          {items.map((it) => {
+          {purging.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-xs text-muted-foreground">Liên kết vừa xoá</div>
+              {purging.map(p => (
+                <div key={p.id} className="border rounded p-2 flex items-center gap-3 opacity-60 animate-pulse">
+                  <div className="flex items-center justify-center w-7 h-7 rounded bg-muted text-muted-foreground flex-shrink-0">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{p.title}</div>
+                    <div className="text-[10px] text-muted-foreground">Đang xử lý xoá, có thể mất một chút thời gian.</div>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <Button variant="ghost" size="sm" onClick={() => setPurging(prev => prev.filter(x => x.id !== p.id))}>Ẩn</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {items
+            .filter((it) => !purging.some(p => p.id === it.id) && it.id !== deletingId)
+            .map((it) => {
             const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/s/${it.id}`;
             const title = it.title || it.taskName || 'Untitled';
             return (
@@ -125,14 +191,20 @@ export default function ShareManagerDialog({ open, onOpenChange }: Props) {
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyLink(it.id)} title={T.copy || 'Copy'}>
                     <Copy className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteShare(it.id)} title={T.delete || 'Delete'}>
-                    <Trash2 className="w-4 h-4" />
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteShare(it.id)} title={T.delete || 'Delete'} disabled={deletingId === it.id}>
+                    {deletingId === it.id ? (
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
               </div>
             );
           })}
-          {(!loading && items.length === 0) ? <div className="text-sm text-muted-foreground">{T.noShares || 'No shares yet'}</div> : null}
+          {(!loading && items.filter((it) => !purging.some(p => p.id === it.id) && it.id !== deletingId).length === 0) ? (
+            <div className="text-sm text-muted-foreground">{T.noShares || 'Chưa có liên kết'}</div>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
