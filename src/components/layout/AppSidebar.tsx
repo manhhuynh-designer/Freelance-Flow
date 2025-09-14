@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -12,7 +12,7 @@ import {
 import {
     Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle
 } from "@/components/ui/dialog";
-import { Users, FileText, Briefcase, LayoutGrid, Cog, Trash2, LogIn, LogOut, User, DollarSign } from "lucide-react";
+import { Users, FileText, Briefcase, LayoutGrid, Cog, Trash2, LogIn, LogOut, User, DollarSign, ChevronDown } from "lucide-react";
 import { SidebarNavigation } from "@/components/sidebar-navigation";
 import { ClientManager } from "@/components/client-manager";
 import { CollaboratorManager } from "@/components/collaborator-manager";
@@ -73,6 +73,29 @@ export function AppSidebar() {
       isFixedCostManagerOpen, setIsFixedCostManagerOpen } = dashboardContext;
 
     const [isShareManagerOpen, setIsShareManagerOpen] = useState(false);
+    // Collapsible state for sidebar groups (persist to localStorage)
+    const [isViewsOpen, setIsViewsOpen] = useState<boolean>(() => {
+      if (typeof window === 'undefined') return true;
+      const v = localStorage.getItem('ff-sidebar-views-open');
+      return v === null ? true : v === 'true';
+    });
+    const [isManageOpen, setIsManageOpen] = useState<boolean>(() => {
+      if (typeof window === 'undefined') return true;
+      const v = localStorage.getItem('ff-sidebar-manage-open');
+      return v === null ? true : v === 'true';
+    });
+
+    // Persist on change
+    useEffect(() => {
+      if (typeof window !== 'undefined') {
+        try { localStorage.setItem('ff-sidebar-views-open', String(isViewsOpen)); } catch {}
+      }
+    }, [isViewsOpen]);
+    useEffect(() => {
+      if (typeof window !== 'undefined') {
+        try { localStorage.setItem('ff-sidebar-manage-open', String(isManageOpen)); } catch {}
+      }
+    }, [isManageOpen]);
 
     const sidebarWidgets = (appData.appSettings.widgets || [])
         .filter(w => w.showInSidebar)
@@ -94,16 +117,37 @@ export function AppSidebar() {
               <div className="flex h-full flex-col">
                 <div className="flex-1">
                   <SidebarGroup>
-                       <SidebarGroupLabel>{T.views}</SidebarGroupLabel>
-                       <SidebarGroupContent>
+                       <SidebarGroupLabel>
+                         <button
+                           type="button"
+                           onClick={() => setIsViewsOpen(v => !v)}
+                           className="w-full flex items-center justify-between gap-2 text-left"
+                         >
+                           <span>{T.views}</span>
+                           <ChevronDown className={`h-4 w-4 transition-transform ${isViewsOpen ? '' : '-rotate-90'}`} />
+                         </button>
+                       </SidebarGroupLabel>
+                       {isViewsOpen && (
+                         <SidebarGroupContent id="sidebar-group-views">
                            <Suspense fallback={<SidebarMenu><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /></SidebarMenu>}>
                                <SidebarNavigation />
                            </Suspense>
-                       </SidebarGroupContent>
+                         </SidebarGroupContent>
+                       )}
                    </SidebarGroup>
                    <SidebarGroup>
-                       <SidebarGroupLabel>{T.manage}</SidebarGroupLabel>
-                       <SidebarGroupContent>
+                       <SidebarGroupLabel>
+                         <button
+                           type="button"
+                           onClick={() => setIsManageOpen(v => !v)}
+                           className="w-full flex items-center justify-between gap-2 text-left"
+                         >
+                           <span>{T.manage}</span>
+                           <ChevronDown className={`h-4 w-4 transition-transform ${isManageOpen ? '' : '-rotate-90'}`} />
+                         </button>
+                       </SidebarGroupLabel>
+                       {isManageOpen && (
+                         <SidebarGroupContent id="sidebar-group-manage">
                        <SidebarMenu>
                            <SidebarMenuItem>
                              <SidebarMenuButton onClick={() => setIsShareManagerOpen(true)}>
@@ -138,7 +182,8 @@ export function AppSidebar() {
                              </Dialog>
                            </SidebarMenuItem>
                        </SidebarMenu>
-                       </SidebarGroupContent>
+                         </SidebarGroupContent>
+                       )}
                    </SidebarGroup>
                    
                    {sidebarWidgets.length > 0 && (
