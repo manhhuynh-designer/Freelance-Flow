@@ -413,6 +413,7 @@ export function TaskDetailsDialog({
   // Dashboard context fallback for updateTask persistence when parent doesn't pass onUpdateTask
   const dashboard = useDashboard();
   const contextUpdateTask = (dashboard && (dashboard.updateTask as any)) || undefined;
+  const contextUpdateQuote = (dashboard && (dashboard.updateQuote as any)) || undefined;
   
   // Stable update handler to prevent infinite loops in child components
   const stableUpdateTaskHandler = useCallback((updatedTask: Partial<Task> & { id: string }) => {
@@ -423,6 +424,15 @@ export function TaskDetailsDialog({
       console.warn('TaskDetailsDialog: No update handler available');
     }
   }, [onUpdateTask, contextUpdateTask]);
+  // Stable update handler for quotes to ensure Timeline Creator works even when parent doesn’t pass a handler
+  const stableUpdateQuoteHandler = useCallback((quoteId: string, updates: Partial<Quote>) => {
+    const handler = onUpdateQuote ?? contextUpdateQuote;
+    if (handler) {
+      handler(quoteId, updates);
+    } else {
+      console.warn('TaskDetailsDialog: No updateQuote handler available');
+    }
+  }, [onUpdateQuote, contextUpdateQuote]);
   const [selectedNav, setSelectedNav] = useState<'timeline' | 'price' | 'collaborator' | 'payment' | 'timelineCreator'>('timeline');
   const [showAllBriefLinks, setShowAllBriefLinks] = useState(false);
   const [showAllDriveLinks, setShowAllDriveLinks] = useState(false);
@@ -1344,7 +1354,7 @@ export function TaskDetailsDialog({
                     task={task}
                     quote={quote}
                     settings={settings}
-                    onUpdateQuote={onUpdateQuote}
+                    onUpdateQuote={stableUpdateQuoteHandler}
                     visibilityState={{}} // not used in editOnly
                     onVisibilityChange={(_s) => {}}
                     mode="editOnly"
@@ -1442,7 +1452,7 @@ export function TaskDetailsDialog({
               <QuotePaymentManager
                 quote={quote}
                 settings={settings}
-                onUpdateQuote={onUpdateQuote}
+                onUpdateQuote={stableUpdateQuoteHandler}
                 totalFromPrice={totalQuote}
                 taskStatus={task.status}
               />
@@ -1458,7 +1468,7 @@ export function TaskDetailsDialog({
               clients={clients}
               categories={categories}
               onUpdateTask={stableUpdateTaskHandler}
-              onUpdateQuote={onUpdateQuote}
+              onUpdateQuote={stableUpdateQuoteHandler}
             />
           )}
         </div>

@@ -95,21 +95,35 @@ const TimelineEditor = ({ field, taskStartDate, taskEndDate }: {
   taskStartDate?: Date;
   taskEndDate?: Date;
 }) => {
-  let timelineObj: any = null;
-  if (field.value) {
+  // Parse current field value once per change
+  const parsedValue = React.useMemo(() => {
+    if (!field?.value) return null as any;
     if (typeof field.value === 'string') {
-      try { timelineObj = JSON.parse(field.value); } catch { /* ignore */ }
-    } else if (typeof field.value === 'object') {
-      timelineObj = field.value;
+      try { return JSON.parse(field.value); } catch { return null as any; }
     }
-  }
-  if (!timelineObj || !timelineObj.start || !timelineObj.end) {
-    // Initialize default if missing
+    if (typeof field.value === 'object') return field.value as any;
+    return null as any;
+  }, [field?.value]);
+
+  // Determine if initialization is needed and hold a stable default in a ref
+  const needsInit = !parsedValue || !parsedValue.start || !parsedValue.end;
+  const defaultRef = React.useRef<any>(null);
+  if (needsInit && defaultRef.current == null) {
     const now = new Date();
-    const week = new Date(Date.now() + 6 * 24*60*60*1000);
-    timelineObj = { start: now.toISOString(), end: week.toISOString(), color: 'hsl(210,60%,55%)' };
-    field.onChange(JSON.stringify(timelineObj));
+    const week = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
+    defaultRef.current = { start: now.toISOString(), end: week.toISOString(), color: 'hsl(210,60%,55%)' };
   }
+
+  // Initialize the field AFTER render to avoid setState during render warnings
+  React.useEffect(() => {
+    if (needsInit && defaultRef.current) {
+      field.onChange(JSON.stringify(defaultRef.current));
+    }
+    // We intentionally depend only on needsInit to avoid repeated writes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needsInit]);
+
+  const timelineObj = (!needsInit || !defaultRef.current) ? parsedValue : defaultRef.current;
   const startDate = new Date(timelineObj.start);
   const endDate = new Date(timelineObj.end);
 

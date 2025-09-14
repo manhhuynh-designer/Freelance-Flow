@@ -357,6 +357,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
                 handleTaskStatusChange={handleTaskStatusChange}
                 reorderTasksInStatus={reorderTasksInStatus}
                 updateKanbanSettings={updateKanbanSettings}
+                selectedStatuses={selectedStatuses}
                 clients={clients}
                 categories={categories}
                 quotes={quotes}

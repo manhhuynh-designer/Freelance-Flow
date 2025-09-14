@@ -8,6 +8,7 @@ import { KanbanColumn } from './KanbanColumn';
 import { i18n } from '@/lib/i18n';
 import { KanbanTaskCard } from './KanbanTaskCard';
 import { useSearchParams } from 'next/navigation';
+import { useDashboard } from '@/contexts/dashboard-context';
 
 interface KanbanViewProps {
   filteredTasks: Task[];
@@ -16,6 +17,8 @@ interface KanbanViewProps {
   handleTaskStatusChange: (taskId: string, status: Task['status'], subStatusId?: string) => void;
   reorderTasksInStatus: (statusId: string, orderedTaskIds: string[]) => void;
   updateKanbanSettings: (settings: Partial<AppSettings>) => void;
+  // Optional external control for which statuses are visible (keeps in sync with global filter hook)
+  selectedStatuses?: string[];
   clients: Client[];
   categories: Category[];
   quotes: Quote[];
@@ -33,27 +36,40 @@ export function KanbanView({
     handleTaskStatusChange, 
     reorderTasksInStatus,
     updateKanbanSettings,
+  selectedStatuses: selectedStatusesProp,
     ...restOfDrilledProps 
 }: KanbanViewProps) {
   const searchParams = useSearchParams();
   const T = i18n[appSettings.language as 'en' | 'vi'] || i18n.en;
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [activeColumn, setActiveColumn] = useState<any>(null);
+  const dashboard = useDashboard();
+  const updateQuote = (dashboard && (dashboard.updateQuote as any)) || undefined;
+  const updateTask = (dashboard && (dashboard.updateTask as any)) || undefined;
 
-  const statusFilter = searchParams.get('status');
-  const defaultStatuses = useMemo(() => 
-    ['todo', 'inprogress', 'done', 'onhold', 'archived'], 
-  []);
+  // Read the same param name used by the global filter logic ('statuses');
+  // fall back to legacy 'status' if present
+  const statusFilter = searchParams.get('statuses') ?? searchParams.get('status');
+  // Derive default statuses from app settings to support custom sets
+  const defaultStatuses = useMemo(() => {
+    const ids = Array.isArray(appSettings.statusSettings) && appSettings.statusSettings.length > 0
+      ? appSettings.statusSettings.map(s => s.id)
+      : ['todo', 'inprogress', 'done', 'onhold', 'archived'];
+    return ids;
+  }, [appSettings.statusSettings]);
   
-  const selectedStatuses = useMemo(() => {
-    // When no filter applied, show all columns
+  const selectedStatusesFromUrl = useMemo(() => {
+    // Keep column visibility in sync with global filters (useFilterLogic):
+    // - null => all statuses visible
+    // - 'none' => no statuses visible
+    // - comma list => those statuses are visible
     if (statusFilter === null) return defaultStatuses;
-    // Explicitly hide all columns
     if (statusFilter === 'none') return [];
-    // Treat query param as list of statuses to hide; show the rest
-    const hidden = new Set(statusFilter.split(','));
-    return defaultStatuses.filter(s => !hidden.has(s));
+    return statusFilter.split(',');
   }, [statusFilter, defaultStatuses]);
+
+  // Prefer prop from Dashboard (ground truth), fallback to URL
+  const selectedStatuses = selectedStatusesProp ?? selectedStatusesFromUrl;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

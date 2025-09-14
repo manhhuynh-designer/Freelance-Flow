@@ -21,6 +21,7 @@ import { i18n } from '@/lib/i18n';
 import { EventBar } from './EventBar';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
+import { useDashboard } from '@/contexts/dashboard-context';
 
 // HELPER: Chuẩn hóa ngày tháng, loại bỏ giờ và múi giờ
 function parseDateSafely(date: string | Date): Date {
@@ -58,6 +59,9 @@ const GanttTaskRow: React.FC<GanttTaskRowProps> = ({
     collaboratorQuotes, collaborators, quoteTemplates, handleDeleteTask,
     handleEditTask, handleAddClientAndSelect, onLocateTask, isHighlighted
 }) => {
+  const dashboard = useDashboard();
+  const updateQuote = (dashboard && (dashboard.updateQuote as any)) || undefined;
+  const updateTask = (dashboard && (dashboard.updateTask as any)) || undefined;
 
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
@@ -119,6 +123,8 @@ const GanttTaskRow: React.FC<GanttTaskRowProps> = ({
             task={task} client={client} clients={clients} collaborators={collaborators} categories={categories}
             quote={quote} quotes={quotes} collaboratorQuotes={taskCollaboratorQuotes} settings={settings}
             isOpen={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} onEdit={handleEditClick} onDelete={handleDeleteClick}
+            onUpdateQuote={updateQuote}
+            onUpdateTask={updateTask}
           />
         </Dialog>
         

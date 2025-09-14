@@ -35,6 +35,7 @@ import {
 import { cn } from '@/lib/utils';
 import { i18n } from '@/lib/i18n';
 import { TaskEditDialog } from '@/components/task-dialogs/TaskEditDialog';
+import { useDashboard } from '@/contexts/dashboard-context';
 
 const eisenhowerSchemes = {
     colorScheme1: { do: '#ef4444', decide: '#3b82f6', delegate: '#f59e42', delete: '#6b7280' },
@@ -72,6 +73,9 @@ export const KanbanTaskCard: React.FC<Partial<KanbanTaskCardProps>> = ({
   quoteTemplates = [],
   handleTaskStatusChange
 }) => {
+  const dashboard = useDashboard();
+  const updateQuote = (dashboard && (dashboard.updateQuote as any)) || undefined;
+  const updateTask = (dashboard && (dashboard.updateTask as any)) || undefined;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
   
   const scheme = appSettings?.eisenhowerColorScheme || 'colorScheme1';
@@ -184,6 +188,8 @@ export const KanbanTaskCard: React.FC<Partial<KanbanTaskCardProps>> = ({
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}
           onChangeStatus={(taskId, statusId) => handleTaskStatusChange?.(taskId, statusId as any)}
+          onUpdateQuote={updateQuote}
+          onUpdateTask={updateTask}
         />
       </Dialog>
 

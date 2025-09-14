@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Brain, AlertTriangle, Loader2, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { usePersistedToggle, TOGGLE_KEYS } from '@/lib/utils/toggle-persistence';
 import { cn } from '@/lib/utils';
 import { TaskDetailsDialog } from '@/components/task-dialogs/TaskDetailsDialog';
 import { TaskEditDialog } from '@/components/task-dialogs/TaskEditDialog';
@@ -41,7 +42,7 @@ export function PredictionDashboard({ className = '' }: PredictionDashboardProps
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [isEditingTask, setIsEditingTask] = useState(false);
-  const [showAnalysisPanel, setShowAnalysisPanel] = useState(false); // controls right panel animation
+  const [showAnalysisPanel, setShowAnalysisPanel] = usePersistedToggle(TOGGLE_KEYS.PREDICTION_AI_PANEL, false); // controls right panel animation
   const [taskAnalytics, setTaskAnalytics] = useState<{ pie: any; trend: any; range?: DateRange; summary?: { active: number; near: number; overdue: number }; groupBy: string } | null>(null);
   const [taskAnalyticsRange, setTaskAnalyticsRange] = useState<DateRange | undefined>({ from: new Date(Date.now() - 29*24*60*60*1000), to: new Date() });
   const [productivityStats, setProductivityStats] = useState<{ range?: DateRange; stats: any | null }>({ stats: null });

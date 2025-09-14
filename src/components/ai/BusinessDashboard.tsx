@@ -9,6 +9,7 @@ import { PouchDBService } from '@/lib/pouchdb-service';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { usePersistedToggle, TOGGLE_KEYS } from '@/lib/utils/toggle-persistence';
 
 import { 
   calculateFinancialSummary, 
@@ -36,7 +37,7 @@ export function BusinessDashboard() {
   const [additionalFinancials, setAdditionalFinancials] = useState<any>(null);
   const [additionalTaskDetails, setAdditionalTaskDetails] = useState<any>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [isAnalysisPanelVisible, setIsAnalysisPanelVisible] = useState(false);
+  const [isAnalysisPanelVisible, setIsAnalysisPanelVisible] = usePersistedToggle(TOGGLE_KEYS.BUSINESS_AI_PANEL, false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
