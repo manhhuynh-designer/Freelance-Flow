@@ -40,6 +40,7 @@ import { Progress } from "@/components/ui/progress";
 import { getContrastingTextColor } from "@/lib/colors";
 import { i18n } from "@/lib/i18n";
 import { FileText, Pencil, Link as LinkIcon, Folder, Copy, Trash2, Building2, Calendar, Briefcase, Flag, FlagOff, CopyPlus, Image } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import exportQuoteImageToClipboard from '@/lib/exports/exportImageToClipboard';
 import { RichTextViewer } from "@/components/ui/RichTextViewer";
 import { QuotePaymentManager } from "@/components/quote-payment-manager";
@@ -456,6 +457,19 @@ export function TaskDetailsDialog({
     const map = schemes[scheme] || schemes.colorScheme1;
     return map[q] || '#e5e7eb';
   }, [settings?.eisenhowerColorScheme, task.eisenhowerQuadrant]);
+
+  // Helper to get color for any quadrant (used in popover options)
+  const getFlagColor = useCallback((q?: 'do'|'decide'|'delegate'|'delete') => {
+    const scheme = settings?.eisenhowerColorScheme || 'colorScheme1';
+    const schemes: Record<string, Record<'do'|'decide'|'delegate'|'delete', string>> = {
+      colorScheme1: { do: '#ef4444', decide: '#3b82f6', delegate: '#f59e42', delete: '#6b7280' },
+      colorScheme2: { do: '#d8b4fe', decide: '#bbf7d0', delegate: '#fed7aa', delete: '#bfdbfe' },
+      colorScheme3: { do: '#99f6e4', decide: '#fbcfe8', delegate: '#fde68a', delete: '#c7d2fe' },
+    };
+    if (!q) return '#e5e7eb';
+    const map = schemes[scheme] || schemes.colorScheme1;
+    return map[q] || '#e5e7eb';
+  }, [settings?.eisenhowerColorScheme]);
 
   // Reset link expansion state when dialog opens
   React.useEffect(() => {
@@ -1099,11 +1113,61 @@ export function TaskDetailsDialog({
         <div className="flex flex-col gap-1 pb-2 border-b mb-2">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-2">
-              {task.eisenhowerQuadrant ? (
-                <Flag className="h-5 w-5 drop-shadow" color={eisenhowerFlagColor} fill={eisenhowerFlagColor} />
-              ) : (
-                <FlagOff className="h-5 w-5 drop-shadow" color="#e5e7eb" />
-              )}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 p-0"
+                    title={(T as any)?.eisenhowerPriority || 'Eisenhower priority'}
+                  >
+                    {task.eisenhowerQuadrant ? (
+                      <Flag className="h-5 w-5 drop-shadow" color={eisenhowerFlagColor} fill={eisenhowerFlagColor} />
+                    ) : (
+                      <FlagOff className="h-5 w-5 drop-shadow text-muted-foreground" />
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-2" align="start">
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['do','decide','delegate','delete'] as const).map((q) => (
+                      <Button
+                        key={q}
+                        variant={task.eisenhowerQuadrant === q ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 px-2 flex items-center gap-1 justify-start"
+                        onClick={() => {
+                          const updater = (dashboard as any)?.updateTaskEisenhowerQuadrant as (id: string, quad?: 'do'|'decide'|'delegate'|'delete') => void;
+                          if (typeof updater === 'function') {
+                            updater(task.id, q);
+                          } else {
+                            stableUpdateTaskHandler({ id: task.id, eisenhowerQuadrant: q });
+                          }
+                        }}
+                      >
+                        <Flag className="w-3 h-3" color={getFlagColor(q)} fill={getFlagColor(q)} />
+                        <span className="text-[11px] capitalize">{(T as any)?.[`quadrant_${q}`] || q}</span>
+                      </Button>
+                    ))}
+                    <Button
+                      variant={!task.eisenhowerQuadrant ? 'default' : 'outline'}
+                      size="sm"
+                      className="h-8 px-2 col-span-2"
+                      onClick={() => {
+                        const updater = (dashboard as any)?.updateTaskEisenhowerQuadrant as (id: string, quad?: 'do'|'decide'|'delegate'|'delete') => void;
+                        if (typeof updater === 'function') {
+                          updater(task.id, undefined);
+                        } else {
+                          stableUpdateTaskHandler({ id: task.id, eisenhowerQuadrant: undefined });
+                        }
+                      }}
+                    >
+                      <FlagOff className="w-3 h-3" />
+                      <span className="text-[11px]">{(T as any)?.clearLabel || 'Clear'}</span>
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
               <span className="text-2xl font-bold leading-tight truncate">{task.name}</span>
             </div>
             {status && (

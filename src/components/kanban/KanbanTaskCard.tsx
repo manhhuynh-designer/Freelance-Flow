@@ -22,6 +22,7 @@ import {
 import { TaskDetailsDialog } from '@/components/task-dialogs/TaskDetailsDialog';
 import { Flag, FlagOff } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -137,26 +138,55 @@ export const KanbanTaskCard: React.FC<Partial<KanbanTaskCardProps>> = ({
         <DialogTrigger asChild>
           <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="mb-2">
             <div className="relative">
-              <div className="absolute left-2 top-2 z-20 group">
-                {task.eisenhowerQuadrant ? (
-                  <>
-                    <Flag size={16} color={getFlagColor(task.eisenhowerQuadrant)} fill={getFlagColor(task.eisenhowerQuadrant)} className="drop-shadow" />
-                    <span className="pointer-events-none fixed z-50 left-auto ml-2 mt-1 whitespace-nowrap rounded bg-black/90 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                      style={{ minWidth: 120 }}
+              <div className="absolute left-2 top-2 z-20">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-muted"
+                      title={(T as any)?.eisenhowerPriority || 'Eisenhower priority'}
+                      onClick={(e)=>{ e.stopPropagation(); }}
+                      onMouseDown={(e)=>{ e.stopPropagation(); }}
                     >
-                      {eisenhowerTooltip[task.eisenhowerQuadrant] || eisenhowerTooltip.none}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <FlagOff size={16} color="#e5e7eb" className="drop-shadow" />
-                    <span className="pointer-events-none fixed z-50 left-auto ml-2 mt-1 whitespace-nowrap rounded bg-black/90 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                      style={{ minWidth: 120 }}
-                    >
-                      {eisenhowerTooltip.none}
-                    </span>
-                  </>
-                )}
+                      {task.eisenhowerQuadrant ? (
+                        <Flag size={16} color={getFlagColor(task.eisenhowerQuadrant as any)} fill={getFlagColor(task.eisenhowerQuadrant as any)} className="drop-shadow" />
+                      ) : (
+                        <FlagOff size={16} className="text-muted-foreground" />
+                      )}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-2" align="start" onOpenAutoFocus={(e)=>e.preventDefault()}>
+                    <div className="grid grid-cols-2 gap-2" onClick={(e)=>e.stopPropagation()}>
+                      {(['do','decide','delegate','delete'] as const).map((q) => (
+                        <Button
+                          key={q}
+                          variant={task.eisenhowerQuadrant === q ? 'default' : 'outline'}
+                          size="sm"
+                          className="h-8 px-2 flex items-center gap-1 justify-start"
+                          onClick={() => {
+                            const updater = (dashboard as any)?.updateTaskEisenhowerQuadrant as (id: string, quad?: 'do'|'decide'|'delegate'|'delete') => void;
+                            if (typeof updater === 'function') updater(task.id, q);
+                          }}
+                        >
+                          <Flag className="w-3 h-3" color={getFlagColor(q)} fill={getFlagColor(q)} />
+                          <span className="text-[11px] capitalize">{(T as any)?.[`quadrant_${q}`] || q}</span>
+                        </Button>
+                      ))}
+                      <Button
+                        variant={!task.eisenhowerQuadrant ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 px-2 col-span-2"
+                        onClick={() => {
+                          const updater = (dashboard as any)?.updateTaskEisenhowerQuadrant as (id: string, quad?: 'do'|'decide'|'delegate'|'delete') => void;
+                          if (typeof updater === 'function') updater(task.id, undefined);
+                        }}
+                      >
+                        <FlagOff className="w-3 h-3" />
+                        <span className="text-[11px]">{(T as any)?.clearLabel || 'Clear'}</span>
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               <Card className="p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative w-full max-w-full overflow-hidden">
                 <p className="font-semibold text-sm mb-2 pl-6 break-words">{task.name}</p>

@@ -118,6 +118,15 @@ export function CalendarView({
     setSelectedTask(task);
     setIsTaskDetailsOpen(true);
   };
+
+  // Keep selectedTask in sync with external task updates (e.g., flag changes)
+  useEffect(() => {
+    if (!selectedTask) return;
+    const updated = tasks.find(t => t.id === selectedTask.id);
+    if (updated && updated !== selectedTask) {
+      setSelectedTask(updated);
+    }
+  }, [tasks, selectedTask]);
   
   const handleDateSelect = (date: Date) => {
     setSelectedTask(null);

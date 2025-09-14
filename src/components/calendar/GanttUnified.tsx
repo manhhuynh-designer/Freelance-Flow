@@ -1,5 +1,5 @@
 import React, { useRef, useLayoutEffect, useMemo, useState, useEffect } from 'react';
-import { Target, Flag } from 'lucide-react';
+import { Target, Flag, FlagOff } from 'lucide-react';
 import styles from './GanttView.module.css';
 import ganttStyles from './GanttUnified.module.css';
 import type { Task, StatusColors, Client, Category, Quote, AppSettings, AppEvent, Collaborator, QuoteTemplate } from '@/lib/types';
@@ -22,6 +22,8 @@ import { EventBar } from './EventBar';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 import { useDashboard } from '@/contexts/dashboard-context';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 
 // HELPER: Chuẩn hóa ngày tháng, loại bỏ giờ và múi giờ
 function parseDateSafely(date: string | Date): Date {
@@ -110,7 +112,53 @@ const GanttTaskRow: React.FC<GanttTaskRowProps> = ({
         style={{ height: `${rowHeight}px` }}
       >
         <span className={ganttStyles['gantt-flag-icon']}>
-          <Flag size={16} color={flagColor} fill={flagColor} />
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-muted"
+                title={(T as any)?.eisenhowerPriority || 'Eisenhower priority'}
+                onClick={(e)=>e.stopPropagation()}
+              >
+                {quadrant ? (
+                  <Flag size={16} color={flagColor} fill={flagColor} className="drop-shadow" />
+                ) : (
+                  <FlagOff size={16} className="text-muted-foreground" />
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2" align="start" onOpenAutoFocus={(e)=>e.preventDefault()}>
+              <div className="grid grid-cols-2 gap-2" onClick={(e)=>e.stopPropagation()}>
+                {(['do','decide','delegate','delete'] as const).map((q) => (
+                  <Button
+                    key={q}
+                    variant={task.eisenhowerQuadrant === q ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-8 px-2 flex items-center gap-1 justify-start"
+                    onClick={() => {
+                      const updater = (dashboard as any)?.updateTaskEisenhowerQuadrant as (id: string, quad?: 'do'|'decide'|'delegate'|'delete') => void;
+                      if (typeof updater === 'function') updater(task.id, q);
+                    }}
+                  >
+                    <Flag className="w-3 h-3" color={flagColors[q]} fill={flagColors[q]} />
+                    <span className="text-[11px] capitalize">{(T as any)?.[`quadrant_${q}`] || q}</span>
+                  </Button>
+                ))}
+                <Button
+                  variant={!task.eisenhowerQuadrant ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-8 px-2 col-span-2"
+                  onClick={() => {
+                    const updater = (dashboard as any)?.updateTaskEisenhowerQuadrant as (id: string, quad?: 'do'|'decide'|'delegate'|'delete') => void;
+                    if (typeof updater === 'function') updater(task.id, undefined);
+                  }}
+                >
+                  <FlagOff className="w-3 h-3" />
+                  <span className="text-[11px]">{(T as any)?.clearLabel || 'Clear'}</span>
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </span>
 
         <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>

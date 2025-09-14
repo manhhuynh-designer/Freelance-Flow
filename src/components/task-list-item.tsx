@@ -20,6 +20,8 @@ import {
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { getContrastingTextColor } from "@/lib/colors";
 import { ArchiveRestore, Trash2, ChevronDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useDashboard } from "@/contexts/dashboard-context";
 
 type TaskListItemProps = {
   task: Task;
@@ -58,6 +60,7 @@ export function TaskListItem({
 }: TaskListItemProps) {
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [hoveredStatusId, setHoveredStatusId] = useState<string | null>(null);
+  const { updateTaskEisenhowerQuadrant } = (useDashboard() as any) || {};
   
   const T = useMemo(() => i18n[settings.language] || i18n.en, [settings.language]);
 
@@ -157,11 +160,48 @@ export function TaskListItem({
         case 'name':
             return (
               <span className="inline-flex items-center gap-2">
-                {task.eisenhowerQuadrant ? (
-                  <Flag size={16} color={getFlagColor(task.eisenhowerQuadrant)} fill={getFlagColor(task.eisenhowerQuadrant)} className="drop-shadow" />
-                ) : (
-                  <FlagOff size={16} color="#e5e7eb" className="drop-shadow" />
-                )}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 p-0"
+                      title={(T as any)?.eisenhowerPriority || 'Eisenhower priority'}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {task.eisenhowerQuadrant ? (
+                        <Flag size={16} color={getFlagColor(task.eisenhowerQuadrant)} fill={getFlagColor(task.eisenhowerQuadrant)} className="drop-shadow" />
+                      ) : (
+                        <FlagOff size={16} className="text-muted-foreground drop-shadow" />
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-2" align="start" onClick={(e) => e.stopPropagation()}>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['do','decide','delegate','delete'] as const).map((q) => (
+                        <Button
+                          key={q}
+                          variant={task.eisenhowerQuadrant === q ? 'default' : 'outline'}
+                          size="sm"
+                          className="h-8 px-2 flex items-center gap-1 justify-start"
+                          onClick={(e) => { e.stopPropagation(); updateTaskEisenhowerQuadrant?.(task.id, q); }}
+                        >
+                          <Flag className="w-3 h-3" color={getFlagColor(q)} fill={getFlagColor(q)} />
+                          <span className="text-[11px] capitalize">{(T as any)?.[`quadrant_${q}`] || q}</span>
+                        </Button>
+                      ))}
+                      <Button
+                        variant={!task.eisenhowerQuadrant ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 px-2 col-span-2"
+                        onClick={(e) => { e.stopPropagation(); updateTaskEisenhowerQuadrant?.(task.id, undefined); }}
+                      >
+                        <FlagOff className="w-3 h-3" />
+                        <span className="text-[11px]">{(T as any)?.clearLabel || 'Clear'}</span>
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 {task.name}
               </span>
             );
