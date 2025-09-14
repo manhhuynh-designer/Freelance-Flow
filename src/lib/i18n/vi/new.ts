@@ -1,5 +1,8 @@
 // src/lib/i18n/vi/new.ts
 export const vi_new = {
+// Chế độ toàn màn hình
+enterFullView: 'Chế độ xem toàn màn hình',
+exitFullView: 'Thoát chế độ toàn màn hình',
 // Chia sẻ
 share: 'Chia sẻ',
 manageShares: 'Quản lý liên kết',

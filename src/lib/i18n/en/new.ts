@@ -1,4 +1,7 @@
 export const en_new = {
+// Full view
+enterFullView: 'Full view',
+exitFullView: 'Exit full view',
 // Share
 share: 'Share',
 manageShares: 'Manage Shares',

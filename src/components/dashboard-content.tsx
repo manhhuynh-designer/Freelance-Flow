@@ -16,7 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { XCircle, Trash2, Filter, Table, CalendarDays, LayoutGrid, Columns3, Download } from "lucide-react";
+import { XCircle, Trash2, Filter, Table, CalendarDays, LayoutGrid, Columns3, Download, Maximize2, Minimize2 } from "lucide-react";
 import { TaskList } from '@/components/task-list';
 import type { Task, Quote, Collaborator, Category, Client, AppEvent, AppSettings, QuoteTemplate } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -59,6 +59,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   const router = useRouter();
   const pathname = usePathname();
   const context = useDashboard();
+  const isFullView = searchParams.get('full') === '1';
   
   // 🔧 DEBUG: Log dashboard context data
   console.log('📊 Dashboard Content data status:', {
@@ -198,6 +199,40 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     const query = search ? `?${search}` : "";
     router.push(`${pathname}${query}`);
   };
+
+  // Full view toggle: updates URL param `full=1` to hide surrounding chrome
+  const toggleFullView = () => {
+    const current = new URLSearchParams(searchParams);
+    if (isFullView) {
+      current.delete('full');
+    } else {
+      current.set('full', '1');
+    }
+    const search = current.toString();
+    const query = search ? `?${search}` : '';
+    router.push(`${pathname}${query}`);
+  };
+
+  // Keyboard shortcuts: F to toggle, Escape to exit
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === 'f' && (e.ctrlKey || e.metaKey)) return; // avoid browser find
+      if (e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        toggleFullView();
+      }
+      if (e.key === 'Escape' && isFullView) {
+        e.preventDefault();
+        const current = new URLSearchParams(searchParams);
+        current.delete('full');
+        const search = current.toString();
+        const query = search ? `?${search}` : '';
+        router.push(`${pathname}${query}`);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isFullView, pathname, router, searchParams]);
 
   const calendarDateParam = searchParams.get('calendarDate');
   const calendarViewMode = searchParams.get('calendarMode') as 'week' | 'month' | null;
@@ -395,7 +430,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   };
 
   return (
-    <div className={cn("flex flex-col h-full gap-4", pathname.includes('/chat') || pathname.includes('/settings') || pathname.includes('/widgets') ? 'p-0' : 'p-4')}>
+  <div className={cn("flex flex-col h-full gap-4", isFullView ? 'p-0' : (pathname.includes('/chat') || pathname.includes('/settings') || pathname.includes('/widgets') ? 'p-0' : 'p-4'))}>
         {showInstallPrompt && (
             <Alert className="mb-4 relative">
                 <Download className="h-4 w-4" />
@@ -457,40 +492,61 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
         onAddClient={handleAddClientAndSelect}
       />
 
-      <div className="flex-shrink-0">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="flex-1 min-w-0">
-            <FilterChipBar
-              selectedStatuses={selectedStatuses} selectedCategory={categoryFilter || 'all'}
-              selectedCollaborator={collaboratorFilter || 'all'} selectedClient={clientFilter || 'all'}
-              dateRange={date} onSearchClick={() => setIsSearchOpen(true)} onStatusFilterChange={handleStatusFilterChange}
-              onStatusDoubleClick={handleStatusDoubleClick} onStatusBatchChange={handleStatusBatchChange}
-              onCategoryChange={handleCategoryChange} onCollaboratorChange={handleCollaboratorChange} onClientChange={handleClientChange}
-              onDateRangeChange={handleDateRangeChange} onClearFilters={handleClearFilters} sortFilter={sortFilter || 'deadline-asc'}
-              handleSortChange={handleSortChange} viewMode={currentViewMode} T={T}
-              allCategories={categories} collaborators={collaborators} clients={clients}
-              statuses={context?.appData?.appSettings?.statusSettings || []} statusColors={appSettings.statusColors}
-            />
-            </div>
-            
-            <div className="flex-shrink-0 self-start sticky top-0 z-10 flex items-center gap-2">
-              <ViewModeToggle
-                currentMode={currentViewMode}
-                onModeChange={handleViewModeChange}
-                T={T}
+      {!isFullView && (
+        <div className="flex-shrink-0">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex-1 min-w-0">
+              <FilterChipBar
+                selectedStatuses={selectedStatuses} selectedCategory={categoryFilter || 'all'}
+                selectedCollaborator={collaboratorFilter || 'all'} selectedClient={clientFilter || 'all'}
+                dateRange={date} onSearchClick={() => setIsSearchOpen(true)} onStatusFilterChange={handleStatusFilterChange}
+                onStatusDoubleClick={handleStatusDoubleClick} onStatusBatchChange={handleStatusBatchChange}
+                onCategoryChange={handleCategoryChange} onCollaboratorChange={handleCollaboratorChange} onClientChange={handleClientChange}
+                onDateRangeChange={handleDateRangeChange} onClearFilters={handleClearFilters} sortFilter={sortFilter || 'deadline-asc'}
+                handleSortChange={handleSortChange} viewMode={currentViewMode} T={T}
+                allCategories={categories} collaborators={collaborators} clients={clients}
+                statuses={context?.appData?.appSettings?.statusSettings || []} statusColors={appSettings.statusColors}
               />
+              </div>
+              
+              <div className="flex-shrink-0 self-start sticky top-0 z-10">
+                <div className="inline-flex items-stretch rounded-md overflow-hidden border py-2">
+                  <ViewModeToggle
+                    currentMode={currentViewMode}
+                    onModeChange={handleViewModeChange}
+                    T={T}
+                    className="rounded-none border-0"
+                  />
+                  <Button
+                    variant="outline"
+                    className="h-10 w-10 rounded-none border-0 border-l"
+                    onClick={toggleFullView}
+                    title={isFullView ? (T?.exitFullView || 'Exit full view') : (T?.enterFullView || 'Full view')}
+                    aria-label={isFullView ? (T?.exitFullView || 'Exit full view') : (T?.enterFullView || 'Full view')}
+                  >
+                    {isFullView ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-      </div>
+        </div>
+      )}
 
       
-      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <CardContent className={cn("flex-1 min-h-0 flex flex-col", currentViewMode === 'calendar' ? "p-0" : currentViewMode === 'table' ? "p-0" : currentViewMode === 'kanban' ? "p-0 overflow-hidden" : "p-0 overflow-y-auto")}>
+      <Card className={cn("flex-1 flex flex-col min-h-0 overflow-hidden", isFullView && "rounded-none border-0") }>
+        {isFullView && (
+          <div className="fixed top-3 right-3 z-50">
+            <Button size="icon" variant="secondary" onClick={toggleFullView} aria-label={T?.exitFullView || 'Exit full view'}>
+              <Minimize2 className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        <CardContent className={cn("flex-1 min-h-0 flex flex-col", currentViewMode === 'calendar' ? "p-0" : currentViewMode === 'table' ? "p-0" : currentViewMode === 'kanban' ? "p-0 overflow-hidden" : "p-0 overflow-y-auto", isFullView && "p-0") }>
             {renderView()}
         </CardContent>
       </Card>
       
-      {currentViewMode !== 'calendar' && currentViewMode !== 'eisenhower' && currentViewMode !== 'kanban' && currentViewMode !== 'gantt' && (
+      {!isFullView && currentViewMode !== 'calendar' && currentViewMode !== 'eisenhower' && currentViewMode !== 'kanban' && currentViewMode !== 'gantt' && (
         <div className="flex-shrink-0 border-t pt-4">
           <PaginationControls
               page={page} totalPages={totalPages} limit={limit}

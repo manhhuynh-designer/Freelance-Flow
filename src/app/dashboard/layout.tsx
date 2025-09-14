@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { DashboardProvider } from '@/contexts/dashboard-context';
 import { ThemeApplicator } from '@/components/theme-applicator';
 import { AppSidebar } from '@/components/layout/AppSidebar';
@@ -42,11 +42,6 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   
-  // Hide QuickChat when in AI hub or chat pages
-  const shouldShowQuickChat = !pathname?.includes('/dashboard/chat') && 
-                             !pathname?.includes('/dashboard/ai-hub') && 
-                             !pathname?.includes('/dashboard/ai-assistant');
-  
   return (
     <ThemeProvider
             attribute="class"
@@ -56,21 +51,37 @@ export default function DashboardLayout({
     >
         <DashboardProvider>
           <ClientOnly>
-<ThemeApplicator />
+            <ThemeApplicator />
             <Suspense fallback={<div>Loading...</div>}>
-              <SidebarProvider>
-                  <AppSidebar />
-                  <SidebarInset className="flex flex-col h-svh">
-                      <DashboardHeader />
-                      <main className="flex-1 min-h-0 overflow-y-auto">
-                        {children}
-                      </main>
-                  </SidebarInset>
-              </SidebarProvider>
-              {shouldShowQuickChat && <QuickChat />}
+              <DashboardLayoutShell pathname={pathname}>{children}</DashboardLayoutShell>
             </Suspense>
           </ClientOnly>
         </DashboardProvider>
     </ThemeProvider>
   )
+}
+
+function DashboardLayoutShell({ children, pathname }: { children: React.ReactNode; pathname: string | null }) {
+  const searchParams = useSearchParams();
+  const isFullView = searchParams?.get('full') === '1';
+
+  const shouldShowQuickChat = !isFullView &&
+    !pathname?.includes('/dashboard/chat') &&
+    !pathname?.includes('/dashboard/ai-hub') &&
+    !pathname?.includes('/dashboard/ai-assistant');
+
+  return (
+    <>
+      <SidebarProvider>
+        {!isFullView && <AppSidebar />}
+        <SidebarInset className="flex flex-col h-svh">
+          {!isFullView && <DashboardHeader />}
+          <main className={isFullView ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-y-auto"}>
+            {children}
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+      {shouldShowQuickChat && <QuickChat />}
+    </>
+  );
 }

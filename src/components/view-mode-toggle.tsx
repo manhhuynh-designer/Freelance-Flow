@@ -40,7 +40,7 @@ export function ViewModeToggle({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("min-w-[160px] max-w-full h-9 justify-between pt-7 pb-7", className)}
+          className={cn("min-w-[180px] h-10 justify-between px-3", className)}
         >
           <span className="flex items-center gap-2 truncate">
             {selectedOption?.icon}
@@ -58,7 +58,7 @@ export function ViewModeToggle({
               onModeChange(opt.value);
               setOpen(false);
             }}
-            className="w-full justify-start gap-2"
+            className="w-full justify-start gap-2 h-8 text-sm"
           >
             {opt.icon}
             <span className="truncate">{opt.label}</span>

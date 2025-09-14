@@ -145,10 +145,10 @@ export function FilterChipBar({
   return (
     <div className="space-y-6">
       {/* Bordered filter area */}
-      <div className="border border-border rounded-lg p-2 bg-background">
+  <div className="border border-border rounded-md bg-background py-2">
         
         {!isExpanded && (
-          <div className="flex items-center gap-3 flex-wrap min-h-[32px] mb-1 mt-2">
+          <div className="flex items-center gap-3 flex-wrap h-10 px-3">
             {/* Status Filter Buttons */}
             <div className="flex items-center gap-2">
               <TooltipProvider>
@@ -233,7 +233,7 @@ export function FilterChipBar({
 
             <div className="flex-grow" />
 
-            <Button variant="outline" className="h-8 w-[150px] lg:w-[250px] justify-start text-muted-foreground" onClick={onSearchClick}>
+            <Button variant="outline" className="h-10 w-[150px] lg:w-[250px] justify-start text-muted-foreground" onClick={onSearchClick}>
                 <Search className="mr-2 h-4 w-4" />
                 Search tasks...
             </Button>
@@ -241,9 +241,8 @@ export function FilterChipBar({
             {/* Expand/Collapse Button */}
             <Button
               variant="ghost"
-              size="sm"
+              className="h-10 px-3 flex-shrink-0"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="flex-shrink-0"
             >
               {isExpanded ? (
                 <>
