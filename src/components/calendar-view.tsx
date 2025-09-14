@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import type { Task, Quote, Client, QuoteColumn, QuoteTemplate, Collaborator, AppSettings, Category, AppEvent } from '@/lib/types';
 import { i18n } from '@/lib/i18n';
 import { CalendarGrid } from './calendar/CalendarGrid';
@@ -136,6 +136,56 @@ export function CalendarView({
   const handleTodayClick = () => onDateChange?.(new Date());
 
   const handleViewModeChange = (mode: CalendarDisplayMode) => onViewModeChange?.(mode);
+
+  // Month/Year picker state
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState<number>(currentDate.getFullYear());
+  const titleRef = useRef<HTMLDivElement | null>(null);
+  const pickerRef = useRef<HTMLDivElement | null>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node | null;
+      if (!t) return;
+      if (pickerRef.current && pickerRef.current.contains(t)) return;
+      if (titleRef.current && titleRef.current.contains(t)) return;
+      setPickerOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPickerOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [pickerOpen]);
+
+  const monthNames: string[] = [
+    t.months?.january || 'January', t.months?.february || 'February',
+    t.months?.march || 'March', t.months?.april || 'April', t.months?.may || 'May',
+    t.months?.june || 'June', t.months?.july || 'July', t.months?.august || 'August',
+    t.months?.september || 'September', t.months?.october || 'October',
+    t.months?.november || 'November', t.months?.december || 'December'
+  ];
+
+  const titleText = viewMode === 'week'
+    ? `${formatMonthYear(currentDate, t)} (${t.weekNumber} ${getWeekNumber(currentDate)})`
+    : formatMonthYear(currentDate, t);
+
+  const handleOpenPicker = () => {
+    setPickerYear(currentDate.getFullYear());
+    setPickerOpen((v) => !v);
+  };
+
+  const selectMonth = (monthIndex: number) => {
+    const newDate = new Date(pickerYear, monthIndex, 1);
+    onDateChange?.(newDate);
+    setPickerOpen(false);
+  };
   
   return (
     <>
@@ -189,8 +239,69 @@ export function CalendarView({
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9,18 15,12 9,6"></polyline></svg>
             </button>
           </div>
-          <div className={styles.titleSection}>
-            <h2 className={styles.titleMain}>{viewMode === 'week' ? `${formatMonthYear(currentDate, t)} (${t.weekNumber} ${getWeekNumber(currentDate)})` : formatMonthYear(currentDate, t)}</h2>
+          <div className={`${styles.titleSection} relative`} ref={titleRef}>
+            <button
+              type="button"
+              className={`${styles.titleMain} inline-flex items-center gap-2 cursor-pointer select-none hover:text-primary transition-colors`}
+              onClick={handleOpenPicker}
+              aria-haspopup="dialog"
+              aria-label={'Choose month and year'}
+            >
+              {titleText}
+              <svg
+                className={`h-4 w-4 transition-transform ${pickerOpen ? 'rotate-180' : 'rotate-0'}`}
+                viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"
+              >
+                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.108l3.71-3.877a.75.75 0 111.08 1.04l-4.24 4.43a.75.75 0 01-1.08 0l-4.24-4.43a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+              </svg>
+            </button>
+
+            {pickerOpen && (
+              <div
+                ref={pickerRef}
+                role="dialog"
+                aria-label={'Choose month and year'}
+                className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 w-80 rounded-md border border-gray-200 bg-white shadow-lg p-3"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <button
+                    type="button"
+                    className="px-2 py-1 rounded hover:bg-gray-100"
+                    onClick={() => setPickerYear((y) => y - 1)}
+                    aria-label={'Previous year'}
+                    title={'Previous year'}
+                  >
+                    ‹
+                  </button>
+                  <div className="font-medium">{pickerYear}</div>
+                  <button
+                    type="button"
+                    className="px-2 py-1 rounded hover:bg-gray-100"
+                    onClick={() => setPickerYear((y) => y + 1)}
+                    aria-label={'Next year'}
+                    title={'Next year'}
+                  >
+                    ›
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {monthNames.map((name, idx) => {
+                    const isActive = currentDate.getFullYear() === pickerYear && currentDate.getMonth() === idx;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        className={`px-2 py-2 rounded text-sm border border-transparent hover:border-gray-200 hover:bg-gray-50 ${isActive ? 'bg-blue-50 text-blue-700 border-blue-200' : 'text-gray-700'}`}
+                        onClick={() => selectMonth(idx)}
+                        aria-current={isActive ? 'date' : undefined}
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           <div className={styles.viewModeGroup}>
             <button type="button" className={`${styles.viewModeButton} ${viewMode === 'week' ? styles.active : ''}`} onClick={() => handleViewModeChange('week')} title={t.switchToWeekView} aria-label={t.switchToWeekView}>

@@ -1,4 +1,4 @@
-import React, { useRef, useLayoutEffect, useMemo } from 'react';
+import React, { useRef, useLayoutEffect, useMemo, useState, useEffect } from 'react';
 import { Target, Flag } from 'lucide-react';
 import styles from './GanttView.module.css';
 import ganttStyles from './GanttUnified.module.css';
@@ -213,6 +213,136 @@ export const GanttUnified: React.FC<{
   const dayColumnRef = useRef<HTMLDivElement>(null);
   const T = i18n[language as 'en' | 'vi'] || i18n.en;
   
+  // Month/Year picker state
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState<number>(displayDate.getFullYear());
+  const pickerRef = useRef<HTMLDivElement | null>(null);
+  const pickerButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  // Close picker on outside click
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node | null;
+      if (!t) return;
+      if (pickerRef.current && pickerRef.current.contains(t)) return;
+      if (pickerButtonRef.current && pickerButtonRef.current.contains(t)) return;
+      setPickerOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPickerOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [pickerOpen]);
+
+  // Month names for picker
+  const monthNames: string[] = [
+    T.months?.january || 'January', T.months?.february || 'February',
+    T.months?.march || 'March', T.months?.april || 'April', T.months?.may || 'May',
+    T.months?.june || 'June', T.months?.july || 'July', T.months?.august || 'August',
+    T.months?.september || 'September', T.months?.october || 'October',
+    T.months?.november || 'November', T.months?.december || 'December'
+  ];
+
+  const handleOpenPicker = () => {
+    setPickerYear(displayDate.getFullYear());
+    setPickerOpen(!pickerOpen);
+  };
+
+  const selectMonth = (monthIndex: number) => {
+    const newDate = new Date(pickerYear, monthIndex, 1);
+    onDisplayDateChange(newDate);
+    setPickerOpen(false);
+  };
+
+  // DraggableDate component for timeline header navigation
+  const DraggableDate = ({ 
+    children, 
+    dayIndex, 
+    className 
+  }: { 
+    children: React.ReactNode; 
+    dayIndex: number; 
+    className?: string; 
+  }) => {
+    const [isDragging, setIsDragging] = useState(false);
+    const dragStartRef = useRef({ x: 0, initialDate: displayDate.getTime() });
+    const lastUpdateRef = useRef<number>(0);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(true);
+      dragStartRef.current = { x: e.clientX, initialDate: displayDate.getTime() };
+      lastUpdateRef.current = Date.now();
+      
+      const handleMouseMove = (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const now = Date.now();
+        // Throttle updates to prevent conflicts
+        if (now - lastUpdateRef.current < 100) {
+          return;
+        }
+        lastUpdateRef.current = now;
+        
+        const deltaX = e.clientX - dragStartRef.current.x;
+        let daysDelta = 0;
+        
+        // Adjust sensitivity for navigation controls - slower for better control
+        if (viewMode === 'day') {
+          // In day view: every 20px = 1 day for finer control
+          daysDelta = Math.round(deltaX / 20);
+        } else {
+          // In month view: every 40px = 1 month for finer control  
+          daysDelta = Math.round(deltaX / 40) * 30; // Convert months to days
+        }
+        
+        if (Math.abs(daysDelta) >= 1) {
+          const newTime = dragStartRef.current.initialDate + (daysDelta * 24 * 60 * 60 * 1000);
+          const newDate = new Date(newTime);
+          
+          onDisplayDateChange(newDate);
+          
+          // Update reference point for smooth dragging
+          dragStartRef.current.x = e.clientX;
+          dragStartRef.current.initialDate = newTime;
+        }
+      };
+
+      const handleMouseUp = (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    };
+
+    return (
+      <span
+        className={`${className || ''} ${isDragging ? 'cursor-grabbing bg-blue-50' : 'cursor-ew-resize hover:bg-gray-50'} transition-colors select-none inline-block px-1 py-0.5 rounded`}
+        onMouseDown={handleMouseDown}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        title="Kéo trái/phải để thay đổi timeline"
+      >
+        {children}
+      </span>
+    );
+  };
+  
   const timelineStart = parseDateSafely(displayDate);
   const monthHeaderGroups: MonthHeaderGroup[] = [];
   const dayLabels: { day: string; isMonthStart: boolean }[] = [];
@@ -335,8 +465,83 @@ export const GanttUnified: React.FC<{
   >{T.todayButton || 'Today'}</button>
         <div className={ganttStyles['gantt-controls__date']}>
           <button onClick={() => handleNavigate('prev')} className={ganttStyles['gantt-controls__nav-btn']}>‹</button>
-          <span className={ganttStyles['gantt-controls__date-label']}>{formattedDate}</span>
+          <DraggableDate
+            dayIndex={0}
+            className={ganttStyles['gantt-controls__date-label']}
+          >
+            {formattedDate}
+          </DraggableDate>
           <button onClick={() => handleNavigate('next')} className={ganttStyles['gantt-controls__nav-btn']}>›</button>
+          
+          {/* Month-Year Picker integrated with navigation */}
+          <div className="relative ml-2">
+            <button
+              ref={pickerButtonRef}
+              type="button"
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              onClick={handleOpenPicker}
+              aria-haspopup="dialog"
+              aria-label="Choose month and year"
+              title="Quick jump to month"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z" />
+              </svg>
+              <svg
+                className={`h-2.5 w-2.5 transition-transform ${pickerOpen ? 'rotate-180' : 'rotate-0'}`}
+                viewBox="0 0 20 20" fill="currentColor"
+              >
+                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.108l3.71-3.877a.75.75 0 111.08 1.04l-4.24 4.43a.75.75 0 01-1.08 0l-4.24-4.43a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+              </svg>
+            </button>
+
+            {pickerOpen && (
+              <div
+                ref={pickerRef}
+                role="dialog"
+                aria-label="Choose month and year"
+                className="absolute top-full right-0 mt-1 z-50 w-72 rounded-md border border-gray-200 bg-white shadow-lg p-3"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <button
+                    type="button"
+                    className="px-2 py-1 rounded hover:bg-gray-100 text-sm"
+                    onClick={() => setPickerYear((y) => y - 1)}
+                    aria-label="Previous year"
+                    title="Previous year"
+                  >
+                    ‹
+                  </button>
+                  <div className="font-medium text-sm">{pickerYear}</div>
+                  <button
+                    type="button"
+                    className="px-2 py-1 rounded hover:bg-gray-100 text-sm"
+                    onClick={() => setPickerYear((y) => y + 1)}
+                    aria-label="Next year"
+                    title="Next year"
+                  >
+                    ›
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-1">
+                  {monthNames.map((name, idx) => {
+                    const isActive = displayDate.getFullYear() === pickerYear && displayDate.getMonth() === idx;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        className={`px-2 py-1.5 rounded text-xs border border-transparent hover:border-gray-200 hover:bg-gray-50 ${isActive ? 'bg-blue-50 text-blue-700 border-blue-200' : 'text-gray-700'}`}
+                        onClick={() => selectMonth(idx)}
+                        aria-current={isActive ? 'date' : undefined}
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       
