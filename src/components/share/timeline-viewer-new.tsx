@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { AppSettings, Category, Client, Milestone, Quote, Task } from '@/lib/types';
 import { format, differenceInDays, addDays } from 'date-fns';
@@ -12,6 +14,33 @@ type Props = {
 };
 
 export default function TimelineViewer({ task, quote, milestones = [], settings, clients, categories }: Props) {
+  // Scroll container ref for custom wheel handling
+  const scrollRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Native non-passive wheel listener to block page scroll and map to horizontal scroll
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const deltaX = e.deltaX;
+      const deltaY = e.deltaY;
+      const canScrollHoriz = el.scrollWidth > el.clientWidth;
+      if (!canScrollHoriz) return;
+
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        el.scrollLeft += deltaX;
+      } else {
+        el.scrollLeft += deltaY * 0.7;
+      }
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel as EventListener);
+  }, []);
   // Extract milestones from task if not provided directly
   const actualMilestones = milestones.length > 0 ? milestones : (task.milestones || []);
 
@@ -103,13 +132,13 @@ export default function TimelineViewer({ task, quote, milestones = [], settings,
     if (!timelineStart || totalDays <= 0) return [];
     
     const headers = [];
-    const stepDays = totalDays > 60 ? 7 : totalDays > 30 ? 3 : 1; // Show weekly/3-day/daily headers based on project length
     
-    for (let i = 0; i < totalDays; i += stepDays) {
+    // Always show every day for accurate grid
+    for (let i = 0; i < totalDays; i++) {
       const date = addDays(timelineStart, i);
       headers.push({
         date,
-        position: (i / totalDays) * 100,
+        position: (i / (totalDays - 1)) * 100, // Use totalDays - 1 for proper spacing
         label: formatShortDate(date)
       });
     }
@@ -118,6 +147,35 @@ export default function TimelineViewer({ task, quote, milestones = [], settings,
   };
 
   const dateHeaders = generateDateHeaders();
+
+  // Add mouse wheel horizontal scroll handler with complete conflict resolution
+  const handleWheelScroll = (e: React.WheelEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    if (!container) return;
+
+    // Always prevent page scrolling when mouse is over the timeline
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Check if we're trying to scroll horizontally vs vertically
+    const isHorizontalIntent = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+    const isVerticalIntent = Math.abs(e.deltaY) > Math.abs(e.deltaX);
+    
+    // Check scroll boundaries
+    const canScrollLeft = container.scrollLeft > 0;
+    const canScrollRight = container.scrollLeft < (container.scrollWidth - container.clientWidth);
+    const canScrollHorizontally = canScrollLeft || canScrollRight;
+    
+    // Handle horizontal scrolling intent
+    if (isHorizontalIntent && canScrollHorizontally) {
+      container.scrollLeft += e.deltaX;
+    }
+    // Handle vertical scrolling - convert to horizontal if possible
+    else if (isVerticalIntent && canScrollHorizontally) {
+      container.scrollLeft += e.deltaY * 0.5; // Reduce sensitivity for smoother scroll
+    }
+    // If no horizontal scrolling is possible, do nothing (prevent page scroll)
+  };
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-6">
@@ -166,17 +224,26 @@ export default function TimelineViewer({ task, quote, milestones = [], settings,
           </div>
           
           {/* Timeline Grid */}
-          <div className="overflow-x-auto">
-            <div className="min-w-full" style={{ minWidth: '800px' }}>
+          <div 
+            ref={scrollRef}
+            className="overflow-x-auto hover:overflow-x-scroll overscroll-contain" 
+            style={{ scrollbarWidth: 'thin' }}
+          >
+            <div className="min-w-full" style={{ minWidth: `${Math.max(800, totalDays * 50 + 264)}px` }}>
               {/* Date Headers */}
               <div className="relative bg-gray-50 border-b border-gray-200 h-12 flex items-center px-4">
                 <div className="w-64 flex-shrink-0 text-sm font-medium text-gray-700">Milestone</div>
-                <div className="flex-1 relative">
+                <div className="flex-1 relative" style={{ minWidth: `${totalDays * 50}px` }}>
                   {dateHeaders.map((header, index) => (
                     <div
                       key={index}
                       className="absolute text-xs text-gray-600 font-medium"
-                      style={{ left: `${header.position}%`, transform: 'translateX(-50%)' }}
+                      style={{ 
+                        left: `${(index / totalDays) * 100}%`, 
+                        width: `${100 / totalDays}%`,
+                        minWidth: '50px',
+                        fontSize: '11px'
+                      }}
                     >
                       {header.label}
                     </div>
@@ -185,14 +252,27 @@ export default function TimelineViewer({ task, quote, milestones = [], settings,
               </div>
               
               {/* Milestone Rows */}
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 relative">
+                {/* Full-height background grid */}
+                <div className="absolute inset-0 pointer-events-none">
+                  {dateHeaders.map((_, index) => (
+                    <div
+                      key={index}
+                      className="absolute border-l border-gray-300 h-full"
+                      style={{ left: `${256 + (index * 50)}px`, width: '1px' }}
+                    />
+                  ))}
+                  {/* Right border to close the grid */}
+                  <div className="absolute border-l border-gray-300 h-full right-0" />
+                </div>
+                
                 {actualMilestones.map((milestone, index) => {
                   const position = getMilestonePosition(milestone);
                   const progress = calculateProgress(milestone.startDate, milestone.endDate);
                   const statusText = getStatusText(milestone.startDate, milestone.endDate);
                   
                   return (
-                    <div key={milestone.id || index} className="flex items-center py-3 px-4 hover:bg-gray-50">
+                    <div key={milestone.id || index} className="flex items-center py-2 px-4 hover:bg-gray-50">
                       {/* Milestone Info */}
                       <div className="w-64 flex-shrink-0 pr-4">
                         <div className="flex items-center gap-2 mb-1">
@@ -219,33 +299,13 @@ export default function TimelineViewer({ task, quote, milestones = [], settings,
                       </div>
                       
                       {/* Timeline Bar */}
-                      <div className="flex-1 relative h-8">
-                        {/* Background grid lines */}
-                        <div className="absolute inset-0 flex">
-                          {dateHeaders.map((_, index) => (
-                            <div
-                              key={index}
-                              className="border-l border-gray-200 h-full"
-                              style={{ left: `${(index / (dateHeaders.length - 1)) * 100}%` }}
-                            ></div>
-                          ))}
-                        </div>
-                        
+                      <div className="flex-1 relative h-10">
                         {/* Milestone Bar */}
                         <div
-                          className="absolute top-1 h-6 rounded-md shadow-sm border border-gray-300"
-                          style={{
-                            left: `${position.left}%`,
-                            width: `${position.width}%`,
-                            backgroundColor: milestone.color || '#3b82f6',
-                            opacity: statusText === 'Completed' ? 1 : 0.8
-                          }}
+                          className="absolute top-1 h-8 rounded-md shadow-sm border border-gray-300 flex items-center"
+                          style={{ left: `${position.left}%`, width: `${position.width}%`, backgroundColor: milestone.color || '#3b82f6', opacity: statusText === 'Completed' ? 1 : 0.8 }}
                         >
-                          {/* Progress indicator */}
-                          <div
-                            className="h-full bg-black bg-opacity-20 rounded-md transition-all duration-500"
-                            style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-                          ></div>
+                          <span className="text-white text-xs font-medium px-2 truncate">{milestone.name}</span>
                         </div>
                       </div>
                     </div>

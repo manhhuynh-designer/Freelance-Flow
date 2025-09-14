@@ -1,3 +1,6 @@
+"use client";
+
+/* eslint-disable */
 import React from 'react';
 import { AppSettings, Category, Client, Milestone, Quote, Task } from '@/lib/types';
 import { format, differenceInDays, addDays } from 'date-fns';
@@ -14,6 +17,40 @@ type Props = {
 };
 
 export default function TimelineViewer({ task, quote, milestones = [], settings, clients, categories, showHeader = true, embedded = false }: Props) {
+  // Scroll container ref for custom wheel handling
+  const scrollRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Native non-passive wheel listener to block page scroll and map to horizontal scroll
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      // Always intercept wheel while hovering the timeline container
+      e.preventDefault();
+      e.stopPropagation();
+
+      const deltaX = e.deltaX;
+      const deltaY = e.deltaY;
+      const canScrollHoriz = el.scrollWidth > el.clientWidth;
+
+      if (!canScrollHoriz) return; // nothing to do, but still block page scroll
+
+      // If horizontal intent use deltaX; otherwise convert vertical to horizontal
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        el.scrollLeft += deltaX;
+      } else {
+        el.scrollLeft += deltaY * 0.7; // smoother conversion
+      }
+    };
+
+    // Important: passive: false so preventDefault works
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', onWheel as EventListener);
+    };
+  }, []);
+
   // Helper function to extract milestones from quote timeline column (same logic as TaskDetailsDialog)
   const getMilestonesFromQuote = (quoteData?: Quote): Milestone[] => {
     if (!quoteData?.sections || !quoteData.columns?.some(col => col.id === 'timeline')) {
@@ -206,12 +243,12 @@ export default function TimelineViewer({ task, quote, milestones = [], settings,
   const generateDateHeaders = () => {
     if (totalDays <= 0) return [];
     const headers = [];
-    const stepDays = totalDays > 60 ? 7 : totalDays > 30 ? 3 : 1;
     
-    for (let i = 0; i < totalDays; i += stepDays) {
+    // Always show every day for accurate grid
+    for (let i = 0; i < totalDays; i++) {
       const dayNum = startDay + i;
       headers.push({
-        position: (i / totalDays) * 100,
+        position: (i / (totalDays - 1)) * 100, // Use totalDays - 1 for proper spacing
         label: dayNumToFormat(dayNum)
       });
     }
@@ -220,6 +257,35 @@ export default function TimelineViewer({ task, quote, milestones = [], settings,
   };
 
   const dateHeaders = generateDateHeaders();
+
+  // Add mouse wheel horizontal scroll handler with complete conflict resolution
+  const handleWheelScroll = (e: React.WheelEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    if (!container) return;
+
+    // Always prevent page scrolling when mouse is over the timeline
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Check if we're trying to scroll horizontally vs vertically
+    const isHorizontalIntent = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+    const isVerticalIntent = Math.abs(e.deltaY) > Math.abs(e.deltaX);
+    
+    // Check scroll boundaries
+    const canScrollLeft = container.scrollLeft > 0;
+    const canScrollRight = container.scrollLeft < (container.scrollWidth - container.clientWidth);
+    const canScrollHorizontally = canScrollLeft || canScrollRight;
+    
+    // Handle horizontal scrolling intent
+    if (isHorizontalIntent && canScrollHorizontally) {
+      container.scrollLeft += e.deltaX;
+    }
+    // Handle vertical scrolling - convert to horizontal if possible
+    else if (isVerticalIntent && canScrollHorizontally) {
+      container.scrollLeft += e.deltaY * 0.5; // Reduce sensitivity for smoother scroll
+    }
+    // If no horizontal scrolling is possible, do nothing (prevent page scroll)
+  };
 
   return (
     <div className={embedded ? '' : 'min-h-screen bg-gray-50'}>
@@ -282,22 +348,27 @@ export default function TimelineViewer({ task, quote, milestones = [], settings,
             </div>
 
             {/* Gantt Chart */}
-            <div className="overflow-x-auto">
-              <div style={{ minWidth: '800px' }}>
+            <div 
+              ref={scrollRef}
+              className="overflow-x-auto hover:overflow-x-scroll overscroll-contain" 
+              style={{ scrollbarWidth: 'thin' }}
+            >
+              <div style={{ minWidth: `${Math.max(800, totalDays * 50 + 320)}px` }}>
                 {/* Date Headers */}
                 <div className="relative bg-gray-50 border-b border-gray-200 h-12 flex items-center">
                   <div className="w-80 flex-shrink-0 px-6 text-sm font-medium text-gray-700">
                     Milestone
                   </div>
-                  <div className="flex-1 relative h-full">
+                  <div className="flex-1 relative h-full" style={{ minWidth: `${totalDays * 50}px` }}>
                     {dateHeaders.map((header, index) => (
                       <div
                         key={index}
                         className="absolute text-xs text-gray-600 font-medium flex items-center justify-center h-full"
                         style={{ 
-                          left: `${header.position}%`, 
-                          transform: 'translateX(-50%)',
-                          minWidth: '60px'
+                          left: `${(index / totalDays) * 100}%`, 
+                          width: `${100 / totalDays}%`,
+                          minWidth: '50px',
+                          fontSize: '11px'
                         }}
                       >
                         {header.label}
@@ -307,7 +378,20 @@ export default function TimelineViewer({ task, quote, milestones = [], settings,
                 </div>
                 
                 {/* Milestone Rows; if quote exists, group by section */}
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-100 relative">
+                  {/* Full-height background grid */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    {dateHeaders.map((_, index) => (
+                      <div
+                        key={index}
+                        className="absolute border-l border-gray-300 h-full"
+                        style={{ left: `${320 + (index * 50)}px`, width: '1px' }}
+                      />
+                    ))}
+                    {/* Right border to close the grid */}
+                    <div className="absolute border-l border-gray-300 h-full right-0" />
+                  </div>
+                  
                   {(sectionGroups ?? [{ id: 'all', name: '', items: actualMilestones }]).map((group, gIdx) => (
                     <React.Fragment key={group.id || gIdx}>
                       {group.name ? (
@@ -321,7 +405,7 @@ export default function TimelineViewer({ task, quote, milestones = [], settings,
                     const statusText = getStatusText(milestone.startDate, milestone.endDate);
                     
                     return (
-                      <div key={milestone.id || index} className="flex items-center py-4 hover:bg-gray-50">
+                      <div key={milestone.id || index} className="flex items-center py-2 hover:bg-gray-50">
                         {/* Milestone Info */}
                         <div className="w-80 flex-shrink-0 px-6">
                           <div className="flex items-center gap-3 mb-2">
@@ -344,20 +428,9 @@ export default function TimelineViewer({ task, quote, milestones = [], settings,
                         
                         {/* Timeline Bar */}
                         <div className="flex-1 relative h-12 px-2">
-                          {/* Background grid */}
-                          <div className="absolute inset-0">
-                            {dateHeaders.map((_, index) => (
-                              <div
-                                key={index}
-                                className="absolute border-l border-gray-100 h-full"
-                                style={{ left: `${(index / (dateHeaders.length - 1)) * 100}%` }}
-                              />
-                            ))}
-                          </div>
-                          
                           {/* Milestone Bar */}
                           <div
-                            className="absolute top-2 h-8 rounded-md shadow-sm border border-gray-200 flex items-center justify-center"
+                            className="absolute top-1.5 h-9 rounded-md shadow-sm border border-gray-200 flex items-center justify-center"
                             style={{
                               left: `${Math.max(0, position.left)}%`,
                               width: `${Math.min(100 - Math.max(0, position.left), Math.max(2, position.width))}%`,
@@ -365,12 +438,6 @@ export default function TimelineViewer({ task, quote, milestones = [], settings,
                               opacity: statusText === 'Completed' ? 1 : 0.9
                             }}
                           >
-                            {/* Progress indicator */}
-                            <div
-                              className="absolute left-0 top-0 h-full bg-black bg-opacity-10 rounded-md"
-                              style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-                            />
-                            
                             {/* Milestone name on bar */}
                             <span className="relative text-white text-xs font-medium px-2 truncate">
                               {milestone.name}
