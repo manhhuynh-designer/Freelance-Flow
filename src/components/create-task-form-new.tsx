@@ -193,6 +193,7 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
   }), [settings.language]);
   
   const [isCollaboratorSectionOpen, setIsCollaboratorSectionOpen] = useState(false);
+  const [isPriceSectionOpen, setIsPriceSectionOpen] = useState(false);
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
   const [newClientName, setNewClientName] = useState("");
   
@@ -682,21 +683,35 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
           </div>
 
           <Separator />
-          <QuoteManager
-            control={control}
-            form={form}
-            fieldArrayName="sections"
-            columns={columns}
-            setColumns={setColumns}
-            title={T.priceQuote}
-            quoteTemplates={quoteTemplates}
-            settings={settings}
-            taskDescription={getValues('description') || ''}
-            taskCategory={categoryName}
-            onApplySuggestion={handleApplySuggestion}
-            taskStartDate={getValues('dates').from}
-            taskEndDate={getValues('dates').to}
-          />
+          <Collapsible open={isPriceSectionOpen} onOpenChange={setIsPriceSectionOpen}>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <CollapsibleTrigger asChild>
+                  <button type="button" className="flex items-center w-full group">
+                    <h3 className="text-lg font-medium">{T.priceQuote}</h3>
+                    <ChevronDown className="h-4 w-4 ml-2 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                  </button>
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent className="space-y-4 overflow-hidden transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                <QuoteManager
+                  control={control}
+                  form={form}
+                  fieldArrayName="sections"
+                  columns={columns}
+                  setColumns={setColumns}
+                  title={T.priceQuote}
+                  quoteTemplates={quoteTemplates}
+                  settings={settings}
+                  taskDescription={getValues('description') || ''}
+                  taskCategory={categoryName}
+                  onApplySuggestion={handleApplySuggestion}
+                  taskStartDate={getValues('dates').from}
+                  taskEndDate={getValues('dates').to}
+                />
+              </CollapsibleContent>
+            </div>
+          </Collapsible>
 
           <Separator />
           <Collapsible open={isCollaboratorSectionOpen} onOpenChange={setIsCollaboratorSectionOpen}>
@@ -710,7 +725,7 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
                 </CollapsibleTrigger>
               </div>
               
-              <CollapsibleContent className="space-y-4 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+              <CollapsibleContent className="space-y-4 overflow-hidden transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h4 className="text-sm font-medium">{T.collaborator || "Collaborators"}</h4>

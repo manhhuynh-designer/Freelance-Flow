@@ -213,14 +213,9 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
     router.push(`${pathname}${query}`);
   };
 
-  // Keyboard shortcuts: F to toggle, Escape to exit
+  // Keyboard shortcut: Escape to exit full view
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'f' && (e.ctrlKey || e.metaKey)) return; // avoid browser find
-      if (e.key.toLowerCase() === 'f') {
-        e.preventDefault();
-        toggleFullView();
-      }
       if (e.key === 'Escape' && isFullView) {
         e.preventDefault();
         const current = new URLSearchParams(searchParams);

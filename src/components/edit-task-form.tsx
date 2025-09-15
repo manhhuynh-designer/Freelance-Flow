@@ -218,6 +218,7 @@ export function EditTaskForm({
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
   const [newClientName, setNewClientName] = useState("");
   const [isCollaboratorSectionOpen, setIsCollaboratorSectionOpen] = useState(!!collaboratorQuotes && collaborators.length > 0 && collaboratorQuotes.length > 0); // Open if there are existing collab quotes
+  const [isPriceSectionOpen, setIsPriceSectionOpen] = useState(false);
 
   const defaultColumns: QuoteColumn[] = useMemo(() => [
     { id: 'description', name: T.description, type: 'text' },
@@ -847,22 +848,36 @@ export function EditTaskForm({
           {/* Price Quote Section */}
           <Separator />
 
-          {/* Quote Manager */}
-          <QuoteManager
-            control={form.control}
-            form={form}
-            fieldArrayName="sections"
-            columns={columns}
-            setColumns={setColumns}
-            title={T.priceQuote}
-            quoteTemplates={quoteTemplates}
-            settings={settings}
-            taskDescription={watchedDescription || ''}
-            taskCategory={categoryName}
-            onApplySuggestion={handleApplySuggestion}
-            taskStartDate={form.getValues('dates')?.from}
-            taskEndDate={form.getValues('dates')?.to}
-          />
+          {/* Quote Manager (collapsible) */}
+          <Collapsible open={isPriceSectionOpen} onOpenChange={setIsPriceSectionOpen}>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <CollapsibleTrigger asChild>
+                  <button type="button" className="flex items-center w-full group">
+                    <h3 className="text-lg font-medium">{T.priceQuote}</h3>
+                    <ChevronDown className="h-4 w-4 ml-2 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                  </button>
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent className="space-y-4 overflow-hidden transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                <QuoteManager
+                  control={form.control}
+                  form={form}
+                  fieldArrayName="sections"
+                  columns={columns}
+                  setColumns={setColumns}
+                  title={T.priceQuote}
+                  quoteTemplates={quoteTemplates}
+                  settings={settings}
+                  taskDescription={watchedDescription || ''}
+                  taskCategory={categoryName}
+                  onApplySuggestion={handleApplySuggestion}
+                  taskStartDate={form.getValues('dates')?.from}
+                  taskEndDate={form.getValues('dates')?.to}
+                />
+              </CollapsibleContent>
+            </div>
+          </Collapsible>
 
           {/* Collaborator Section */}
           <Collapsible open={isCollaboratorSectionOpen} onOpenChange={setIsCollaboratorSectionOpen}>
@@ -876,7 +891,7 @@ export function EditTaskForm({
                 </CollapsibleTrigger>
               </div>
               
-              <CollapsibleContent className="space-y-4 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+              <CollapsibleContent className="space-y-4 overflow-hidden transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                 {/* Multiple Collaborators Manager */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
