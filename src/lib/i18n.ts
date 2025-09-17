@@ -3,20 +3,24 @@
 // Import các module dịch đã tách
 import { vi_base } from './i18n/vi/base';
 import { vi_new } from './i18n/vi/new';
+import { vi_project } from './i18n/vi/new';
 import { en_base } from './i18n/en/base';
 import { en_new } from './i18n/en/new';
+import { en_project } from './i18n/en/new';
 import { Edit } from 'lucide-react';
 
 // Hợp nhất các bản dịch Tiếng Việt
 export const vi = {
   ...vi_base,
-  ...vi_new
+  ...vi_new,
+  ...vi_project,
 };
 
 // Hợp nhất các bản dịch Tiếng Anh
 export const en = {
   ...en_base,
-  ...en_new
+  ...en_new,
+  ...en_project,
 };
 // Simple language switcher based on user settings
 export const getTranslations = (language: string = 'vi') => {
@@ -30,6 +34,7 @@ export const i18n = {
   en: {
     ...en_base,
     ...en_new,
+    ...en_project,
     pathCopied: 'Path copied to clipboard',
     startDate: 'Start Date'
   ,deadline: 'Deadline',
@@ -257,6 +262,7 @@ viewEventDetailsDesc: 'View event details below.',
     },
     uncategorizedTasks: {
       title: 'Uncategorized Tasks',
+        ...vi_project,
       empty: 'No uncategorized tasks found.'
     },
     quadrantFull: 'Quadrant Full',

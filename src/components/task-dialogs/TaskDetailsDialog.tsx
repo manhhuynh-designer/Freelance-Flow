@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { format, differenceInDays } from "date-fns";
 import {
   Table,
@@ -415,7 +415,13 @@ export function TaskDetailsDialog({
   const dashboard = useDashboard();
   const contextUpdateTask = (dashboard && (dashboard.updateTask as any)) || undefined;
   const contextUpdateQuote = (dashboard && (dashboard.updateQuote as any)) || undefined;
-  
+
+  // Local state for quote to allow immediate UI update on payment changes
+  const [localQuote, setLocalQuote] = useState<Quote | undefined>(quote);
+  useEffect(() => {
+    setLocalQuote(quote);
+  }, [quote, isOpen]);
+
   // Stable update handler to prevent infinite loops in child components
   const stableUpdateTaskHandler = useCallback((updatedTask: Partial<Task> & { id: string }) => {
     const handler = onUpdateTask ?? contextUpdateTask;
@@ -427,6 +433,8 @@ export function TaskDetailsDialog({
   }, [onUpdateTask, contextUpdateTask]);
   // Stable update handler for quotes to ensure Timeline Creator works even when parent doesn’t pass a handler
   const stableUpdateQuoteHandler = useCallback((quoteId: string, updates: Partial<Quote>) => {
+    // Update local state immediately for payment progress
+    setLocalQuote(prev => prev && prev.id === quoteId ? { ...prev, ...updates } : prev);
     const handler = onUpdateQuote ?? contextUpdateQuote;
     if (handler) {
       handler(quoteId, updates);
@@ -488,6 +496,18 @@ export function TaskDetailsDialog({
     }
     return { ...lang };
   }, [settings.language]);
+
+  // Resolve linked project via context
+  const project = React.useMemo(() => {
+    try {
+      const pid = (task as any)?.projectId;
+      const all = (dashboard as any)?.appData?.projects || [];
+      return (all as any[]).find(p => p.id === pid) || null;
+    } catch {
+      return null;
+    }
+  }, [dashboard?.appData?.projects, (task as any)?.projectId]);
+  const [showAllProjectLinks, setShowAllProjectLinks] = React.useState(false);
 
   // Resolve status using user custom settings first, fallback to static STATUS_INFO
   const statusSetting = (settings.statusSettings || []).find(s => s.id === currentStatusId);
@@ -564,17 +584,17 @@ export function TaskDetailsDialog({
     }
   }, []);
 
+  // Always use localQuote for payment progress and calculations
   const totalQuote = useMemo(() => {
-    if (!quote?.sections) return 0;
-    const priceColumn = (quote.columns || defaultColumns).find(col => col.id === 'unitPrice');
+    if (!localQuote?.sections) return 0;
+    const priceColumn = (localQuote.columns || defaultColumns).find(col => col.id === 'unitPrice');
     if (!priceColumn) return 0;
-    
-    return quote.sections.reduce((acc, section) => {
+    return localQuote.sections.reduce((acc, section) => {
       return acc + (section.items?.reduce((itemAcc, item) => {
-        return itemAcc + calculateRowValue(item, priceColumn, quote.columns || defaultColumns);
+        return itemAcc + calculateRowValue(item, priceColumn, localQuote.columns || defaultColumns);
       }, 0) || 0);
     }, 0);
-  }, [quote, defaultColumns, calculateRowValue]);
+  }, [localQuote, defaultColumns, calculateRowValue]);
   
   // Calculate total for all collaborator quotes
   const totalCollabQuote = useMemo(() => {
@@ -1238,6 +1258,11 @@ export function TaskDetailsDialog({
             <span className="flex items-center gap-1">
               <Building2 className="h-4 w-4" /> {client?.name}
             </span>
+            {project && (
+              <span className="flex items-center gap-1">
+                <Briefcase className="h-4 w-4" /> {(project as any).name}
+              </span>
+            )}
             <span className="flex items-center gap-1">
               <span className="font-medium">{(category?.name && T.categories && (T.categories as any)[category.id]) || category?.name || ''}</span>
             </span>
@@ -1245,6 +1270,33 @@ export function TaskDetailsDialog({
         </div>
 
         {/* --- NAVIGATION BAR --- */}
+        {/* Project summary (if any) */}
+        {project && (
+          <div className="mb-3 p-3 rounded-md border bg-muted/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4" />
+                <span className="font-medium">Project:</span>
+                <span>{(project as any).name}</span>
+              </div>
+              {(project as any).status && (
+                <Badge variant="secondary" className="ml-2 uppercase">{(project as any).status}</Badge>
+              )}
+            </div>
+            {Array.isArray((project as any).links) && (project as any).links.length > 0 && (
+              <div className="mt-3">
+                <LinksDisplay
+                  links={(project as any).links}
+                  showAll={showAllProjectLinks}
+                  setShowAll={setShowAllProjectLinks}
+                  title={T.links || 'Links'}
+                  icon={LinkIcon}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
         <nav className="flex gap-2 mb-2 border-b pb-2">
           <button
             className={cn(
@@ -1514,7 +1566,7 @@ export function TaskDetailsDialog({
           {selectedNav === 'payment' && (
             <div className="space-y-4">
               <QuotePaymentManager
-                quote={quote}
+                quote={localQuote}
                 settings={settings}
                 onUpdateQuote={stableUpdateQuoteHandler}
                 totalFromPrice={totalQuote}

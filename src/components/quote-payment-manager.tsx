@@ -153,7 +153,8 @@ export function QuotePaymentManager({ quote, settings, totalFromPrice, onUpdateQ
   }
 
   const computedProgress = grandTotal > 0 ? Math.min(100, Math.round((amountPaid / grandTotal) * 100)) : 0;
-  const progress = taskStatus === 'done' ? 100 : computedProgress;
+  // Do not force 100% when taskStatus === 'done'; reflect actual payments
+  const progress = computedProgress;
 
   return (
     <div className="space-y-4">
@@ -275,13 +276,13 @@ export function QuotePaymentManager({ quote, settings, totalFromPrice, onUpdateQ
             <div className="col-span-9">
               <div className="flex items-center justify-between mb-2 text-sm">
                 <span className="text-muted-foreground">{T.amountPaid}:</span>
-                <span className="font-medium">{(taskStatus === 'done' ? grandTotal : amountPaid || 0).toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
+                <span className="font-medium">{(amountPaid || 0).toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}</span>
               </div>
               <Progress value={progress} className="h-3" />
               <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
                 <span>{progress}%</span>
                 <span>
-                  {(Math.max(0, (taskStatus === 'done' ? 0 : (grandTotal - (amountPaid || 0)))).toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US'))} {settings.currency} {T.remainingAmount || 'remaining'}
+                  {(Math.max(0, grandTotal - (amountPaid || 0)).toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US'))} {settings.currency} {T.remainingAmount || 'remaining'}
                 </span>
               </div>
             </div>

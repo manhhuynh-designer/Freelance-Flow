@@ -203,7 +203,7 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
   // Dialog / create task form state
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const createTaskFormRef = useRef<CreateTaskFormRef>(null);
-  const { appData, handleAddTask, handleAddClientAndSelect, handleViewTask } = useDashboard();
+  const { appData, handleAddTask, handleAddClientAndSelect, handleViewTask, addProject } = useDashboard();
 
   // Detect overflow: if scrollHeight > clientHeight, then tasks are being cropped
   const isOverflowing = () => {
@@ -333,6 +333,8 @@ export const CalendarCell: React.FC<CalendarCellProps> = (props: CalendarCellPro
             }}
             clients={appData.clients}
             onAddClient={handleAddClientAndSelect}
+            projects={appData.projects || []}
+            onAddProject={(data) => addProject?.(data)}
             quoteTemplates={appData.quoteTemplates}
             collaborators={appData.collaborators}
             settings={appData.appSettings}

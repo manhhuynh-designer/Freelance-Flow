@@ -82,7 +82,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
   } = context || {};
 
   const {
-      tasks = [], quotes = [], collaboratorQuotes = [], clients = [], 
+    tasks = [], quotes = [], collaboratorQuotes = [], clients = [], 
       collaborators = [], events = [], appSettings, quoteTemplates = [], categories = []
   } = appData || {};
   const collabQuotesAsQuote = useMemo(() => collaboratorQuotes as unknown as Quote[], [collaboratorQuotes]);
@@ -159,8 +159,8 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
 
   const {
     filteredTasks, unsortedFilteredTasks, selectedStatuses, categoryFilter, clientFilter, 
-    collaboratorFilter, date, sortFilter, handleStatusFilterChange, handleStatusDoubleClick, 
-    handleStatusBatchChange, handleCategoryChange, handleClientChange, handleCollaboratorChange, 
+    collaboratorFilter, projectFilter, date, sortFilter, handleStatusFilterChange, handleStatusDoubleClick, 
+    handleStatusBatchChange, handleCategoryChange, handleClientChange, handleProjectChange, handleCollaboratorChange, 
     handleDateRangeChange, handleSortChange, handleClearFilters,
   } = useFilterLogic(tasks, appSettings, view);
   
@@ -493,13 +493,13 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
               <div className="flex-1 min-w-0">
               <FilterChipBar
                 selectedStatuses={selectedStatuses} selectedCategory={categoryFilter || 'all'}
-                selectedCollaborator={collaboratorFilter || 'all'} selectedClient={clientFilter || 'all'}
+                selectedCollaborator={collaboratorFilter || 'all'} selectedClient={clientFilter || 'all'} selectedProject={projectFilter || 'all'}
                 dateRange={date} onSearchClick={() => setIsSearchOpen(true)} onStatusFilterChange={handleStatusFilterChange}
                 onStatusDoubleClick={handleStatusDoubleClick} onStatusBatchChange={handleStatusBatchChange}
-                onCategoryChange={handleCategoryChange} onCollaboratorChange={handleCollaboratorChange} onClientChange={handleClientChange}
+                onCategoryChange={handleCategoryChange} onCollaboratorChange={handleCollaboratorChange} onClientChange={handleClientChange} onProjectChange={handleProjectChange}
                 onDateRangeChange={handleDateRangeChange} onClearFilters={handleClearFilters} sortFilter={sortFilter || 'deadline-asc'}
                 handleSortChange={handleSortChange} viewMode={currentViewMode} T={T}
-                allCategories={categories} collaborators={collaborators} clients={clients}
+                allCategories={categories} collaborators={collaborators} clients={clients} projects={appData.projects || []}
                 statuses={context?.appData?.appSettings?.statusSettings || []} statusColors={appSettings.statusColors}
               />
               </div>

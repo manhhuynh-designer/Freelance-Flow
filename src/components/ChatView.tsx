@@ -62,7 +62,8 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
     handleEditTaskClick,
     editingTask,
     setEditingTask,
-    handleAddClientAndSelect
+    handleAddClientAndSelect,
+    addProject
   } = useDashboard();
   const { toast } = useToast();
   
@@ -1070,6 +1071,8 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
               collaborators={appData?.collaborators || []}
               categories={appData?.categories || []}
               onAddClient={handleAddClientAndSelect}
+              projects={appData?.projects || []}
+              onAddProject={(data) => addProject?.(data)}
               quoteTemplates={appData?.quoteTemplates || []}
               settings={appData?.appSettings}
             />
@@ -1103,6 +1106,8 @@ export default function ChatView({ isQuickChat = false, showHistoryPanel = true 
                 const newClient = { ...clientData, id: `client-${Date.now()}` };
                 return newClient;
               }}
+              projects={appData?.projects || []}
+              onAddProject={(data) => addProject?.(data)}
               quoteTemplates={appData?.quoteTemplates || []}
               settings={appData?.appSettings}
               onDirtyChange={() => { } }

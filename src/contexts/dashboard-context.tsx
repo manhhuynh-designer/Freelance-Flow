@@ -11,6 +11,7 @@ import { BackupService } from '@/lib/backup-service';
 import { PouchDBService } from '@/lib/pouchdb-service';
 import { browserLocal } from '@/lib/browser';
 import type { AppData, AppEvent, AppSettings, Category, Client, Collaborator, Quote, CollaboratorQuote, Task, QuoteTemplate, QuoteColumn } from '@/lib/types';
+import type { Project } from '@/lib/types';
 
 // Create a client once
 const queryClient = new QueryClient();
@@ -55,6 +56,8 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
     const [isCollaboratorManagerOpen, setIsCollaboratorManagerOpen] = useState(false);
     const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
     const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
+    // Project manager state
+    const [isProjectManagerOpen, setIsProjectManagerOpen] = useState(false);
     // Fixed costs manager state
     const [isFixedCostManagerOpen, setIsFixedCostManagerOpen] = useState(false);
 
@@ -114,6 +117,46 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
 
     // Data update helpers using setAppData
     const setAppData = data.setAppData as (updater: (prev: AppData) => AppData) => void;
+
+    // --- PROJECT CRUD HELPERS ---
+    // Add new project
+    const addProject = useCallback((project: Omit<Project, 'id' | 'tasks'>) => {
+        const id = `project-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+        setAppData(prev => ({
+            ...prev,
+            projects: [
+                ...(prev.projects || []),
+                { ...project, id, tasks: [] }
+            ]
+        }));
+        return id;
+    }, [setAppData]);
+
+    // Update project
+    const updateProject = useCallback((projectId: string, updates: Partial<Project>) => {
+        setAppData(prev => ({
+            ...prev,
+            projects: (prev.projects || []).map(p => p.id === projectId ? { ...p, ...updates } : p)
+        }));
+    }, [setAppData]);
+
+    // Delete project (and update tasks to remove projectId)
+    const deleteProject = useCallback((projectId: string) => {
+        setAppData(prev => {
+            // Remove project
+            const newProjects = (prev.projects || []).filter(p => p.id !== projectId);
+            // Remove projectId from tasks
+            const newTasks = (prev.tasks || []).map(t =>
+                (t as any).projectId === projectId ? { ...t, projectId: undefined } : t
+            );
+            return { ...prev, projects: newProjects, tasks: newTasks };
+        });
+    }, [setAppData]);
+
+    // Wrappers for manager component signature
+    const handleAddProject = useCallback((data: Omit<Project, 'id' | 'tasks'>) => { addProject(data); }, [addProject]);
+    const handleEditProject = useCallback((id: string, updates: Partial<Project>) => { updateProject(id, updates); }, [updateProject]);
+    const handleDeleteProject = useCallback((id: string) => { deleteProject(id); }, [deleteProject]);
 
     // NOTE: intentionally not auto-syncing sessions into appData to avoid feedback loops
     // between the local hook state and global appData. The hook persists to localStorage
@@ -253,9 +296,17 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                 briefLink: task.briefLink || [],
                 driveLink: task.driveLink || [],
                 createdAt: new Date().toISOString(),
+                projectId: task.projectId || undefined,
             } as Task;
 
             newPrev.tasks = [...(newPrev.tasks || []), newTask];
+            // If task belongs to a project, append its id to that project's tasks list
+            if (newTask.projectId) {
+                newPrev.projects = (newPrev.projects || []).map((p: any) => p.id === newTask.projectId
+                    ? { ...p, tasks: Array.from(new Set([...(p.tasks || []), newTask.id])) }
+                    : p
+                );
+            }
             return newPrev;
         });
 
@@ -270,6 +321,8 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
         
         setAppData(prev => {
             const newPrev = { ...prev } as AppData;
+            const oldTask = (newPrev.tasks || []).find((t: Task) => t.id === idToEdit);
+            const prevProjectId = (oldTask as any)?.projectId as string | undefined;
 
             // Update task
             newPrev.tasks = newPrev.tasks.map((t: Task) => {
@@ -285,6 +338,23 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                     collaboratorIds: collaboratorIds || t.collaboratorIds || []
                 };
             });
+
+            // Project membership maintenance
+            const updatedTask = (newPrev.tasks || []).find((t: Task) => t.id === idToEdit) as any;
+            const newProjectId = (values as any).hasOwnProperty('projectId') ? (values as any).projectId : prevProjectId;
+            if (prevProjectId && prevProjectId !== newProjectId) {
+                // Remove from previous project
+                newPrev.projects = (newPrev.projects || []).map((p: any) => p.id === prevProjectId
+                    ? { ...p, tasks: (p.tasks || []).filter((tid: string) => tid !== idToEdit) }
+                    : p
+                );
+            }
+            if (newProjectId) {
+                newPrev.projects = (newPrev.projects || []).map((p: any) => p.id === newProjectId
+                    ? { ...p, tasks: Array.from(new Set([...(p.tasks || []), idToEdit])) }
+                    : p
+                );
+            }
 
             // If we have an updated sections payload, update the linked quote's sections and total
             const targetTask = (newPrev.tasks || []).find((t: Task) => t.id === idToEdit);
@@ -705,6 +775,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
     isCollaboratorManagerOpen, setIsCollaboratorManagerOpen,
     isCategoryManagerOpen, setIsCategoryManagerOpen,
     isTemplateManagerOpen, setIsTemplateManagerOpen,
+    isProjectManagerOpen, setIsProjectManagerOpen,
     isFixedCostManagerOpen, setIsFixedCostManagerOpen,
         // PWA install prompt
         showInstallPrompt, setShowInstallPrompt, installPromptEvent, handleInstallClick,
@@ -741,6 +812,13 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
         reorderTasksInQuadrant,
         reorderTasksInStatus,
         updateKanbanSettings,
+    // Projects
+    addProject,
+    updateProject,
+    deleteProject,
+    handleAddProject,
+    handleEditProject,
+    handleDeleteProject,
     // Settings/Data mgmt
     handleClearAllData,
     handleClearOnlyData,

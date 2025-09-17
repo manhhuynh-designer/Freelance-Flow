@@ -128,6 +128,7 @@ export type Task = {
   dependencies?: string[]; // mảng các task ID mà nhiệm vụ này phụ thuộc vào
   createdAt?: string; // Ngày thêm task
   milestones?: Milestone[]; // Dữ liệu các mốc thời gian của task
+  projectId?: string; // liên kết project, có thể để trống
 };
 export type Milestone = {
   id: string;
@@ -172,6 +173,19 @@ export type Collaborator = {
 export type Category = {
   id: string;
   name: string;
+};
+
+// Project entity
+export type Project = {
+  id: string;
+  name: string;
+  description?: string;
+  startDate?: Date | string;
+  endDate?: Date | string;
+  status: 'planning' | 'active' | 'completed' | 'onhold' | 'archived';
+  clientId?: string;
+  links?: string[]; // array of URLs, optional
+  tasks: string[]; // array of task IDs
 };
 
 export type StatusInfo = {
@@ -241,6 +255,7 @@ export type FilterSettings = {
   selectedCategory: string;
   selectedCollaborator: string;
   selectedClient: string;
+  selectedProject: string;
   sortFilter: string;
   isExpanded: boolean;
   dateRange?: {
@@ -320,4 +335,5 @@ export type AppData = {
   fixedCosts?: FixedCost[]; // Chi phí cố định
   aiAnalyses?: AIAnalysis[]; // NEW
   aiProductivityAnalyses?: AIProductivityAnalysis[]; // NEW
+  projects?: Project[]; // Danh sách project
 };

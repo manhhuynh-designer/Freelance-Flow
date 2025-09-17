@@ -1,5 +1,6 @@
 import QuoteViewer from '@/components/share/quote-viewer';
 import TimelineViewer from '@/components/share/timeline-viewer';
+import { i18n } from '@/lib/i18n';
 import { headers } from 'next/headers';
 
 async function getOrigin() {
@@ -75,6 +76,7 @@ export default async function ShareViewerPage({ params }: { params: Promise<{ id
   // Unified landing-style page
   const task = (snapshot.kind === 'combined' ? snapshot.timeline?.task || snapshot.quote?.task : (snapshot as any).task) as any;
   const settings = (snapshot as any).settings || (snapshot.kind === 'combined' ? (snapshot.timeline?.settings || snapshot.quote?.settings) : undefined);
+  const T: any = (settings?.language && (i18n as any)[settings.language]) || {};
   const clients = (snapshot as any).clients || (snapshot.kind === 'combined' ? (snapshot.timeline?.clients || snapshot.quote?.clients) : undefined);
   const categories = (snapshot as any).categories || (snapshot.kind === 'combined' ? (snapshot.timeline?.categories || snapshot.quote?.categories) : undefined);
   const quotePart = snapshot.kind === 'quote' ? snapshot : (snapshot.kind === 'combined' ? snapshot.quote : undefined);
@@ -100,10 +102,10 @@ export default async function ShareViewerPage({ params }: { params: Promise<{ id
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex gap-2">
             {quotePart && (
-              <a href="#quote" className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-700 hover:bg-blue-50 rounded-md">Quote</a>
+              <a href="#quote" className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-700 hover:bg-blue-50 rounded-md">{T.priceQuote || 'Quote'}</a>
             )}
             {timelinePart && (
-              <a href="#timeline" className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-700 hover:bg-blue-50 rounded-md">Timeline</a>
+              <a href="#timeline" className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-700 hover:bg-blue-50 rounded-md">{(T as any).timeline || 'Timeline'}</a>
             )}
           </div>
         </div>
@@ -112,13 +114,13 @@ export default async function ShareViewerPage({ params }: { params: Promise<{ id
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-12">
         {quotePart && (
           <section id="quote">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Quote</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">{T.priceQuote || 'Quote'}</h2>
             <QuoteViewer {...(quotePart as any)} showHeader={false} />
           </section>
         )}
         {timelinePart && (
           <section id="timeline">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Timeline</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">{(T as any).timeline || 'Timeline'}</h2>
             <TimelineViewer {...(timelinePart as any)} showHeader={false} embedded />
           </section>
         )}

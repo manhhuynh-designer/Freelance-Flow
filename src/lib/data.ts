@@ -245,14 +245,15 @@ export const initialAppData: AppData = {
     events: [],
     notes: [],
     workSessions: [], // Initialize empty work sessions
-  expenses: [],
-  fixedCosts: [],
+    expenses: [],
+    fixedCosts: [],
     quotes,
     collaboratorQuotes: [],
     clients: initialClients,
     collaborators: initialCollaborators,
     quoteTemplates: initialQuoteTemplates,
     categories: categories,
+    projects: [], // <--- Thêm mảng project, khởi tạo rỗng
     appSettings: {
         theme: {
             primary: "221 83% 53%",
@@ -307,5 +308,6 @@ export const emptyAppData: AppData = {
   collaborators: [],
   quoteTemplates: [],
   categories: [],
+  projects: [],
   appSettings: { ...(initialAppData.appSettings ? JSON.parse(JSON.stringify(initialAppData.appSettings)) : {}) }
 };

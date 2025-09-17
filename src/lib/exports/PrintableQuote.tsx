@@ -15,7 +15,14 @@ const fallbackT = {
   deadline: 'Deadline',
   unitPrice: 'Unit Price',
   grandTotal: 'Grand Total',
-};
+  client: 'Client',
+  quoteCode: 'Quote ID',
+  createdAt: 'Created At',
+  invalidTimelineData: 'Invalid timeline data',
+  invalidDates: 'Invalid dates',
+  noTimeline: 'No timeline set',
+  quoteValidityNote: 'This quote is valid for 30 days from the issue date. Please contact us if you have any questions.'
+} as const;
 
 type Props = {
   quote: Quote;
@@ -227,10 +234,10 @@ export const PrintableQuote: React.FC<Props> = ({
             <h1 style={styles.h1}>
               {task.name}
             </h1>
-            <p style={styles.clientName}>{clientName || currentClient?.name || 'Tên Khách Hàng'}</p>
+            <p style={styles.clientName}>{clientName || currentClient?.name || T.client}</p>
             <div style={styles.quoteInfo}>
-              <p style={styles.quoteInfoP}><span style={styles.quoteInfoSpan}>Mã báo giá:</span> {quote.id || 'N/A'}</p>
-              <p style={styles.quoteInfoP}><span style={styles.quoteInfoSpan}>Ngày tạo:</span> {formatDate(task.createdAt || new Date())}</p>
+              <p style={styles.quoteInfoP}><span style={styles.quoteInfoSpan}>{T.quoteCode}:</span> {quote.id || 'N/A'}</p>
+              <p style={styles.quoteInfoP}><span style={styles.quoteInfoSpan}>{T.createdAt}:</span> {formatDate(task.createdAt || new Date())}</p>
             </div>
           </div>
           <div style={styles.detailsBox}>
@@ -302,13 +309,13 @@ export const PrintableQuote: React.FC<Props> = ({
                                 const endFormatted = format(end, "dd/MM/yyyy");
                                 formattedValue = `${startFormatted} - ${endFormatted}`;
                               } else {
-                                formattedValue = 'Invalid dates';
+                                formattedValue = T.invalidDates;
                               }
                             } catch (e) {
-                              formattedValue = 'Invalid dates';
+                              formattedValue = T.invalidDates;
                             }
                           } else {
-                            formattedValue = 'No timeline set';
+                            formattedValue = T.noTimeline;
                           }
                         } else {
                           formattedValue = String(displayValue);
@@ -341,7 +348,7 @@ export const PrintableQuote: React.FC<Props> = ({
           </div>
         </div>
         <div style={styles.notes}>
-          <p>Báo giá này có hiệu lực trong 30 ngày kể từ ngày ban hành. Mọi thắc mắc xin vui lòng liên hệ.</p>
+          <p>{T.quoteValidityNote}</p>
         </div>
       </div>
     </div>

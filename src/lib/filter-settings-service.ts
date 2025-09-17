@@ -80,6 +80,7 @@ export class FilterSettingsService {
       selectedCategory: 'all',
       selectedCollaborator: 'all',
       selectedClient: 'all',
+      selectedProject: 'all',
       sortFilter: 'deadline-asc',
       isExpanded: false,
     };
@@ -96,6 +97,7 @@ export class FilterSettingsService {
       selectedCategory: saved.selectedCategory || defaults.selectedCategory,
       selectedCollaborator: saved.selectedCollaborator || defaults.selectedCollaborator,
       selectedClient: saved.selectedClient || defaults.selectedClient,
+      selectedProject: saved.selectedProject || defaults.selectedProject,
       sortFilter: saved.sortFilter || defaults.sortFilter,
       isExpanded: saved.isExpanded !== undefined ? saved.isExpanded : defaults.isExpanded,
       dateRange: saved.dateRange || defaults.dateRange,

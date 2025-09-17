@@ -23,6 +23,7 @@ interface FilterChipBarProps {
   selectedCategory: string;
   selectedCollaborator: string;
   selectedClient: string;
+  selectedProject: string;
   dateRange: DateRange | undefined;
   
   // Handlers
@@ -32,6 +33,7 @@ interface FilterChipBarProps {
   onCategoryChange: (category: string) => void;
   onCollaboratorChange: (collaborator: string) => void;
   onClientChange: (client: string) => void;
+  onProjectChange: (project: string) => void;
   onDateRangeChange: (range: DateRange | undefined) => void;
   onClearFilters: () => void;
   onSearchClick: () => void;
@@ -48,6 +50,7 @@ interface FilterChipBarProps {
   allCategories: any[];
   collaborators: any[];
   clients: any[];
+  projects?: any[];
   statuses: any[];
   statusColors: Record<string, string>;
 }
@@ -57,6 +60,7 @@ export function FilterChipBar({
   selectedCategory,
   selectedCollaborator,
   selectedClient,
+  selectedProject,
   dateRange,
   onStatusFilterChange,
   onStatusDoubleClick,
@@ -64,6 +68,7 @@ export function FilterChipBar({
   onCategoryChange,
   onCollaboratorChange,
   onClientChange,
+  onProjectChange,
   onDateRangeChange,
   onClearFilters,
   onSearchClick,
@@ -74,6 +79,7 @@ export function FilterChipBar({
   allCategories,
   collaborators,
   clients,
+  projects = [],
   statuses,
   statusColors
 }: FilterChipBarProps) {
@@ -101,6 +107,11 @@ export function FilterChipBar({
     : (clients && typeof clients === 'object')
       ? Object.values(clients as any)
       : [];
+  const safeProjects = Array.isArray(projects)
+    ? projects
+    : (projects && typeof projects === 'object')
+      ? Object.values(projects as any)
+      : [];
 
   // Save expanded state to localStorage when it changes
   useEffect(() => {
@@ -123,6 +134,10 @@ export function FilterChipBar({
 
   const getClientName = (clientId: string) => {
   return safeClients.find((c: any) => c.id === clientId)?.name || clientId;
+  };
+  const getProjectName = (projectId: string) => {
+  if (projectId === 'none') return T.none || 'None';
+  return safeProjects.find((p: any) => p.id === projectId)?.name || projectId;
   };
 
   const formatDateRange = (range: DateRange | undefined) => {
@@ -211,6 +226,19 @@ export function FilterChipBar({
                 size="sm"
                 className="h-auto p-0 hover:bg-transparent"
                 onClick={() => onClientChange('')}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+          {selectedProject && selectedProject !== 'all' && (
+            <Badge variant="secondary" className="gap-1">
+              {T.project || 'Project'}: {getProjectName(selectedProject)}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 hover:bg-transparent"
+                onClick={() => onProjectChange('')}
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -318,7 +346,7 @@ export function FilterChipBar({
              </div>
 
            {/* 2. Client + Collaborator column */}
-           <div className="space-y-4" style={{ marginTop: '0.45rem' }}>
+           <div className="space-y-4 mt-[0.45rem]">
              <div className="space-y-2">
                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                  {T.client || 'Client'}
@@ -339,6 +367,29 @@ export function FilterChipBar({
                  </SelectContent>
                </Select>
              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  {T.project || 'Project'}
+                </label>
+                <Select value={selectedProject} onValueChange={onProjectChange}>
+                  <SelectTrigger className="h-8 flex items-center px-3 text-xs rounded-md border bg-background cursor-pointer w-full min-w-0 shadow-none">
+                    <SelectValue placeholder={T.selectProject || 'Select project'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      {T.allProjects || 'All projects'}
+                    </SelectItem>
+                    <SelectItem value="none">
+                      {T.noProject || 'No project'}
+                    </SelectItem>
+                    {safeProjects.map((project: any) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
              <div className="space-y-2">
                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                  {T.collaborator || 'Collaborator'}
@@ -362,7 +413,7 @@ export function FilterChipBar({
            </div>
 
            {/* 3. Category + Date Range column */}
-           <div className="space-y-4" style={{ marginTop: '0.45rem' }}>
+           <div className="space-y-4 mt-[0.45rem]">
              <div className="space-y-2">
                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                  {T.category || 'Category'}

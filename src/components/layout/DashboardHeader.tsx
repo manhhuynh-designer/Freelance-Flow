@@ -49,7 +49,7 @@ export function DashboardHeader() {
       window.removeEventListener('task:duplicateOpen', handleDuplicateOpen as EventListener);
     };
   }, []);
-  const { appData, isTaskFormOpen, setIsTaskFormOpen, handleAddTask, handleAddClientAndSelect, cycleTaskFormSize, taskFormSize, handleEventSubmit, backupStatusText, handleExport, handleViewTask, defaultExportFormat } = useDashboard();
+  const { appData, isTaskFormOpen, setIsTaskFormOpen, handleAddTask, handleAddClientAndSelect, cycleTaskFormSize, taskFormSize, handleEventSubmit, backupStatusText, handleExport, handleViewTask, defaultExportFormat, addProject } = useDashboard();
 
   const T = useMemo(() => {
     const lang = appData.appSettings.language as 'en' | 'vi';
@@ -203,6 +203,8 @@ export function DashboardHeader() {
                       }}
                       clients={appData.clients}
                       onAddClient={handleAddClientAndSelect}
+                      projects={appData.projects || []}
+                      onAddProject={(data) => addProject?.(data)}
                       quoteTemplates={appData.quoteTemplates}
                       collaborators={appData.collaborators}
                       settings={appData.appSettings}

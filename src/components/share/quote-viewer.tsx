@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppSettings, Category, Client, Quote, QuoteColumn, QuoteItem, Task } from '@/lib/types';
+import { i18n } from '@/lib/i18n';
 
 type Props = {
   quote: Quote;
@@ -38,6 +39,7 @@ function calcRowValue(item: QuoteItem, column: QuoteColumn, allColumns: QuoteCol
 
 export default function QuoteViewer(props: Props) {
   const { quote, task, settings, clients, categories, clientName, categoryName, defaultColumns = [], calculationResults = [], grandTotal, showHeader = true } = props;
+  const T = { ...(i18n[settings.language] || {}), unitPrice: (i18n[settings.language] as any)?.unitPrice || 'Unit Price', grandTotal: (i18n[settings.language] as any)?.grandTotal || 'Grand Total' } as any;
 
   const cols = quote.columns && quote.columns.length > 0 ? quote.columns : defaultColumns;
   const sections = (quote.sections || []).map((s, idx) => ({
@@ -66,9 +68,9 @@ export default function QuoteViewer(props: Props) {
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 break-words">{task.name || 'Quote'}</h1>
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-gray-600">
-            <div><span className="text-gray-500">Quote ID:</span> <span className="font-medium">{quote.id || '—'}</span></div>
-            <div><span className="text-gray-500">Start:</span> <span className="font-medium">{task.startDate ? new Date(task.startDate).toLocaleDateString() : '—'}</span></div>
-            <div><span className="text-gray-500">Deadline:</span> <span className="font-medium">{task.deadline ? new Date(task.deadline).toLocaleDateString() : '—'}</span></div>
+            <div><span className="text-gray-500">{(T as any).quoteCode || 'Quote ID'}:</span> <span className="font-medium">{quote.id || '—'}</span></div>
+            <div><span className="text-gray-500">{(T as any).startDate || 'Start'}:</span> <span className="font-medium">{task.startDate ? new Date(task.startDate).toLocaleDateString() : '—'}</span></div>
+            <div><span className="text-gray-500">{(T as any).deadline || 'Deadline'}:</span> <span className="font-medium">{task.deadline ? new Date(task.deadline).toLocaleDateString() : '—'}</span></div>
           </div>
         </div>
       )}
@@ -80,7 +82,7 @@ export default function QuoteViewer(props: Props) {
               <tr>
                 {cols.map(col => (
                   <th key={col.id} className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 ${col.type === 'number' ? 'text-right' : ''}`}>
-                    {col.id === 'unitPrice' ? `Unit Price (${currency})` : col.name}
+                    {col.id === 'unitPrice' ? `${T.unitPrice} (${currency})` : col.name}
                   </th>
                 ))}
               </tr>
@@ -95,7 +97,7 @@ export default function QuoteViewer(props: Props) {
                   </tr>
                   {section.items.length === 0 && (
                     <tr>
-                      <td colSpan={cols.length} className="px-6 py-3 text-sm text-gray-500">No items in this section.</td>
+                      <td colSpan={cols.length} className="px-6 py-3 text-sm text-gray-500">{(T as any).noItemsInSection || 'No items in this section.'}</td>
                     </tr>
                   )}
                   {section.items.map((item, index) => (
@@ -121,13 +123,13 @@ export default function QuoteViewer(props: Props) {
                             if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
                               displayValue = `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
                             } else {
-                              displayValue = 'Invalid dates';
+                              displayValue = (T as any).invalidDates || 'Invalid dates';
                             }
                           } else {
-                            displayValue = 'No timeline set';
+                            displayValue = (T as any).noTimeline || 'No timeline set';
                           }
                         } catch (e) {
-                          displayValue = 'Invalid timeline data';
+                          displayValue = (T as any).invalidTimelineData || 'Invalid timeline data';
                         }
                       } else if (typeof value === 'object' && value !== null && value.start && value.end) {
                         // Handle case where value is already an object
@@ -137,13 +139,13 @@ export default function QuoteViewer(props: Props) {
                           if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
                             displayValue = `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
                           } else {
-                            displayValue = 'Invalid dates';
+                            displayValue = (T as any).invalidDates || 'Invalid dates';
                           }
                         } catch (e) {
-                          displayValue = 'Invalid dates';
+                          displayValue = (T as any).invalidDates || 'Invalid dates';
                         }
                       } else {
-                        displayValue = 'No timeline set';
+                        displayValue = (T as any).noTimeline || 'No timeline set';
                       }
                     } else {
                       value = (item as any)[col.id] ?? (item as any).customFields?.[col.id] ?? '';
@@ -172,14 +174,14 @@ export default function QuoteViewer(props: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-600 mb-1">No Quote Items</h3>
-          <p className="text-gray-500">No items have been added to this quote yet.</p>
+          <h3 className="text-lg font-semibold text-gray-600 mb-1">{(T as any).noQuoteItems || 'No Quote Items'}</h3>
+          <p className="text-gray-500">{(T as any).noQuoteItemsDesc || 'No items have been added to this quote yet.'}</p>
         </div>
       )}
 
       {(calculationResults && calculationResults.length > 0) && (
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {calculationResults.map(c => (
+          {calculationResults.filter(c => c.id !== 'unitPrice' && !c.name.toLowerCase().includes('price')).map(c => (
             <div key={c.id} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
               <div className="text-sm text-gray-500 font-medium">{c.name}</div>
               <div className="text-lg font-semibold text-gray-900 mt-1">{typeof c.result === 'number' ? c.result.toLocaleString() : c.result}</div>
@@ -190,7 +192,7 @@ export default function QuoteViewer(props: Props) {
 
       <div className="mt-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-6 text-white">
         <div className="text-center">
-          <div className="text-lg font-medium mb-2">Grand Total</div>
+          <div className="text-lg font-medium mb-2">{T.grandTotal}</div>
           <div className="text-3xl font-bold">
             {calculatedGrandTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency}
           </div>

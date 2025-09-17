@@ -529,3 +529,29 @@ dailyBreakdown: 'Phân rã theo ngày'
 				profitTrend: 'Xu hướng Lợi nhuận',
 				topClients: 'Top Khách hàng',
 		};
+
+// Bổ sung khóa i18n cho Project
+export const vi_project = {
+	manageProjects: 'Quản lý Project',
+	projectManagement: 'Quản lý Project',
+	addProject: 'Thêm Project',
+	editProject: 'Sửa Project',
+	project: 'Project',
+	projects: 'Các Project',
+	existingProjects: 'Project hiện có',
+	projectNameRequired: 'Tên Project',
+	projectDescription: 'Mô tả',
+	projectAdded: 'Đã thêm Project',
+	projectAddedDesc: 'đã được tạo.',
+	projectUpdated: 'Đã cập nhật Project',
+	projectUpdatedDesc: 'đã được cập nhật.',
+	projectDeleted: 'Đã xóa Project',
+	projectDeletedDesc: 'đã được xóa.',
+	cannotDeleteProject: 'Không thể xóa Project',
+	cannotDeleteProjectDesc: 'Project này đang được sử dụng bởi một số công việc.',
+	noProjectsFound: 'Chưa có Project',
+	selectProject: 'Chọn project',
+	allProjects: 'Tất cả project',
+	noProject: 'Không có project',
+	links: 'Liên kết',
+};

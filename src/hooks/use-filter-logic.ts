@@ -18,6 +18,7 @@ export function useFilterLogic(
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [clientFilter, setClientFilter] = useState<string | null>(null);
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [date, setDate] = useState<DateRange | undefined>(undefined);
   const [sortFilter, setSortFilter] = useState<string>('deadline-asc');
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
@@ -36,8 +37,9 @@ export function useFilterLogic(
       statuses === 'none' ? [] :
       statuses.split(',').filter(Boolean)
     );
-    setCategoryFilter(searchParams.get('category') || (mergedSettings.selectedCategory === 'all' ? null : mergedSettings.selectedCategory));
-    setClientFilter(searchParams.get('client') || (mergedSettings.selectedClient === 'all' ? null : mergedSettings.selectedClient));
+  setCategoryFilter(searchParams.get('category') || (mergedSettings.selectedCategory === 'all' ? null : mergedSettings.selectedCategory));
+  setClientFilter(searchParams.get('client') || (mergedSettings.selectedClient === 'all' ? null : mergedSettings.selectedClient));
+  setProjectFilter(searchParams.get('project') || (mergedSettings.selectedProject === 'all' ? null : mergedSettings.selectedProject));
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     if (startDate || endDate) {
@@ -58,6 +60,7 @@ export function useFilterLogic(
         selectedStatuses,
         selectedCategory: categoryFilter || 'all',
         selectedClient: clientFilter || 'all',
+        selectedProject: projectFilter || 'all',
         sortFilter,
         dateRange: date ? {
           from: date.from?.toISOString(),
@@ -73,7 +76,7 @@ export function useFilterLogic(
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [selectedStatuses, categoryFilter, clientFilter, sortFilter, date]);
+  }, [selectedStatuses, categoryFilter, clientFilter, projectFilter, sortFilter, date]);
 
   useEffect(() => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
@@ -101,6 +104,12 @@ export function useFilterLogic(
     } else {
       current.delete('client');
     }
+
+    if (projectFilter) {
+      current.set('project', projectFilter);
+    } else {
+      current.delete('project');
+    }
     
     if (date?.from) {
       current.set('startDate', date.from.toISOString().split('T')[0]);
@@ -127,7 +136,7 @@ export function useFilterLogic(
     if (typeof window !== 'undefined' && newPath !== `${pathname}${window.location.search}`) {
         router.replace(newPath, { scroll: false });
     }
-  }, [selectedStatuses, categoryFilter, clientFilter, date, sortFilter, pathname, router, searchParams]);
+  }, [selectedStatuses, categoryFilter, clientFilter, projectFilter, date, sortFilter, pathname, router, searchParams]);
 
   // Filter handlers
   const handleStatusFilterChange = (statusId: string, isSelected: boolean) => {
@@ -152,6 +161,10 @@ export function useFilterLogic(
 
   const handleClientChange = (value: string) => {
     setClientFilter(value === 'all' ? null : value);
+  };
+  
+  const handleProjectChange = (value: string) => {
+    setProjectFilter(value === 'all' ? null : value);
   };
     
   const handleCollaboratorChange = (value: string) => {
@@ -179,7 +192,7 @@ export function useFilterLogic(
 
   const handleClearFilters = () => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
-    ['statuses', 'category', 'client', 'collaborator', 'startDate', 'endDate', 'sort'].forEach(key => current.delete(key));
+    ['statuses', 'category', 'client', 'project', 'collaborator', 'startDate', 'endDate', 'sort'].forEach(key => current.delete(key));
     const search = current.toString();
     const query = search ? `?${search}` : "";
     router.replace(`${pathname}${query}`, { scroll: false });
@@ -187,6 +200,7 @@ export function useFilterLogic(
     setSelectedStatuses(appSettings.statusSettings?.map(s => s.id) || []);
     setCategoryFilter(null);
     setClientFilter(null);
+    setProjectFilter(null);
     setDate(undefined);
     setSortFilter('deadline-asc');
   };
@@ -197,13 +211,15 @@ export function useFilterLogic(
     }
     let sourceTasks = tasks.filter(task => !task.deletedAt);
 
-    const collaboratorFilter = searchParams.get('collaborator');
+  const collaboratorFilter = searchParams.get('collaborator');
+  const projectParam = searchParams.get('project');
 
     return sourceTasks.filter((task: Task) => {
       const statusMatch = selectedStatuses.includes(task.status);
       const categoryMatch = !categoryFilter || task.categoryId === categoryFilter;
       const clientMatch = !clientFilter || task.clientId === clientFilter;
-      const collaboratorMatch = !collaboratorFilter || (task.collaboratorIds && task.collaboratorIds.includes(collaboratorFilter));
+  const collaboratorMatch = !collaboratorFilter || (task.collaboratorIds && task.collaboratorIds.includes(collaboratorFilter));
+  const projectMatch = !projectParam || (task as any).projectId === projectParam || (projectParam === 'none' && !(task as any).projectId);
       
       const taskStartDate = new Date(task.startDate);
       const taskEndDate = new Date(task.deadline);
@@ -214,7 +230,7 @@ export function useFilterLogic(
       
       const dateMatch = (!filterStartDate || taskEndDate >= filterStartDate) && (!filterEndDate || taskStartDate <= filterEndDate);
 
-      return statusMatch && categoryMatch && clientMatch && collaboratorMatch && dateMatch;
+      return statusMatch && categoryMatch && clientMatch && collaboratorMatch && projectMatch && dateMatch;
     });
   }, [tasks, view, selectedStatuses, categoryFilter, clientFilter, date, searchParams]);
 
@@ -259,6 +275,7 @@ export function useFilterLogic(
     selectedStatuses,
     categoryFilter,
     clientFilter,
+    projectFilter: projectFilter || 'all',
     collaboratorFilter: searchParams.get('collaborator') || 'all',
     date,
     sortFilter,
@@ -271,6 +288,7 @@ export function useFilterLogic(
     handleStatusBatchChange,
     handleCategoryChange,
     handleClientChange,
+    handleProjectChange,
     handleCollaboratorChange,
     handleDateRangeChange,
     handleSortChange,

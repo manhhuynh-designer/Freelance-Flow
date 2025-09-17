@@ -24,10 +24,11 @@ import TaskDateRangePicker from "./TaskDateRangePicker";
 import { useToast } from "@/hooks/use-toast";
 import { i18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import type { Task, Client, Collaborator, Category, Quote, QuoteColumn, QuoteTemplate, AppSettings } from "@/lib/types";
+import type { Task, Client, Collaborator, Category, Quote, QuoteColumn, QuoteTemplate, AppSettings, Project } from "@/lib/types";
 import type { SuggestQuoteOutput } from "@/lib/ai-types";
 import { QuoteManager } from "./quote-manager";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
+import { useDashboard } from "@/contexts/dashboard-context";
 
 const formSchema = z.object({
   name: z.string().min(2, "Task name must be at least 2 characters."),
@@ -45,6 +46,7 @@ const formSchema = z.object({
   categoryId: z.string().min(1, "Please select a category."),
   status: z.enum(["todo", "inprogress", "done", "onhold", "archived"]),
   subStatusId: z.string().optional(),
+  projectId: z.string().optional(), // <--- Thêm trường projectId optional
   dates: z.object({
     from: z.date({ required_error: "Start date is required." }),
     to: z.date({ required_error: "Deadline is required." }),
@@ -101,6 +103,8 @@ type CreateTaskFormProps = {
   collaborators: Collaborator[];
   categories: Category[];
   onAddClient: (data: Omit<Client, 'id'>) => Client;
+  projects?: Project[];
+  onAddProject?: (data: Omit<Project, 'id' | 'tasks'>) => string;
   quoteTemplates: QuoteTemplate[];
   settings: AppSettings;
   defaultDate?: Date;
@@ -141,6 +145,8 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
     collaborators, 
     categories, 
     onAddClient, 
+    projects = [],
+    onAddProject,
     quoteTemplates, 
     settings, 
     defaultDate,
@@ -150,6 +156,8 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
     prefillColumns,
     prefillCollaboratorColumns
   } = props;
+  const dashboard = useDashboard();
+  const projectsList = useMemo(() => (projects && projects.length > 0 ? projects : (dashboard?.appData?.projects || [])), [projects, dashboard?.appData?.projects]);
   // Prefill logic for duplicate task
   useEffect(() => {
     if (prefillColumns && prefillColumns.length > 0) {
@@ -196,6 +204,9 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
   const [isPriceSectionOpen, setIsPriceSectionOpen] = useState(false);
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
   const [newClientName, setNewClientName] = useState("");
+  const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectLinks, setNewProjectLinks] = useState<string[]>([""]);
   
   const defaultColumns: QuoteColumn[] = React.useMemo(() => [
     { id: 'description', name: T.description, type: 'text' },
@@ -217,6 +228,7 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
       categoryId: "",
       status: "todo",
       subStatusId: "",
+      projectId: undefined, // <--- Thêm default cho projectId
       dates: {
         from: defaultDate ?? undefined,
         to: defaultDate ?? undefined,
@@ -399,6 +411,47 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
     });
   }, [newClientName, onAddClient, setValue, toast, T]);
 
+  // Inline add project flow
+  const handleAddProject = useCallback(() => {
+    if (!onAddProject) return;
+    const name = newProjectName.trim();
+    const links = (newProjectLinks || []).map(l => l.trim()).filter(l => l !== "");
+    if (!name) {
+      toast({ title: 'Add Project', description: 'Project name is required', variant: 'destructive' });
+      return;
+    }
+    // Basic URL validation similar to task links
+    const invalid = links.find(l => {
+      try { new URL(l); return false; } catch { return true; }
+    });
+    if (invalid) {
+      toast({ title: 'Invalid link', description: `Please enter a valid URL: ${invalid}`, variant: 'destructive' });
+      return;
+    }
+    const newId = onAddProject({ 
+      name, 
+      description: '', 
+      status: 'active', 
+      links, 
+      clientId: form.getValues('clientId') || undefined, 
+      startDate: form.getValues('dates')?.from, 
+      endDate: form.getValues('dates')?.to 
+    } as any);
+    if (newId) {
+      form.setValue('projectId', newId);
+      setIsAddProjectOpen(false);
+      setNewProjectName('');
+      setNewProjectLinks(['']);
+      toast({ title: 'Project added', description: 'Project created and selected.' });
+    }
+  }, [onAddProject, newProjectName, newProjectLinks, form, toast]);
+
+  const updateProjectLink = (index: number, value: string) => {
+    setNewProjectLinks(prev => prev.map((l, i) => i === index ? value : l));
+  };
+  const addProjectLinkField = () => setNewProjectLinks(prev => [...prev, ""]);
+  const removeProjectLinkField = (index: number) => setNewProjectLinks(prev => prev.filter((_, i) => i !== index));
+
   const watchedStatus = useWatch({ control, name: "status"});
   const availableSubStatuses = useMemo(() => {
     const mainStatusConfig = (settings.statusSettings || []).find(s => s.id === watchedStatus);
@@ -423,6 +476,86 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
                 </FormItem>
               )} 
             />
+            {/* Project selection moved under task name */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField 
+                control={control}
+                name="projectId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project</FormLabel>
+                    <div className="flex gap-2">
+                      <Select 
+                        onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)}
+                        value={field.value || '__none__'}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select project" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="__none__">{T.none}</SelectItem>
+                          {(projectsList || []).map((p) => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {onAddProject && (
+                        <Dialog open={isAddProjectOpen} onOpenChange={setIsAddProjectOpen}>
+                          <DialogTrigger asChild>
+                            <Button type="button" variant="outline" size="sm">
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Add Project</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="newProjectName">Project name</Label>
+                                <Input 
+                                  id="newProjectName"
+                                  value={newProjectName}
+                                  onChange={(e) => setNewProjectName(e.target.value)}
+                                  placeholder="Enter project name"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Links (optional)</Label>
+                                <div className="space-y-2">
+                                  {newProjectLinks.map((link, i) => (
+                                    <div className="flex items-center gap-2" key={`proj-link-${i}`}>
+                                      <Input value={link} onChange={(e) => updateProjectLink(i, e.target.value)} placeholder="https://..." />
+                                      <Button type="button" variant="ghost" size="icon" onClick={() => removeProjectLinkField(i)}>
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                  <Button type="button" variant="outline" size="sm" className="w-full" onClick={addProjectLinkField}>
+                                    <Plus className="mr-2 h-4 w-4" /> Add link
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button type="button" variant="ghost" onClick={() => setIsAddProjectOpen(false)}>
+                                {T.cancel}
+                              </Button>
+                              <Button type="button" onClick={handleAddProject}>
+                                {T.add}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={control}
               name="description"

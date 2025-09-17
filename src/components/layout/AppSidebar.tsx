@@ -12,11 +12,12 @@ import {
 import {
     Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle
 } from "@/components/ui/dialog";
-import { Users, FileText, Briefcase, LayoutGrid, Cog, Trash2, LogIn, LogOut, User, DollarSign, ChevronDown } from "lucide-react";
+import { Users, LayoutGrid, Cog, Trash2, LogIn, LogOut, User, DollarSign, ChevronDown, UserCheck, FolderOpen, Share2, FileCode } from "lucide-react";
 import { SidebarNavigation } from "@/components/sidebar-navigation";
 import { ClientManager } from "@/components/client-manager";
 import { CollaboratorManager } from "@/components/collaborator-manager";
 import { CategoryManager } from "@/components/category-manager";
+import { ProjectManager } from "@/components/project-manager";
 import { QuoteTemplateManager } from "@/components/quote-template-manager";
 import ShareManagerDialog from "@/components/share/ShareManagerDialog";
 import { FixedCostsCard } from '@/components/ai/business/FixedCostsCard';
@@ -69,7 +70,8 @@ export function AppSidebar() {
   const { T, appData, isClientManagerOpen, setIsClientManagerOpen, handleAddClientAndSelect, handleEditClient, handleDeleteClient, 
       isCollaboratorManagerOpen, setIsCollaboratorManagerOpen, handleAddCollaborator, handleEditCollaborator, handleDeleteCollaborator,
       isCategoryManagerOpen, setIsCategoryManagerOpen, handleAddCategory, handleEditCategory, handleDeleteCategory,
-      isTemplateManagerOpen, setIsTemplateManagerOpen, setAppData,
+    isTemplateManagerOpen, setIsTemplateManagerOpen, setAppData,
+    isProjectManagerOpen, setIsProjectManagerOpen, handleAddProject, handleEditProject, handleDeleteProject,
       isFixedCostManagerOpen, setIsFixedCostManagerOpen } = dashboardContext;
 
     const [isShareManagerOpen, setIsShareManagerOpen] = useState(false);
@@ -151,11 +153,12 @@ export function AppSidebar() {
                        <SidebarMenu>
                            <SidebarMenuItem>
                              <SidebarMenuButton onClick={() => setIsShareManagerOpen(true)}>
-                               <FileText />{T.manageShares || 'Manage Shares'}
+                               <Share2 />{T.manageShares || 'Shares'}
                              </SidebarMenuButton>
                            </SidebarMenuItem>
-                           <SidebarMenuItem><Dialog open={isClientManagerOpen} onOpenChange={setIsClientManagerOpen}><DialogTrigger asChild><SidebarMenuButton><Users />{T.manageClients}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.clientManagement}</DialogTitle></DialogHeader><ClientManager clients={appData.clients} tasks={appData.tasks} onAddClient={handleAddClientAndSelect} onEditClient={handleEditClient} onDeleteClient={handleDeleteClient} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
-                           <SidebarMenuItem><Dialog open={isCollaboratorManagerOpen} onOpenChange={setIsCollaboratorManagerOpen}><DialogTrigger asChild><SidebarMenuButton><Briefcase />{T.manageCollaborators}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.collaboratorManagement}</DialogTitle></DialogHeader><CollaboratorManager collaborators={appData.collaborators} tasks={appData.tasks} onAddCollaborator={handleAddCollaborator} onEditCollaborator={handleEditCollaborator} onDeleteCollaborator={handleDeleteCollaborator} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
+                           <SidebarMenuItem><Dialog open={isClientManagerOpen} onOpenChange={setIsClientManagerOpen}><DialogTrigger asChild><SidebarMenuButton><Users />{T.client || 'Clients'}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.clientManagement}</DialogTitle></DialogHeader><ClientManager clients={appData.clients} tasks={appData.tasks} onAddClient={handleAddClientAndSelect} onEditClient={handleEditClient} onDeleteClient={handleDeleteClient} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
+                           <SidebarMenuItem><Dialog open={isCollaboratorManagerOpen} onOpenChange={setIsCollaboratorManagerOpen}><DialogTrigger asChild><SidebarMenuButton><UserCheck />{T.collaborator || 'Collaborators'}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.collaboratorManagement}</DialogTitle></DialogHeader><CollaboratorManager collaborators={appData.collaborators} tasks={appData.tasks} onAddCollaborator={handleAddCollaborator} onEditCollaborator={handleEditCollaborator} onDeleteCollaborator={handleDeleteCollaborator} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
+                           <SidebarMenuItem><Dialog open={isProjectManagerOpen} onOpenChange={setIsProjectManagerOpen}><DialogTrigger asChild><SidebarMenuButton><FolderOpen />{T.project || 'Projects'}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.projectManagement || 'Project Management'}</DialogTitle></DialogHeader><ProjectManager projects={appData.projects || []} tasks={appData.tasks} onAddProject={handleAddProject} onEditProject={handleEditProject} onDeleteProject={handleDeleteProject} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
                            <SidebarMenuItem>
                              <Dialog open={isFixedCostManagerOpen} onOpenChange={setIsFixedCostManagerOpen}>
                                <DialogTrigger asChild>
@@ -174,10 +177,10 @@ export function AppSidebar() {
                                </DialogContent>
                              </Dialog>
                            </SidebarMenuItem>
-                           <SidebarMenuItem><Dialog open={isCategoryManagerOpen} onOpenChange={setIsCategoryManagerOpen}><DialogTrigger asChild><SidebarMenuButton><LayoutGrid />{T.manageCategories}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.categoryManagement}</DialogTitle></DialogHeader><CategoryManager categories={appData.categories} tasks={appData.tasks} onAddCategory={handleAddCategory} onEditCategory={handleEditCategory} onDeleteCategory={handleDeleteCategory} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
+                           <SidebarMenuItem><Dialog open={isCategoryManagerOpen} onOpenChange={setIsCategoryManagerOpen}><DialogTrigger asChild><SidebarMenuButton><LayoutGrid />{T.category || 'Categories'}</SidebarMenuButton></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{T.categoryManagement}</DialogTitle></DialogHeader><CategoryManager categories={appData.categories} tasks={appData.tasks} onAddCategory={handleAddCategory} onEditCategory={handleEditCategory} onDeleteCategory={handleDeleteCategory} language={appData.appSettings.language} /></DialogContent></Dialog></SidebarMenuItem>
                            <SidebarMenuItem>
                              <Dialog open={isTemplateManagerOpen} onOpenChange={setIsTemplateManagerOpen}>
-                               <DialogTrigger asChild><SidebarMenuButton><FileText />{T.manageTemplates}</SidebarMenuButton></DialogTrigger>
+                               <DialogTrigger asChild><SidebarMenuButton><FileCode />{T.templates || 'Templates'}</SidebarMenuButton></DialogTrigger>
                                <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>{T.quoteTemplateManagement}</DialogTitle></DialogHeader><QuoteTemplateManager templates={appData.quoteTemplates} onAddTemplate={(values, columns) => setAppData(prev => ({...prev, quoteTemplates: [...prev.quoteTemplates, {id: `template-${Date.now()}`, name: values.name, sections: values.sections, columns}]}))} onEditTemplate={(template) => setAppData(prev => ({...prev, quoteTemplates: prev.quoteTemplates.map(t => t.id === template.id ? template : t)}))} onDeleteTemplate={(id) => setAppData(prev => ({...prev, quoteTemplates: prev.quoteTemplates.filter(t => t.id !== id)}))} language={appData.appSettings.language} settings={appData.appSettings} /></DialogContent>
                              </Dialog>
                            </SidebarMenuItem>

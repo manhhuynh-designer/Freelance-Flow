@@ -37,7 +37,7 @@ async function getDb(): Promise<any> {
 export type DocumentID =
   | 'appSettings' | 'tasks' | 'clients' | 'collaborators' | 'categories'
   | 'quotes' | 'collaboratorQuotes' | 'quoteTemplates' | 'notes' | 'events' | 'workSessions'
-  | 'fixedCosts' | 'expenses' | 'aiAnalyses' | 'aiProductivityAnalyses'; // ADDED
+  | 'fixedCosts' | 'expenses' | 'aiAnalyses' | 'aiProductivityAnalyses' | 'projects'; // ADDED projects
 
 // Keep a utility to hard-reset the DB when explicitly requested by the app (not used automatically).
 async function destroyAndRecreateDb(): Promise<any> {
@@ -171,7 +171,7 @@ export const PouchDBService = {
       const ids: DocumentID[] = [
         'appSettings', 'tasks', 'clients', 'collaborators', 'categories',
         'quotes', 'collaboratorQuotes', 'quoteTemplates', 'notes', 'events', 'workSessions',
-        'fixedCosts', 'expenses', 'aiAnalyses', 'aiProductivityAnalyses' // ADDED
+        'fixedCosts', 'expenses', 'aiAnalyses', 'aiProductivityAnalyses', 'projects' // ADDED
       ];
 
       // Migration: copy data from legacy snake_case IDs to new camelCase IDs if needed
@@ -250,7 +250,7 @@ export const PouchDBService = {
         }
       }
       
-      const [appSettingsDoc, tasksDoc, clientsDoc, collaboratorsDoc, categoriesDoc, quotesDoc, collaboratorQuotesDoc, quoteTemplatesDoc, notesDoc, eventsDoc, workSessionsDoc, fixedCostsDoc, expensesDoc, aiAnalysesDoc, aiProductivityAnalysesDoc] = documents;
+  const [appSettingsDoc, tasksDoc, clientsDoc, collaboratorsDoc, categoriesDoc, quotesDoc, collaboratorQuotesDoc, quoteTemplatesDoc, notesDoc, eventsDoc, workSessionsDoc, fixedCostsDoc, expensesDoc, aiAnalysesDoc, aiProductivityAnalysesDoc, projectsDoc] = documents;
 
       const loadedData: AppData = {
           appSettings: (appSettingsDoc as any)?.data ?? initialAppData.appSettings,
@@ -267,7 +267,8 @@ export const PouchDBService = {
           fixedCosts: (fixedCostsDoc as any)?.data ?? [],
           expenses: (expensesDoc as any)?.data ?? [],
           aiAnalyses: (aiAnalysesDoc as any)?.data ?? [], // ADDED
-          aiProductivityAnalyses: (aiProductivityAnalysesDoc as any)?.data ?? [], // ADDED
+      aiProductivityAnalyses: (aiProductivityAnalysesDoc as any)?.data ?? [], // ADDED
+      projects: (projectsDoc as any)?.data ?? [], // ADDED projects
       };
       console.log("[DEBUG] loadAppData finished. Task count:", loadedData.tasks.length);
       return loadedData;
