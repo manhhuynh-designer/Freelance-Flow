@@ -415,6 +415,7 @@ export function TaskDetailsDialog({
   const dashboard = useDashboard();
   const contextUpdateTask = (dashboard && (dashboard.updateTask as any)) || undefined;
   const contextUpdateQuote = (dashboard && (dashboard.updateQuote as any)) || undefined;
+  const contextUpdateCollaboratorQuote = (dashboard && (dashboard.updateCollaboratorQuote as any)) || undefined;
 
   // Local state for quote to allow immediate UI update on payment changes
   const [localQuote, setLocalQuote] = useState<Quote | undefined>(quote);
@@ -433,15 +434,36 @@ export function TaskDetailsDialog({
   }, [onUpdateTask, contextUpdateTask]);
   // Stable update handler for quotes to ensure Timeline Creator works even when parent doesn’t pass a handler
   const stableUpdateQuoteHandler = useCallback((quoteId: string, updates: Partial<Quote>) => {
-    // Update local state immediately for payment progress
+    // Update local state immediately for payment progress (only for main quote)
     setLocalQuote(prev => prev && prev.id === quoteId ? { ...prev, ...updates } : prev);
+
+    // Determine whether this is a collaborator quote
+    const isCollaboratorQuote = (() => {
+      try {
+        const allCollabQuotes = (collaboratorQuotes || []) as Quote[];
+        return !!allCollabQuotes.find(q => q.id === quoteId);
+      } catch {
+        return false;
+      }
+    })();
+
+    if (isCollaboratorQuote) {
+      const handler = onUpdateCollaboratorQuote ?? contextUpdateCollaboratorQuote;
+      if (handler) {
+        (handler as any)(quoteId, updates as any);
+      } else {
+        console.warn('TaskDetailsDialog: No updateCollaboratorQuote handler available');
+      }
+      return;
+    }
+
     const handler = onUpdateQuote ?? contextUpdateQuote;
     if (handler) {
       handler(quoteId, updates);
     } else {
       console.warn('TaskDetailsDialog: No updateQuote handler available');
     }
-  }, [onUpdateQuote, contextUpdateQuote]);
+  }, [onUpdateQuote, contextUpdateQuote, onUpdateCollaboratorQuote, contextUpdateCollaboratorQuote, collaboratorQuotes]);
   const [selectedNav, setSelectedNav] = useState<'timeline' | 'price' | 'collaborator' | 'payment' | 'timelineCreator'>('timeline');
   const [showAllBriefLinks, setShowAllBriefLinks] = useState(false);
   const [showAllDriveLinks, setShowAllDriveLinks] = useState(false);
@@ -616,6 +638,8 @@ export function TaskDetailsDialog({
     }, 0);
   }, [taskCollaboratorQuotes, defaultColumns, calculateRowValue]);
 
+  
+
   // Enhanced calculation results that match QuoteManager structure
   const calculationResults = useMemo(() => {
     if (!quote?.sections) return [];
@@ -689,6 +713,43 @@ export function TaskDetailsDialog({
  
     return results;
   }, [quote, defaultColumns, calculateRowValue, T]);
+
+  // Apply saved Summary formula (if any) for main quote's Grand Total
+  const displayedGrandTotal = useMemo(() => {
+    const formulaSrc = (quote as any)?.grandTotalFormula as string | undefined;
+    if (formulaSrc && typeof formulaSrc === 'string' && formulaSrc.trim() !== '') {
+      try {
+        let formula = formulaSrc;
+        // Auto join adjacent variables
+        formula = formula.replace(/(\})\s*(\{)/g, '}+{');
+        // Support legacy/system vars
+        formula = formula
+          .replace(/\{Price\}/g, totalQuote.toString())
+          .replace(/\{Collab\}/g, totalCollabQuote.toString())
+          .replace(/\{P\}/g, totalQuote.toString())
+          .replace(/\{C\}/g, totalCollabQuote.toString())
+          .replace(/\{\s*priceSum\s*\}/g, totalQuote.toString())
+          .replace(/\{\s*collabSum\s*\}/g, totalCollabQuote.toString());
+
+        // Replace calculation results by name (no spaces), id, and A/B/C... shortcuts
+        calculationResults.forEach((calc, index) => {
+          const value = typeof calc.result === 'number' ? calc.result : 0;
+          const varName = calc.name.replace(/\s+/g, '');
+          formula = formula.replaceAll(`{${varName}}`, value.toString());
+          formula = formula.replaceAll(`{${String.fromCharCode(65 + index)}}`, value.toString());
+          formula = formula.replaceAll(`{${calc.id}}`, value.toString());
+        });
+
+        // eslint-disable-next-line no-eval
+        const result = eval(formula);
+        if (typeof result === 'number' && !isNaN(result)) return result;
+        return totalQuote;
+      } catch {
+        return totalQuote;
+      }
+    }
+    return totalQuote;
+  }, [quote, totalQuote, totalCollabQuote, calculationResults]);
  
   // Enhanced collaborator calculation results for all collaborator quotes
   const collaboratorCalculationResults = useMemo(() => {
@@ -851,7 +912,7 @@ export function TaskDetailsDialog({
           defaultColumns: (quote.columns || defaultColumns),
           calculationResults,
           // provide a simple calc for server-side viewer
-          grandTotal: totalQuote || 0,
+          grandTotal: displayedGrandTotal || 0,
         };
       }
       if (includeTimeline) {
@@ -974,8 +1035,12 @@ export function TaskDetailsDialog({
         fullClipboardString += `${itemRows.join('\n')}\n\n`;
     });
     
-    const grandTotal = quoteToCopy.sections.reduce((acc, section) => acc + (section.items?.reduce((itemAcc, item) => itemAcc + (item.unitPrice || 0), 0) || 0), 0);
-    const grandTotalString = [...Array(Math.max(0, (quoteToCopy.columns || defaultColumns).length - 1)).fill(''), T.grandTotal, `${grandTotal.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} ${settings.currency}`].filter(Boolean).join('\t');
+    // If copying main quote with a saved formula, use displayedGrandTotal; else compute raw sum
+    const isMainQuote = quote && quoteToCopy && quote.id === quoteToCopy.id;
+    const grandTotalValue = isMainQuote ? displayedGrandTotal : (
+      quoteToCopy.sections.reduce((acc, section) => acc + (section.items?.reduce((itemAcc, item) => itemAcc + (item.unitPrice || 0), 0) || 0), 0)
+    );
+    const grandTotalString = [...Array(Math.max(0, (quoteToCopy.columns || defaultColumns).length - 1)).fill(''), T.grandTotal, `${grandTotalValue.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} ${settings.currency}`].filter(Boolean).join('\t');
     fullClipboardString += `${grandTotalString}\n`;
 
     navigator.clipboard.writeText(fullClipboardString.trim()).then(() => {
@@ -1007,7 +1072,7 @@ export function TaskDetailsDialog({
         defaultColumns: quote.columns || defaultColumns, // Ensure to pass the actual columns
         calculationResults, // Pass calculated results
         calculateRowValue, // Pass the helper function
-        grandTotal: totalQuote // Pass the grand total
+  grandTotal: displayedGrandTotal // Pass the grand total
       });
       toast({ title: T.exportCopied || 'Image copied to clipboard', description: T.exportCopiedDesc || 'You can paste the image into an email or chat.' });
     } catch (err: any) {
@@ -1480,7 +1545,7 @@ export function TaskDetailsDialog({
                       <div className="rounded-md border p-3">
                         <div className="text-xs text-muted-foreground">{T.grandTotal || 'Grand Total'}</div>
                         <div className="text-lg font-semibold">
-                          {totalQuote.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}
+                          {displayedGrandTotal.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}
                         </div>
                       </div>
                       <div className="rounded-md border p-3">
@@ -1492,7 +1557,7 @@ export function TaskDetailsDialog({
                       <div className="rounded-md border p-3">
                         <div className="text-xs text-muted-foreground">{(T as any).netTotal || 'Net Total'}</div>
                         <div className="text-lg font-semibold">
-                          {(totalQuote - totalCollabQuote).toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}
+                          {(displayedGrandTotal - totalCollabQuote).toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}
                         </div>
                       </div>
                     </div>
@@ -1569,7 +1634,7 @@ export function TaskDetailsDialog({
                 quote={localQuote}
                 settings={settings}
                 onUpdateQuote={stableUpdateQuoteHandler}
-                totalFromPrice={totalQuote}
+                totalFromPrice={displayedGrandTotal}
                 taskStatus={task.status}
               />
             </div>
@@ -1656,6 +1721,10 @@ export function TaskDetailsDialog({
                     }))
                   }));
                   if (quoteSections.length > 0) prefill.sections = quoteSections;
+                  // Carry over saved Summary formula for main quote if any
+                  if ((quote as any)?.grandTotalFormula) {
+                    prefill.grandTotalFormula = (quote as any).grandTotalFormula;
+                  }
 
                   // Prefill collaborator quotes, columns, and sections
                   let collabQuotes: any[] = [];
@@ -1669,6 +1738,7 @@ export function TaskDetailsDialog({
                       }
                       return {
                         collaboratorId: cq.collaboratorId,
+                        grandTotalFormula: (q as any)?.grandTotalFormula || '',
                         sections: (q.sections || []).map(sec => ({
                           id: `section-${Date.now()}-${Math.random()}`,
                           name: sec.name,

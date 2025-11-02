@@ -212,7 +212,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
     }, [data.appData, setAppData]);
 
     // Helper: create a Quote object from sections + columns
-    const createQuoteFromSections = (sections: any[] | undefined, columns?: any[]) => {
+    const createQuoteFromSections = (sections: any[] | undefined, columns?: any[], grandTotalFormula?: string) => {
         const qid = `quote-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
         const secs = Array.isArray(sections) ? sections : [];
         const total = secs.reduce((acc: number, s: any) => {
@@ -229,6 +229,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
             total,
             columns: Array.isArray(columns) ? columns : undefined,
             status: 'draft',
+            grandTotalFormula: grandTotalFormula || undefined,
         } as Quote;
     };
 
@@ -250,6 +251,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
             total,
             columns: Array.isArray(columns) ? columns : undefined,
             paymentStatus: 'pending',
+            grandTotalFormula: collabEntry?.grandTotalFormula || undefined,
         } as CollaboratorQuote;
     };
 
@@ -263,7 +265,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
             // Create main quote if sections provided
             let quoteId: string | undefined = undefined;
             if (task?.sections && Array.isArray(task.sections) && task.sections.length > 0) {
-                const newQuote = createQuoteFromSections(task.sections, quoteColumns);
+                const newQuote = createQuoteFromSections(task.sections, quoteColumns, (task as any).grandTotalFormula);
                 quoteId = newQuote.id;
                 newPrev.quotes = [...(newPrev.quotes || []), newQuote];
             }
@@ -372,7 +374,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                             }, 0);
                             return acc + sumItems;
                         }, 0);
-                        return { ...q, sections: secs, total, columns: quoteColumns ?? q.columns };
+                        return { ...q, sections: secs, total, columns: quoteColumns ?? q.columns, grandTotalFormula: (values as any).grandTotalFormula ?? q.grandTotalFormula };
                     });
                 } else if (quoteColumns && targetTask.quoteId) {
                     newPrev.quotes = (newPrev.quotes || []).map((q: Quote) => q.id === targetTask.quoteId ? { ...q, columns: quoteColumns } : q);
@@ -477,7 +479,7 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
                                         return acc + sumItems;
                                     }, 0);
                                     // updated existing collaborator quote
-                                    return { ...cq, sections: secs, total, columns: collaboratorQuoteColumns ?? cq.columns };
+                                    return { ...cq, sections: secs, total, columns: collaboratorQuoteColumns ?? cq.columns, grandTotalFormula: incoming.grandTotalFormula ?? cq.grandTotalFormula };
                                 }
                             }
                             return cq;
@@ -766,6 +768,13 @@ function DashboardDataProvider({ children }: { children: ReactNode }) {
         const ts = typeof window !== 'undefined' ? localStorage.getItem('freelance-flow-last-backup') : null;
         if (ts) setBackupStatusText(new Date(ts).toLocaleString());
     }, []);
+
+    // Debug: log appData content
+    console.log('DashboardContext Debug:', {
+        appDataExists: !!data.appData,
+        tasksLength: data.appData?.tasks?.length || 0,
+        tasks: data.appData?.tasks || []
+    });
 
     const contextValue: DashboardContextType = {
         ...data,

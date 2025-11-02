@@ -4,9 +4,11 @@
 import { vi_base } from './i18n/vi/base';
 import { vi_new } from './i18n/vi/new';
 import { vi_project } from './i18n/vi/new';
+import { vi_pert } from './i18n/vi/pert';
 import { en_base } from './i18n/en/base';
 import { en_new } from './i18n/en/new';
 import { en_project } from './i18n/en/new';
+import { en_pert } from './i18n/en/pert';
 import { Edit } from 'lucide-react';
 
 // Hợp nhất các bản dịch Tiếng Việt
@@ -14,6 +16,7 @@ export const vi = {
   ...vi_base,
   ...vi_new,
   ...vi_project,
+  ...vi_pert,
 };
 
 // Hợp nhất các bản dịch Tiếng Anh
@@ -21,6 +24,7 @@ export const en = {
   ...en_base,
   ...en_new,
   ...en_project,
+  ...en_pert,
 };
 // Simple language switcher based on user settings
 export const getTranslations = (language: string = 'vi') => {
@@ -35,6 +39,7 @@ export const i18n = {
     ...en_base,
     ...en_new,
     ...en_project,
+    ...en_pert,
     pathCopied: 'Path copied to clipboard',
     startDate: 'Start Date'
   ,deadline: 'Deadline',
@@ -234,6 +239,7 @@ viewEventDetailsDesc: 'View event details below.',
     calendarView: 'Calendar View',
     ganttView: 'Gantt Chart',
         kanbanView: 'Kanban Board',
+    pertView: 'PERT Diagram',
     kanbanSettings: {
       title: 'Kanban Settings',
       description: 'Configure your Kanban board display options.',
@@ -677,6 +683,7 @@ viewEventDetailsDesc: 'View event details below.',
   vi: {
     ...vi_base,
     ...vi_new,
+    ...vi_pert,
     pathCopied: 'Đã copy đường dẫn',
     startDate: 'Ngày Bắt Đầu',
     deadline: 'Hạn Chót',
@@ -866,6 +873,7 @@ viewEventDetailsDesc: 'Xem chi tiết sự kiện bên dưới.',
     calendarView: 'Lịch',
     ganttView: 'Biểu đồ Gantt',
     kanbanView: 'Bảng Kanban',
+    pertView: 'Sơ đồ PERT',
     kanbanSettings: {
       title: 'Cài đặt Kanban',
       description: 'Cấu hình các tùy chọn hiển thị bảng Kanban.',

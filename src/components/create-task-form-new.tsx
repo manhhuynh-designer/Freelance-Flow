@@ -34,12 +34,32 @@ const formSchema = z.object({
   name: z.string().min(2, "Task name must be at least 2 characters."),
   description: z.string().optional(),
   briefLink: z.array(z.string().refine(
-    (val) => val.trim() === "" || z.string().url().safeParse(val).success,
-    { message: "Please enter a valid URL or leave empty." }
+    (val) => {
+      const v = (val ?? '').trim();
+      if (v === '') return true; // allow empty
+      try {
+        const url = new URL(v);
+        return url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'file:';
+      } catch {
+        // Allow local file paths like C:\\..., \\server\\share, or Unix-style /path
+        return /^([a-zA-Z]:\\|\\\\|\/)/.test(v);
+      }
+    },
+    { message: "Please enter a valid URL or local file link (file://)." }
   )).optional().default([]),
   driveLink: z.array(z.string().refine(
-    (val) => val.trim() === "" || z.string().url().safeParse(val).success,
-    { message: "Please enter a valid URL or leave empty." }
+    (val) => {
+      const v = (val ?? '').trim();
+      if (v === '') return true; // allow empty
+      try {
+        const url = new URL(v);
+        return url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'file:';
+      } catch {
+        // Allow local file paths like C:\\..., \\server\\share, or Unix-style /path
+        return /^([a-zA-Z]:\\|\\\\|\/)/.test(v);
+      }
+    },
+    { message: "Please enter a valid URL or local file link (file://)." }
   )).optional().default([]),
   clientId: z.string().min(1, "Please select a client."),
   collaboratorIds: z.array(z.string()).optional().default([]),
@@ -64,9 +84,13 @@ const formSchema = z.object({
         })
     ).min(1, "A section must have at least one item."),
   })).min(1, "A quote must have at least one section."),
+  // Persist Summary tab formula for main quote
+  grandTotalFormula: z.string().optional().default(""),
   collaboratorQuotes: z.array(
     z.object({
       collaboratorId: z.string().optional().default(''),
+      // Persist Summary tab formula per collaborator quote (optional)
+      grandTotalFormula: z.string().optional().default(""),
       sections: z.array(
         z.object({
           id: z.string(),
@@ -244,6 +268,7 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
           } 
         }] 
       }],
+      grandTotalFormula: "",
       collaboratorQuotes: [],
     }
   });
@@ -841,6 +866,8 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
                   onApplySuggestion={handleApplySuggestion}
                   taskStartDate={getValues('dates').from}
                   taskEndDate={getValues('dates').to}
+                  grandTotalFormula={form.watch('grandTotalFormula') as any}
+                  onGrandTotalFormulaChange={(v) => form.setValue('grandTotalFormula', v, { shouldDirty: true })}
                 />
               </CollapsibleContent>
             </div>
@@ -870,6 +897,7 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
                         const currentDates = getValues('dates');
                         const newQuote = {
                           collaboratorId: '',
+                          grandTotalFormula: "",
                           sections: [{
                             id: `section-collab-${Date.now()}`,
                             name: T.untitledSection,
@@ -946,6 +974,8 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
                         showCopyFromQuote={true}
                         taskStartDate={getValues('dates').from}
                         taskEndDate={getValues('dates').to}
+                        grandTotalFormula={form.watch(`collaboratorQuotes.${index}.grandTotalFormula`) as any}
+                        onGrandTotalFormulaChange={(v) => form.setValue(`collaboratorQuotes.${index}.grandTotalFormula`, v, { shouldDirty: true })}
                       />
                     </div>
                   ))}

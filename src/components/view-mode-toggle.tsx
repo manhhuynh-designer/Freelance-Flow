@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Table, CalendarDays, LayoutGrid, Columns3, LineChart, ChevronDown } from 'lucide-react';
+import { Table, CalendarDays, LayoutGrid, Columns3, LineChart, ChevronDown, GitBranch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-type ViewMode = 'table' | 'calendar' | 'gantt' | 'eisenhower' | 'kanban';
+type ViewMode = 'table' | 'calendar' | 'gantt' | 'eisenhower' | 'kanban' | 'pert';
 
 interface ViewModeToggleProps {
   currentMode: ViewMode;
@@ -29,6 +29,7 @@ export function ViewModeToggle({
     { value: 'gantt', label: T.ganttView, icon: <LineChart className="h-4 w-4" /> },
     { value: 'eisenhower', label: T.eisenhowerView, icon: <LayoutGrid className="h-4 w-4" /> },
     { value: 'kanban', label: T.kanbanView, icon: <Columns3 className="h-4 w-4" /> },
+    { value: 'pert', label: T.pertView, icon: <GitBranch className="h-4 w-4" /> },
   ];
   
   const selectedOption = options.find(opt => opt.value === currentMode);

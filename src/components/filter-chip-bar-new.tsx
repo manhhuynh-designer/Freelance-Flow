@@ -44,6 +44,12 @@ interface FilterChipBarProps {
 
   // View mode
   viewMode?: string;
+  
+  // Force always visible (for PERT view)
+  forceVisible?: boolean;
+  
+  // Show project selector when collapsed (for PERT view)
+  showProjectSelector?: boolean;
 
   // Data
   T: any;
@@ -75,6 +81,8 @@ export function FilterChipBar({
   sortFilter,
   handleSortChange,
   viewMode,
+  forceVisible = false,
+  showProjectSelector = false,
   T,
   allCategories,
   collaborators,
@@ -83,8 +91,9 @@ export function FilterChipBar({
   statuses,
   statusColors
 }: FilterChipBarProps) {
-  // Load saved expanded state from localStorage
+  // Load saved expanded state from localStorage, but respect forceVisible
   const [isExpanded, setIsExpanded] = useState(() => {
+    if (forceVisible) return false; // Always start collapsed but visible for PERT
     if (typeof window !== 'undefined') {
       return FilterSettingsService.getExpandedState();
     }
@@ -159,10 +168,37 @@ export function FilterChipBar({
 
   return (
     <div className="space-y-6">
+      {/* Project selector when collapsed (for PERT view) */}
+      {!isExpanded && showProjectSelector && (
+        <div className="flex items-center gap-3 px-3 py-2 bg-muted/30 rounded-md">
+          <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+            {T.project || 'Project'}:
+          </label>
+          <Select value={selectedProject} onValueChange={onProjectChange}>
+            <SelectTrigger className="h-8 flex items-center px-3 text-xs rounded-md border bg-background cursor-pointer min-w-40 shadow-none">
+              <SelectValue placeholder={T.selectProject || 'Select project'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                {T.allProjects || 'All projects'}
+              </SelectItem>
+              <SelectItem value="none">
+                {T.noProject || 'No project'}
+              </SelectItem>
+              {safeProjects.map((project: any) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      
       {/* Bordered filter area */}
   <div className="border border-border rounded-md bg-background py-2">
         
-        {!isExpanded && (
+        {(!isExpanded || forceVisible) && (
           <div className="flex items-center gap-3 flex-wrap h-10 px-3">
             {/* Status Filter Buttons */}
             <div className="flex items-center gap-2">

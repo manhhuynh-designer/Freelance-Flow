@@ -23,6 +23,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useDashboard } from '@/contexts/dashboard-context';
 import { useToast } from "@/hooks/use-toast";
 import type { Task, Project } from "@/lib/types";
 import { Pencil, PlusCircle, Trash2, Link as LinkIcon, Briefcase } from "lucide-react";
@@ -39,7 +43,15 @@ type ProjectManagerProps = {
   language: 'en' | 'vi';
 };
 
-const emptyProject: Omit<Project, 'id' | 'tasks'> = { name: '', description: '', links: [] } as any;
+const emptyProject: Omit<Project, 'id' | 'tasks'> = {
+  name: '',
+  description: '',
+  startDate: undefined,
+  endDate: undefined,
+  status: 'planning',
+  clientId: undefined,
+  links: []
+} as any;
 
 export function ProjectManager({ projects, tasks, onAddProject, onEditProject, onDeleteProject, language }: ProjectManagerProps) {
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -47,6 +59,8 @@ export function ProjectManager({ projects, tasks, onAddProject, onEditProject, o
   const [editing, setEditing] = useState<Project | null>(null);
   const { toast } = useToast();
   const TL = (i18n as any)[language];
+  const { appData } = useDashboard();
+  const availableClients = appData?.clients || [];
 
   const reset = () => setDraft({ ...emptyProject });
 
@@ -56,6 +70,8 @@ export function ProjectManager({ projects, tasks, onAddProject, onEditProject, o
     onAddProject({
       name,
       description: (draft as any).description || '',
+      startDate: draft.startDate ? new Date(draft.startDate as any) : undefined,
+      endDate: draft.endDate ? new Date(draft.endDate as any) : undefined,
       status: (draft as any).status,
       clientId: (draft as any).clientId,
       links: Array.isArray(draft.links) ? draft.links.map((l: any) => String(l).trim()).filter(Boolean) : [],
@@ -79,14 +95,24 @@ export function ProjectManager({ projects, tasks, onAddProject, onEditProject, o
 
   const confirmDelete = (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
-    const inUse = tasks.some(t => (t as any).projectId === projectId);
-    if (inUse) {
-  toast({ variant: 'destructive', title: TL.cannotDeleteProject || 'Cannot delete project', description: TL.cannotDeleteProjectDesc || 'This project is used by some tasks.' });
-      return;
+    const tasksInProject = tasks.filter(t => (t as any).projectId === projectId);
+    const projectName = projects.find(p => p.id === projectId)?.name;
+    
+    if (tasksInProject.length > 0) {
+      // Show confirmation dialog for projects with tasks
+      const confirmed = window.confirm(
+        `${TL.confirmDeleteProjectWithTasks || 'This project contains'} ${tasksInProject.length} ${TL.tasks || 'tasks'}. ${TL.deleteProjectConfirm || 'Tasks will be moved to "No Project". Continue?'}`
+      );
+      if (!confirmed) return;
     }
-    const name = projects.find(p => p.id === projectId)?.name;
+    
     onDeleteProject(projectId);
-  toast({ title: TL.projectDeleted || 'Project deleted', description: `"${name}" ${TL.projectDeletedDesc || 'has been removed.'}` });
+    toast({ 
+      title: TL.projectDeleted || 'Project deleted', 
+      description: tasksInProject.length > 0 
+        ? `"${projectName}" ${TL.projectDeletedWithTasks || 'deleted and tasks moved to "No Project".'}`
+        : `"${projectName}" ${TL.projectDeletedDesc || 'has been removed.'}`
+    });
   };
 
   return (
@@ -100,8 +126,58 @@ export function ProjectManager({ projects, tasks, onAddProject, onEditProject, o
             <DialogHeader><DialogTitle>{TL.addProject || 'Add Project'}</DialogTitle></DialogHeader>
             <div className="py-4 space-y-3">
               <Input placeholder={TL.projectNameRequired || 'Project name'} value={draft.name || ''} onChange={(e)=>setDraft(d=>({...d, name:e.target.value}))} />
-              <Input placeholder={TL.projectDescription || 'Description'} value={(draft as any).description || ''} onChange={(e)=>setDraft(d=>({...d, description:e.target.value}))} />
-              <Input placeholder={TL.links || 'Links'} value={(draft.links?.[0] as any) || ''} onChange={(e)=>setDraft(d=>({...d, links:[e.target.value]}))} />
+              <Textarea placeholder={TL.projectDescription || 'Description'} value={(draft as any).description || ''} onChange={(e)=>setDraft(d=>({...d, description:e.target.value}))} />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label htmlFor="start-date">{TL.startDate || 'Start date'}</Label>
+                  <Input id="start-date" type="date" value={draft.startDate ? (new Date(draft.startDate as any)).toISOString().slice(0,10) : ''} onChange={(e)=>setDraft(d=>({...d, startDate: e.target.value}))} />
+                </div>
+                <div>
+                  <Label htmlFor="end-date">{TL.endDate || 'End date'}</Label>
+                  <Input id="end-date" type="date" value={draft.endDate ? (new Date(draft.endDate as any)).toISOString().slice(0,10) : ''} onChange={(e)=>setDraft(d=>({...d, endDate: e.target.value}))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>{TL.status || 'Status'}</Label>
+                  <Select value={(draft as any).status || 'planning'} onValueChange={(val)=>setDraft(d=>({...d, status: val as any}))}>
+                    <SelectTrigger className="h-8"><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="planning">{TL.planning || 'Planning'}</SelectItem>
+                      <SelectItem value="active">{TL.active || 'Active'}</SelectItem>
+                      <SelectItem value="completed">{TL.completed || 'Completed'}</SelectItem>
+                      <SelectItem value="onhold">{TL.onHold || 'On Hold'}</SelectItem>
+                      <SelectItem value="archived">{TL.archived || 'Archived'}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>{TL.client || 'Client'}</Label>
+                  <Select value={(draft as any).clientId || 'none'} onValueChange={(val)=>setDraft(d=>({...d, clientId: val === 'none' ? undefined : val}))}>
+                    <SelectTrigger className="h-8"><SelectValue placeholder={TL.selectClient || 'Select client'} /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{TL.noClient || 'No client'}</SelectItem>
+                      {availableClients.map((c:any)=>(<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{TL.projectLinks || 'Project links'}</Label>
+                {Array.isArray(draft.links) && draft.links.length > 0 ? (
+                  (draft.links || []).map((link, idx)=> (
+                    <div key={idx} className="flex gap-2">
+                      <Input placeholder={`${TL.link || 'Link'} ${idx+1}`} value={link} onChange={(e)=>{ const l = [...(draft.links||[])]; l[idx]=e.target.value; setDraft(d=>({...d, links:l})); }} />
+                      {idx === (draft.links||[]).length - 1 && <Button size="icon" variant="outline" onClick={()=>setDraft(d=>({...d, links:[...(d.links||[]),'']}))}>+</Button>}
+                      {idx > 0 && <Button size="icon" variant="outline" onClick={()=>setDraft(d=>({...d, links: (d.links||[]).filter((_,i)=>i!==idx)}))}>×</Button>}
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex">
+                    <Button size="sm" variant="outline" onClick={()=>setDraft(d=>({...d, links:[...(d.links||[]),'']}))}>{TL.addLink || 'Add link'}</Button>
+                  </div>
+                )}
+              </div>
             </div>
             <DialogFooter>
               <DialogClose asChild><Button type="button" variant="ghost">{TL.cancel || 'Cancel'}</Button></DialogClose>
@@ -169,10 +245,19 @@ export function ProjectManager({ projects, tasks, onAddProject, onEditProject, o
 function EditProjectDialog({ project, onClose, onSave, language, tasks }: { project: Project | null; onClose: ()=>void; onSave: (updates: Partial<Project>) => void; language: 'en' | 'vi'; tasks: Task[] }) {
   const [form, setForm] = useState<Partial<Project>>({});
   const TL = (i18n as any)[language];
+  const { appData } = useDashboard();
 
   useEffect(()=>{
     if (project) {
-      setForm({ name: project.name, description: (project as any).description || '', links: Array.isArray(project.links) ? project.links : [] });
+      setForm({
+        name: project.name,
+        description: (project as any).description || '',
+        startDate: project.startDate ? new Date(project.startDate) : undefined,
+        endDate: project.endDate ? new Date(project.endDate) : undefined,
+        status: (project as any).status || 'planning',
+        clientId: (project as any).clientId,
+        links: Array.isArray(project.links) ? project.links : []
+      });
     } else setForm({});
   }, [project]);
 
@@ -186,8 +271,58 @@ function EditProjectDialog({ project, onClose, onSave, language, tasks }: { proj
         </DialogHeader>
         <div className="py-4 space-y-3">
           <Input placeholder={TL.projectNameRequired || 'Project name'} value={String(form.name || '')} onChange={(e)=>setForm(f=>({...f, name:e.target.value}))} />
-          <Input placeholder={TL.projectDescription || 'Description'} value={String((form as any).description || '')} onChange={(e)=>setForm(f=>({...f, description:e.target.value}))} />
-          <Input placeholder={TL.links || 'Links'} value={String(((form.links as any)?.[0]) || '')} onChange={(e)=>setForm(f=>({...f, links:[e.target.value]}))} />
+          <Textarea placeholder={TL.projectDescription || 'Description'} value={String((form as any).description || '')} onChange={(e)=>setForm(f=>({...f, description:e.target.value}))} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>{TL.startDate || 'Start date'}</Label>
+              <Input type="date" value={form.startDate ? new Date(form.startDate as any).toISOString().slice(0,10) : ''} onChange={(e)=>setForm(f=>({...f, startDate: e.target.value}))} />
+            </div>
+            <div>
+              <Label>{TL.endDate || 'End date'}</Label>
+              <Input type="date" value={form.endDate ? new Date(form.endDate as any).toISOString().slice(0,10) : ''} onChange={(e)=>setForm(f=>({...f, endDate: e.target.value}))} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>{TL.status || 'Status'}</Label>
+              <Select value={(form as any).status || 'planning'} onValueChange={(val)=>setForm(f=>({...f, status: val as any}))}>
+                <SelectTrigger className="h-8"><SelectValue/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="planning">{TL.planning || 'Planning'}</SelectItem>
+                  <SelectItem value="active">{TL.active || 'Active'}</SelectItem>
+                  <SelectItem value="completed">{TL.completed || 'Completed'}</SelectItem>
+                  <SelectItem value="onhold">{TL.onHold || 'On Hold'}</SelectItem>
+                  <SelectItem value="archived">{TL.archived || 'Archived'}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>{TL.client || 'Client'}</Label>
+              <Select value={(form as any).clientId || 'none'} onValueChange={(val)=>setForm(f=>({...f, clientId: val === 'none' ? undefined : val}))}>
+                <SelectTrigger className="h-8"><SelectValue placeholder={TL.selectClient || 'Select client'} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{TL.noClient || 'No client'}</SelectItem>
+                  {appData?.clients?.map((c:any)=>(<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>{TL.projectLinks || 'Project links'}</Label>
+            {Array.isArray(form.links) && (form.links || []).length > 0 ? (
+              ((form.links as any) || []).map((link:any, idx:number)=> (
+                <div key={idx} className="flex gap-2">
+                  <Input value={link} onChange={(e)=>{ const l = [...(form.links||[])]; l[idx]=e.target.value; setForm(f=>({...f, links:l})); }} />
+                  {idx === ((form.links||[]).length - 1) && <Button size="icon" variant="outline" onClick={()=>setForm(f=>({...f, links:[...(f.links||[]),'']}))}>+</Button>}
+                  {idx > 0 && <Button size="icon" variant="outline" onClick={()=>setForm(f=>({...f, links:(f.links||[]).filter((_,i)=>i!==idx)}))}>×</Button>}
+                </div>
+              ))
+            ) : (
+              <div className="flex">
+                <Button size="sm" variant="outline" onClick={()=>setForm(f=>({...f, links:[...(f.links||[]),'']}))}>{TL.addLink || 'Add link'}</Button>
+              </div>
+            )}
+          </div>
           <div className="mt-2 border-t pt-3">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-medium flex items-center gap-2">
@@ -217,7 +352,15 @@ function EditProjectDialog({ project, onClose, onSave, language, tasks }: { proj
         </div>
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={onClose}>{TL.cancel || 'Cancel'}</Button>
-          <Button onClick={()=>onSave(form)} disabled={!String(form.name || '').trim()}>{TL.saveChanges || 'Save changes'}</Button>
+          <Button onClick={()=>{
+            const updates: Partial<Project> = {
+              ...form,
+              startDate: form.startDate ? new Date(form.startDate as any) : undefined,
+              endDate: form.endDate ? new Date(form.endDate as any) : undefined,
+              links: Array.isArray(form.links) ? form.links.map((l:any)=>String(l).trim()).filter(Boolean) : undefined
+            };
+            onSave(updates);
+          }} disabled={!String(form.name || '').trim()}>{TL.saveChanges || 'Save changes'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

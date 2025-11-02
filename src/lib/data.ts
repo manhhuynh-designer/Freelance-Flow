@@ -1,9 +1,9 @@
 import { Circle, CircleCheck, CircleDashed, CircleHelp, Archive } from 'lucide-react';
-import type { Client, Category, Task, Quote, StatusInfo, QuoteTemplate, Collaborator, AppData } from './types';
+import type { Client, Category, Task, Quote, StatusInfo, QuoteTemplate, Collaborator, AppData, Project, PertDiagram } from './types'; // Import Project and PertDiagram
 
 export const initialClients: Client[] = [
   { id: 'client-1', name: 'Stark Industries', email: ['tony@stark.com'], phone: ['212-970-4133'], taxInfo: ['STARK-US-123'], type: 'brand', driveLink: ['https://drive.google.com/drive/folders/stark-industries'] },
-  { id: 'client-2', name: 'Wayne Enterprises', email: ['bruce@wayne.com'], phone: ['212-555-0100'], taxInfo: ['WAYNE-US-456'], type: 'brand' },
+  { id: 'client-2', name: 'Wayne Enterprises', email: ['bruce@wayne.com'], phone: ['555-555-0100'], taxInfo: ['WAYNE-US-456'], type: 'brand' },
   { id: 'client-3', name: 'Ogilvy', email: ['contact@ogilvy.com'], taxInfo: ['OGILVY-GL-789'], type: 'agency', driveLink: ['https://drive.google.com/drive/folders/ogilvy'] },
   { id: 'client-4', name: 'Acme Corporation', type: 'agency' },
 ];
@@ -126,6 +126,11 @@ export const tasks: Task[] = [
     duration: undefined,
     progress: undefined,
     dependencies: [],
+    projectId: 'stark-iron-man-project', // Added for PERT testing
+    // PERT estimates for testing
+    optimisticTime: 8,
+    mostLikelyTime: 12,
+    pessimisticTime: 18,
   },
   {
     id: 'task-2',
@@ -148,7 +153,13 @@ export const tasks: Task[] = [
     endDate: undefined,
     duration: undefined,
     progress: undefined,
-    dependencies: [],
+    // Add dependencies for task-2
+    dependencies: ['task-1'],
+    projectId: 'stark-iron-man-project', // Using the same project ID as task-1 for the example
+    // PERT estimates for testing
+    optimisticTime: 15,
+    mostLikelyTime: 20,
+    pessimisticTime: 30,
   },
   {
     id: 'task-3',
@@ -172,6 +183,11 @@ export const tasks: Task[] = [
     duration: undefined,
     progress: undefined,
     dependencies: [],
+    projectId: 'stark-iron-man-project', // Added for PERT testing - same project as task-1
+    // PERT estimates for testing
+    optimisticTime: 5,
+    mostLikelyTime: 8,
+    pessimisticTime: 12,
   },
   {
     id: 'task-4',
@@ -194,7 +210,72 @@ export const tasks: Task[] = [
     endDate: undefined,
     duration: undefined,
     progress: undefined,
-    dependencies: [],
+    // Add dependency to create an edge for testing style
+    dependencies: ['task-3'],
+    projectId: 'acme-skates-project', // New project ID
+  },
+  {
+    id: 'task-5',
+    name: 'Final VFX Review',
+    description: 'Review final visual effects for Batmobile chase sequence.',
+    startDate: new Date('2024-09-02'),
+    deadline: new Date('2024-09-05'),
+    clientId: 'client-2',
+    categoryId: 'cat-2',
+    status: 'todo',
+    quoteId: 'quote-2',
+    collaboratorIds: ['collab-2'],
+    dependencies: ['task-2'], // Dependent on Batmobile 3D Model
+    projectId: 'stark-iron-man-project', // Using the same project ID as task-1 for the example
+    optimisticTime: 3,
+    mostLikelyTime: 4,
+    pessimisticTime: 6,
+  }
+];
+
+
+// Define initial projects
+export const initialProjects: Project[] = [
+  {
+    id: 'stark-iron-man-project',
+    name: 'Stark Iron Man HUD Project',
+    description: 'Development of HUD for new Iron Man suits and associated VFX.',
+    startDate: new Date('2024-07-25'),
+    endDate: new Date('2024-09-05'),
+    status: 'active',
+    clientId: 'client-1',
+    tasks: ['task-1', 'task-2', 'task-3', 'task-5'], // Link relevant tasks
+    pertDiagram: { // Example empty PERT diagram for this project
+      id: 'pert-stark-1',
+      projectId: 'stark-iron-man-project',
+      nodes: [],
+      edges: [
+        { id: 'edge-task-1-task-2', source: 'task-1', target: 'task-2', type: 'dependency', data: { dependencyType: 'FS', duration: 1 } },
+        { id: 'edge-task-3-task-5', source: 'task-3', target: 'task-5', type: 'dependency', data: { dependencyType: 'SF', duration: 1 } }, // SF dependency example
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  },
+  {
+    id: 'acme-skates-project',
+    name: 'Acme Rocket Skates Launch',
+    description: 'Branding and design for a new product launch from Acme Corporation.',
+    startDate: new Date('2024-08-10'),
+    endDate: new Date('2024-08-25'),
+    status: 'planning',
+    clientId: 'client-4',
+    tasks: ['task-4'], // Link relevant tasks
+    pertDiagram: { // Example empty PERT diagram for this project
+        id: 'pert-acme-1',
+        projectId: 'acme-skates-project',
+        nodes: [],
+        edges: [
+            { id: 'edge-task-4-task-5-example', source: 'task-4', target: 'task-5', type: 'dependency', data: { dependencyType: 'FF', duration: 1 } }, // FF dependency example
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+    }
   },
 ];
 
@@ -253,7 +334,8 @@ export const initialAppData: AppData = {
     collaborators: initialCollaborators,
     quoteTemplates: initialQuoteTemplates,
     categories: categories,
-    projects: [], // <--- Thêm mảng project, khởi tạo rỗng
+    projects: initialProjects, // Use the new initialProjects
+    pertDiagrams: [], // Initialize empty PERT diagrams
     appSettings: {
         theme: {
             primary: "221 83% 53%",

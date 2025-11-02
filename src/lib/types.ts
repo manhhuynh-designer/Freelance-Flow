@@ -52,6 +52,8 @@ export type Quote = {
   sections: QuoteSection[];
   total: number;
   columns?: QuoteColumn[];
+  // Optional formula for summary tab grand total
+  grandTotalFormula?: string;
   // Bổ sung theo Spec
   status: 'draft' | 'sent' | 'accepted' | 'invoiced' | 'paid' | 'rejected';
   paidDate?: string;
@@ -74,6 +76,8 @@ export type CollaboratorQuote = {
   sections: QuoteSection[];
   total: number;
   columns?: QuoteColumn[];
+  // Optional formula for collaborator quote summary (if needed)
+  grandTotalFormula?: string;
   // Bổ sung theo Spec
   paymentStatus: 'pending' | 'paid';
   paidDate?: string;
@@ -129,6 +133,27 @@ export type Task = {
   createdAt?: string; // Ngày thêm task
   milestones?: Milestone[]; // Dữ liệu các mốc thời gian của task
   projectId?: string; // liên kết project, có thể để trống
+  
+  // PERT-specific fields
+  optimisticTime?: number;       // Optimistic time estimate (days)
+  mostLikelyTime?: number;       // Most likely time estimate (days)  
+  pessimisticTime?: number;      // Pessimistic time estimate (days)
+  expectedTime?: number;         // Calculated expected time using PERT formula
+  earlyStart?: number;           // Early start time
+  earlyFinish?: number;          // Early finish time
+  lateStart?: number;            // Late start time
+  lateFinish?: number;          // Late finish time
+  slack?: number;                // Total slack time
+  isCritical?: boolean;          // Is this task on critical path?
+  
+  // Node positioning for PERT diagram
+  pertPosition?: {
+    x: number;
+    y: number;
+  };
+  
+  // AI vector embedding for semantic search
+  vector?: number[];
 };
 export type Milestone = {
   id: string;
@@ -186,6 +211,11 @@ export type Project = {
   clientId?: string;
   links?: string[]; // array of URLs, optional
   tasks: string[]; // array of task IDs
+  
+  // PERT-specific fields
+  pertDiagram?: PertDiagram;
+  projectDuration?: number;      // Total project duration
+  criticalPath?: string[];       // Critical path task IDs
 };
 
 export type StatusInfo = {
@@ -318,6 +348,56 @@ export type AIProductivityAnalysis = {
   insights: any[]; // The structured insights
 };
 
+// PERT-specific types
+export type PertNode = {
+  id: string;
+  type: 'event' | 'task';
+  position: { x: number; y: number };
+  
+  // Event properties
+  name?: string;
+  eventNumber?: number;        // For milestone nodes
+  isMilestone?: boolean;
+  targetDate?: string;         // ISO date string
+  
+  // Task reference
+  taskId?: string;             // Reference to Task
+  
+  // PERT calculation results
+  earlyTime?: number;
+  lateTime?: number;
+  slack?: number;
+  
+  // ReactFlow data (for compatibility)
+  data?: {
+    label: string;
+    [key: string]: any;
+  };
+};
+
+export type PertEdge = {
+  id: string;
+  source: string;
+  target: string;
+  type: 'dependency';
+  data: {
+    duration?: number;
+    taskId?: string;
+    label?: string;
+    dependencyType?: 'FS' | 'SS' | 'FF' | 'SF'; // Thêm dependencyType vào data của edge
+  };
+};
+
+export type PertDiagram = {
+  id: string;
+  projectId: string;
+  nodes: PertNode[];
+  edges: PertEdge[];
+  criticalPath?: string[];       // Array of node IDs on critical path
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AppData = {
   tasks: Task[];
   events: AppEvent[];
@@ -336,4 +416,5 @@ export type AppData = {
   aiAnalyses?: AIAnalysis[]; // NEW
   aiProductivityAnalyses?: AIProductivityAnalysis[]; // NEW
   projects?: Project[]; // Danh sách project
+  pertDiagrams?: PertDiagram[]; // PERT diagrams storage
 };

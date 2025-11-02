@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from 'next/navigation';
-import { LayoutGrid, Puzzle, Bot } from "lucide-react";
+import { LayoutGrid, Puzzle, Bot, GitBranch } from "lucide-react";
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { i18n } from "@/lib/i18n";
 import { useDashboard } from "@/contexts/dashboard-context";

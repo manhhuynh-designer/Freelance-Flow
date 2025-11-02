@@ -18,6 +18,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { XCircle, Trash2, Filter, Table, CalendarDays, LayoutGrid, Columns3, Download, Maximize2, Minimize2 } from "lucide-react";
 import { TaskList } from '@/components/task-list';
+import PertView from '@/app/dashboard/pert/page';
 import type { Task, Quote, Collaborator, Category, Client, AppEvent, AppSettings, QuoteTemplate } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { i18n } from "@/lib/i18n";
@@ -53,7 +54,7 @@ function DashboardContentSearchParamsWrapper() {
   return <DashboardContentInner searchParams={searchParams} />;
 }
 
-type ViewMode = 'table' | 'calendar' | 'gantt' | 'eisenhower' | 'kanban';
+type ViewMode = 'table' | 'calendar' | 'gantt' | 'eisenhower' | 'kanban' | 'pert';
 
 function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSearchParams }) {
   const router = useRouter();
@@ -74,7 +75,7 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
       appData, handleViewTask, handleEditTask, handleAddTask, handleTaskStatusChange,
       handleDeleteTask, handleRestoreTask, handlePermanentDeleteTask,
       handleAddClientAndSelect, handleEmptyTrash, updateTask, updateEvent,
-      updateQuote, updateCollaboratorQuote,
+      updateQuote, updateCollaboratorQuote, handleAddProject,
       T, showInstallPrompt, installPromptEvent, handleInstallClick, 
       setShowInstallPrompt, viewingTaskDetails, viewingTaskId, handleCloseTaskDetails, 
       handleEditTaskClick, updateTaskEisenhowerQuadrant, reorderTasksInQuadrant,
@@ -420,6 +421,22 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
             handleAddClientAndSelect={handleAddClientAndSelect}
           />
         );
+      case 'pert':
+        return (
+          <div className="h-full w-full">
+            <PertView 
+              tasks={filteredTasks}
+              clients={clients}
+              categories={categories}
+              collaborators={collaborators}
+              projects={appData.projects || []}
+              selectedProject={projectFilter}
+              onProjectChange={handleProjectChange}
+              onCreateProject={handleAddProject}
+              T={T}
+            />
+          </div>
+        );
       default: return <div>Select a view</div>;
     }
   };
@@ -501,6 +518,8 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
                 handleSortChange={handleSortChange} viewMode={currentViewMode} T={T}
                 allCategories={categories} collaborators={collaborators} clients={clients} projects={appData.projects || []}
                 statuses={context?.appData?.appSettings?.statusSettings || []} statusColors={appSettings.statusColors}
+                forceVisible={currentViewMode === 'pert'}
+                showProjectSelector={false}
               />
               </div>
               
@@ -528,20 +547,27 @@ function DashboardContentInner({ searchParams }: { searchParams: ReadonlyURLSear
       )}
 
       
-      <Card className={cn("flex-1 flex flex-col min-h-0 overflow-hidden", isFullView && "rounded-none border-0") }>
-        {isFullView && (
-          <div className="fixed top-3 right-3 z-50">
-            <Button size="icon" variant="secondary" onClick={toggleFullView} aria-label={T?.exitFullView || 'Exit full view'}>
-              <Minimize2 className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-        <CardContent className={cn("flex-1 min-h-0 flex flex-col", currentViewMode === 'calendar' ? "p-0" : currentViewMode === 'table' ? "p-0" : currentViewMode === 'kanban' ? "p-0 overflow-hidden" : "p-0 overflow-y-auto", isFullView && "p-0") }>
-            {renderView()}
-        </CardContent>
-      </Card>
+      {currentViewMode === 'pert' ? (
+        // PERT view without Card wrapper to avoid constraints
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {renderView()}
+        </div>
+      ) : (
+        <Card className={cn("flex-1 flex flex-col min-h-0 overflow-hidden", isFullView && "rounded-none border-0") }>
+          {isFullView && (
+            <div className="fixed top-3 right-3 z-50">
+              <Button size="icon" variant="secondary" onClick={toggleFullView} aria-label={T?.exitFullView || 'Exit full view'}>
+                <Minimize2 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          <CardContent className={cn("flex-1 min-h-0 flex flex-col", currentViewMode === 'calendar' ? "p-0" : currentViewMode === 'table' ? "p-0" : currentViewMode === 'kanban' ? "p-0 overflow-hidden" : "p-0 overflow-y-auto", isFullView && "p-0") }>
+              {renderView()}
+          </CardContent>
+        </Card>
+      )}
       
-      {!isFullView && currentViewMode !== 'calendar' && currentViewMode !== 'eisenhower' && currentViewMode !== 'kanban' && currentViewMode !== 'gantt' && (
+      {!isFullView && currentViewMode !== 'calendar' && currentViewMode !== 'eisenhower' && currentViewMode !== 'kanban' && currentViewMode !== 'gantt' && currentViewMode !== 'pert' && (
         <div className="flex-shrink-0 border-t pt-4">
           <PaginationControls
               page={page} totalPages={totalPages} limit={limit}

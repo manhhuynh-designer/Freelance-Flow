@@ -79,9 +79,13 @@ const formSchema = z.object({
         })
     ).min(1, "A section must have at least one item."),
   })).min(1, "A quote must have at least one section."),
+  // Persist Summary tab formula for main quote
+  grandTotalFormula: z.string().optional().default(""),
   collaboratorQuotes: z.array(
     z.object({
       collaboratorId: z.string().default(''), // Allow empty string, validation happens during submission
+      // Optional Summary formula per collaborator quote
+      grandTotalFormula: z.string().optional().default(""),
       sections: z.array(
         z.object({
           id: z.string(),
@@ -295,6 +299,7 @@ export function EditTaskForm({
 
           return {
             collaboratorId: actualCollaboratorId, // Use the resolved ID
+            grandTotalFormula: (cq as any)?.grandTotalFormula || "",
             sections: cq.sections?.map(s => ({
               ...s,
               id: s.id || `section-${Date.now()}-${Math.random()}`,
@@ -336,6 +341,7 @@ export function EditTaskForm({
         to: safeParseDate(taskToEdit?.deadline, defaultDate)
       },
       sections: getInitialSections(),
+      grandTotalFormula: (quote as any)?.grandTotalFormula || "",
       collaboratorQuotes: getInitialCollaboratorQuotes(),
     }
   });
@@ -382,6 +388,8 @@ export function EditTaskForm({
 
     const currentSections = quote.sections;
     form.setValue(`collaboratorQuotes.${targetCollaboratorIndex}.sections`, currentSections);
+    // Keep collaborator quote columns in sync with main quote columns
+    try { setCollaboratorColumns([...columns]); } catch {}
     
     toast({
       title: T.copiedFromQuote,
@@ -1005,6 +1013,8 @@ export function EditTaskForm({
                   onApplySuggestion={handleApplySuggestion}
                   taskStartDate={form.getValues('dates')?.from}
                   taskEndDate={form.getValues('dates')?.to}
+                  grandTotalFormula={form.watch('grandTotalFormula') as any}
+                  onGrandTotalFormulaChange={(v) => form.setValue('grandTotalFormula', v, { shouldDirty: true })}
                 />
               </CollapsibleContent>
             </div>
@@ -1036,6 +1046,7 @@ export function EditTaskForm({
                         const taskEnd = safeParseDate(taskToEdit?.deadline, defaultDate);
                         const newQuote = {
                           collaboratorId: '',
+                          grandTotalFormula: "",
                           sections: [{
                             id: `section-${Date.now()}`,
                             name: T.untitledSection,
@@ -1112,6 +1123,8 @@ export function EditTaskForm({
                         showCopyFromQuote={true}
                         taskStartDate={form.getValues('dates')?.from}
                         taskEndDate={form.getValues('dates')?.to}
+                        grandTotalFormula={form.watch(`collaboratorQuotes.${index}.grandTotalFormula`) as any}
+                        onGrandTotalFormulaChange={(v) => form.setValue(`collaboratorQuotes.${index}.grandTotalFormula`, v, { shouldDirty: true })}
                       />
                     </div>
                   ))}
@@ -1128,6 +1141,7 @@ export function EditTaskForm({
                           const taskEnd = safeParseDate(taskToEdit?.deadline, defaultDate);
                           const newQuote = {
                             collaboratorId: '',
+                            grandTotalFormula: "",
                             sections: [{
                               id: `section-${Date.now()}`,
                               name: T.untitledSection,

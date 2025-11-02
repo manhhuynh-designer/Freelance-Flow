@@ -81,6 +81,9 @@ type QuoteManagerProps = {
   showCopyFromQuote?: boolean;
   taskStartDate?: Date;
   taskEndDate?: Date;
+  // Controlled grand total formula (optional)
+  grandTotalFormula?: string;
+  onGrandTotalFormulaChange?: (v: string) => void;
 };
 
 export const QuoteManager = ({
@@ -99,6 +102,8 @@ export const QuoteManager = ({
   showCopyFromQuote = false,
   taskStartDate,
   taskEndDate,
+  grandTotalFormula,
+  onGrandTotalFormulaChange,
 }: QuoteManagerProps) => {
   // Áp dụng cách lấy ngôn ngữ đúng theo cấu trúc i18n.ts mới
   const T = settings.language === 'en' ? en : vi;
@@ -135,12 +140,13 @@ export const QuoteManager = ({
     name: fieldArrayName,
   });
 
-  // Watch collaboratorSections for realtime Net Total updates in price quotes
-  // This ensures that when users edit Collaborator Costs in one tab,
-  // the Net Total in Price Quotes tab updates immediately
-  const watchedCollaboratorSections = useWatch({
+  // Watch all collaborator quotes for realtime Net Total updates in price quotes
+  // This ensures that when users edit Collaborator Costs in collaborator tabs,
+  // the Net Total in Price Quotes tab updates immediately.
+  // Note: our forms store collaborator data under collaboratorQuotes[].sections
+  const watchedCollaboratorQuotes = useWatch({
     control,
-    name: "collaboratorSections",
+    name: "collaboratorQuotes",
   });
 
   const { toast } = useToast();
@@ -258,8 +264,11 @@ export const QuoteManager = ({
   }, [watchedSections, columns]);
 
   // Custom formula for Grand Total
-  const [grandTotalFormula, setGrandTotalFormula] = React.useState('');
+  const [innerGrandTotalFormula, setInnerGrandTotalFormula] = React.useState('');
   const [grandTotalError, setGrandTotalError] = React.useState('');
+
+  // Use controlled value if provided
+  const effectiveFormula = (grandTotalFormula ?? innerGrandTotalFormula);
 
   // priceSum: sum of all price columns (including formula-calculated values)
   const priceSum = React.useMemo(() => {
@@ -309,73 +318,65 @@ export const QuoteManager = ({
   // collabSum: sum of all collaborator unitPrice (including formula-calculated values)
   // This calculates realtime with watchedCollaboratorSections for accurate Net Total updates
   const collabSum = React.useMemo(() => {
-    if (!form || !form.getValues) return 0;
-    
-    // Use watchedCollaboratorSections for realtime updates, fallback to form.getValues
-    const collabSections = watchedCollaboratorSections || form.getValues('collaboratorSections') || [];
-    
-    if (!collabSections || collabSections.length === 0) return 0;
-    
-    const total = (collabSections || []).reduce((acc: number, section: any) =>
-      acc + (section.items?.reduce((itemAcc: number, item: any) => {
-        let value = 0;
-        
-        // For collaborator costs, always use simple unitPrice calculation
-        // Unless this component is rendering collaboratorSections and has custom formulas
-        if (fieldArrayName === "collaboratorSections") {
-          // If we're in collaborator context, check for formula in current columns
-          const unitPriceCol = columns.find(col => col.id === 'unitPrice');
-          
-          if (unitPriceCol?.rowFormula) {
-            try {
-              // Calculate value based on rowFormula and current row values
-              const rowVals: Record<string, number> = {};
-              columns.forEach(c => {
-                if (c.type === 'number' && c.id !== 'unitPrice') {
-                  const val = ['description', 'unitPrice'].includes(c.id)
-                    ? Number(item[c.id]) || 0
-                    : Number(item.customFields?.[c.id]) || 0;
-                  rowVals[c.id] = val;
+    // Aggregate collaborator costs across ALL collaborator quotes in the form
+    const allCollabQuotes = watchedCollaboratorQuotes ?? form?.getValues?.('collaboratorQuotes') ?? [];
+    if (!Array.isArray(allCollabQuotes) || allCollabQuotes.length === 0) return 0;
+
+    try {
+      const total = allCollabQuotes.reduce((quotesAcc: number, q: any) => {
+        const sections = Array.isArray(q?.sections) ? q.sections : [];
+        const sectionSum = sections.reduce((secAcc: number, section: any) => {
+          const items = Array.isArray(section?.items) ? section.items : [];
+          const itemsSum = items.reduce((itemAcc: number, item: any) => {
+            // For collaborator context, prefer unitPrice; if a rowFormula is set on current columns
+            // and this instance is rendering collaborator sections, evaluate it.
+            if (fieldArrayName === 'collaboratorSections') {
+              const unitPriceCol = columns.find(col => col.id === 'unitPrice');
+              if (unitPriceCol?.rowFormula) {
+                try {
+                  const rowVals: Record<string, number> = {};
+                  columns.forEach(c => {
+                    if (c.type === 'number' && c.id !== 'unitPrice') {
+                      const val = ['description', 'unitPrice'].includes(c.id)
+                        ? Number(item[c.id]) || 0
+                        : Number(item.customFields?.[c.id]) || 0;
+                      rowVals[c.id] = val;
+                    }
+                  });
+                  let expr = unitPriceCol.rowFormula;
+                  Object.entries(rowVals).forEach(([cid, val]) => {
+                    expr = expr.replaceAll(cid, val.toString());
+                  });
+                  // eslint-disable-next-line no-eval
+                  const result = eval(expr);
+                  return itemAcc + (!isNaN(result) ? Number(result) : 0);
+                } catch {
+                  return itemAcc + (Number(item.unitPrice) || 0);
                 }
-              });
-              
-              // Replace column IDs in formula with actual values
-              let expr = unitPriceCol.rowFormula;
-              Object.entries(rowVals).forEach(([cid, val]) => {
-                expr = expr.replaceAll(cid, val.toString());
-              });
-              
-              // eslint-disable-next-line no-eval
-              const result = eval(expr);
-              value = !isNaN(result) ? Number(result) : 0;
-            } catch {
-              value = 0; // Default to 0 if formula fails
+              }
             }
-          } else {
-            // Use normal unitPrice value if no formula
-            value = Number(item.unitPrice) || 0;
-          }
-        } else {
-          // If we're in price quotes context, just use simple unitPrice for collaborators
-          value = Number(item.unitPrice) || 0;
-        }
-        
-        return itemAcc + value;
-      }, 0) || 0), 0);
-      
-    // Debug log for development (can be removed in production)
-    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-      console.log(`[QuoteManager] collabSum updated: ${total} (fieldArrayName: ${fieldArrayName})`);
+            return itemAcc + (Number(item.unitPrice) || 0);
+          }, 0);
+          return secAcc + itemsSum;
+        }, 0);
+        return quotesAcc + sectionSum;
+      }, 0);
+
+      if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+        console.log(`[QuoteManager] collabSum updated: ${total} (fieldArrayName: ${fieldArrayName})`);
+      }
+      return total;
+    } catch {
+      return 0;
     }
-    
-    return total;
-  }, [form, form?.getValues, columns, fieldArrayName, watchedSections, watchedCollaboratorSections]);
+  }, [watchedCollaboratorQuotes, form, fieldArrayName, columns]);
 
   // Grand Total: custom formula or priceSum
   const grandTotal = React.useMemo(() => {
-    if (grandTotalFormula && grandTotalFormula.trim() !== '') {
+    const formulaSrc = effectiveFormula;
+    if (formulaSrc && formulaSrc.trim() !== '') {
       try {
-        let formula = grandTotalFormula;
+        let formula = formulaSrc;
         
         // Auto-add + between adjacent variables (e.g., {QuantitySum}{PriceAvg} becomes {QuantitySum}+{PriceAvg})
         formula = formula.replace(/(\})\s*(\{)/g, '}+{');
@@ -417,7 +418,7 @@ export const QuoteManager = ({
     }
     setGrandTotalError('');
     return priceSum;
-  }, [grandTotalFormula, priceSum, collabSum, watchedSections, columns, calculationResults]);
+  }, [effectiveFormula, priceSum, collabSum, watchedSections, columns, calculationResults]);
 
   // Net Total: Grand Total - collabSum
   // This automatically updates when collaborator costs change due to watchedCollaboratorSections
@@ -1412,14 +1413,20 @@ export const QuoteManager = ({
                             type="text"
                             className="border rounded-lg px-3 py-2 pr-10 text-sm w-full font-mono bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-colors"
                             placeholder={T.selectVariableOrFormula || "Chọn biến hoặc nhập công thức..."}
-                            value={grandTotalFormula}
-                            onChange={e => setGrandTotalFormula(e.target.value)}
+                            value={effectiveFormula}
+                            onChange={e => {
+                              if (onGrandTotalFormulaChange) onGrandTotalFormulaChange(e.target.value);
+                              else setInnerGrandTotalFormula(e.target.value);
+                            }}
                           />
-                          {grandTotalFormula && (
+                          {effectiveFormula && (
                             <button
                               type="button"
                               className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-200 rounded-full transition-colors"
-                              onClick={() => setGrandTotalFormula('')}
+                              onClick={() => {
+                                if (onGrandTotalFormulaChange) onGrandTotalFormulaChange('');
+                                else setInnerGrandTotalFormula('');
+                              }}
                               title={T.clearFormula || "Xóa công thức"}
                             >
                               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1441,7 +1448,11 @@ export const QuoteManager = ({
                                     key={calc.id}
                                     type="button"
                                     className="inline-flex items-center px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition-colors"
-                                    onClick={() => setGrandTotalFormula(prev => prev + `{${varName}}`)}
+                                    onClick={() => {
+                                      const next = (effectiveFormula || '') + `{${varName}}`;
+                                      if (onGrandTotalFormulaChange) onGrandTotalFormulaChange(next);
+                                      else setInnerGrandTotalFormula(next);
+                                    }}
                                     title={`${calc.name} (${calc.calculation})`}
                                   >
                                     <span className="font-medium">{varName}</span>
@@ -1473,7 +1484,7 @@ export const QuoteManager = ({
                           {grandTotal.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US')} {settings.currency}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {grandTotalFormula ? (T.formula || 'Công thức') : (T.default || 'Mặc định')}
+                          {effectiveFormula ? (T.formula || 'Công thức') : (T.default || 'Mặc định')}
                         </p>
                       </div>
                     </div>

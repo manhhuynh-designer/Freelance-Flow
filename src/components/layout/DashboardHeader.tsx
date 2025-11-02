@@ -52,7 +52,7 @@ export function DashboardHeader() {
   const { appData, isTaskFormOpen, setIsTaskFormOpen, handleAddTask, handleAddClientAndSelect, cycleTaskFormSize, taskFormSize, handleEventSubmit, backupStatusText, handleExport, handleViewTask, defaultExportFormat, addProject } = useDashboard();
 
   const T = useMemo(() => {
-    const lang = appData.appSettings.language as 'en' | 'vi';
+    const lang = (appData?.appSettings?.language as 'en' | 'vi') || 'en';
     return {
       ...i18n[lang],
       unsavedConfirmTitle: (i18n[lang] as any)?.unsavedConfirmTitle || (i18n[lang] as any)?.confirmClose || 'Unsaved changes',
@@ -61,7 +61,7 @@ export function DashboardHeader() {
       unsavedCloseWithoutSaving: (i18n[lang] as any)?.unsavedCloseWithoutSaving || (i18n[lang] as any)?.closeWithoutSaving || 'Close Without Saving',
       saveDraft: (i18n[lang] as any)?.saveDraft || 'Save Draft',
     };
-  }, [appData.appSettings.language]);
+  }, [appData?.appSettings?.language]);
 
   const [isTaskFormDirty, setIsTaskFormDirty] = useState(false);
   const [isConfirmCloseOpen, setIsConfirmCloseOpen] = useState(false);
@@ -203,12 +203,12 @@ export function DashboardHeader() {
                       }}
                       clients={appData.clients}
                       onAddClient={handleAddClientAndSelect}
-                      projects={appData.projects || []}
+                      projects={appData?.projects || []}
                       onAddProject={(data) => addProject?.(data)}
-                      quoteTemplates={appData.quoteTemplates}
-                      collaborators={appData.collaborators}
-                      settings={appData.appSettings}
-                      categories={appData.categories}
+                      quoteTemplates={appData?.quoteTemplates || []}
+                      collaborators={appData?.collaborators || []}
+                      settings={appData?.appSettings}
+                      categories={appData?.categories || []}
                       onDirtyChange={setIsTaskFormDirty}
                       onSubmitSuccess={handleSubmitSuccess}
                       prefillValues={prefillValues}

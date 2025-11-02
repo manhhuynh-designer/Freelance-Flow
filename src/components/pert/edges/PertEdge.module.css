@@ -1,0 +1,31 @@
+.pertEdge {
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.1));
+}
+
+.pertEdgeCritical {
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.1));
+}
+
+.pertEdgeLabel {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  pointer-events: all;
+}
+
+.pertEdgeLabelContainer {
+  position: absolute;
+  font-size: 12px;
+  pointer-events: all;
+}
+
+.pertEdgeHighlight {
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+.pertEdgeSelected {
+  /* Selection visual: keep emphasis but do not override stroke color so per-edge colors remain applied */
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 2px 6px rgba(37,99,235,0.35));
+}
