@@ -16,6 +16,7 @@ export const QuoteSnapshotSchema = z.object({
   defaultColumns: z.any(),
   calculationResults: z.any(),
   grandTotal: z.number(),
+  hiddenColumnIds: z.array(z.string()).optional(),
 });
 
 // Timeline payload mirrors PrintableTimeline props subset

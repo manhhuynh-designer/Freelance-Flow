@@ -21,6 +21,7 @@ type Params = {
   }>;
   calculateRowValue: (item: QuoteItem, column: QuoteColumn, allColumns: QuoteColumn[]) => number;
   grandTotal: number;
+  hiddenColumnIds?: string[];
 };
 
 export async function exportQuoteImageToClipboard({ 
@@ -33,7 +34,8 @@ export async function exportQuoteImageToClipboard({
     defaultColumns,
     calculationResults,
     calculateRowValue,
-    grandTotal
+  grandTotal,
+  hiddenColumnIds
 }: Params): Promise<void> {
   return new Promise<void>(async (resolve, reject) => {
     const container = document.createElement('div');
@@ -55,7 +57,8 @@ export async function exportQuoteImageToClipboard({
         defaultColumns,
         calculationResults,
         calculateRowValue,
-        grandTotal
+        grandTotal,
+        hiddenColumnIds
       }));
 
       // allow styles and webfonts to settle

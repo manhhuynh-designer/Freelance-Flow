@@ -42,6 +42,7 @@ type Props = {
   }>;
   calculateRowValue?: (item: QuoteItem, column: QuoteColumn, allColumns: QuoteColumn[]) => number;
   grandTotal?: number;
+  hiddenColumnIds?: string[];
 };
 
 // Component UI báo giá được tối ưu cho việc xuất hình ảnh chuyên nghiệp.
@@ -56,7 +57,8 @@ export const PrintableQuote: React.FC<Props> = ({
   defaultColumns = [], 
   calculationResults = [], 
   calculateRowValue, 
-  grandTotal = 0 
+  grandTotal = 0,
+  hiddenColumnIds = [] 
 }) => {
   // Add defensive checks for required props
   if (!quote || !task || !settings) {
@@ -222,6 +224,9 @@ export const PrintableQuote: React.FC<Props> = ({
     }
   };
 
+  // Filter columns based on hiddenColumnIds (e.g., hide 'timeline')
+  const filterColumns = (cols: QuoteColumn[]) => cols.filter(c => !(hiddenColumnIds || []).includes(c.id));
+
   return (
     <div style={styles.container}>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -255,7 +260,7 @@ export const PrintableQuote: React.FC<Props> = ({
               <table style={styles.table}>
                 <thead>
                   <tr style={styles.theadTr}>
-                    {(quote.columns || defaultColumns).map(col => (
+                    {filterColumns(quote.columns || defaultColumns).map(col => (
                       <th key={col.id} style={{ ...styles.th, ...(col.type === 'number' ? styles.thRight : {}) }}>
                         {col.id === "unitPrice" ? `${T.unitPrice} (${currency})` : col.name}
                       </th>
@@ -265,7 +270,7 @@ export const PrintableQuote: React.FC<Props> = ({
                 <tbody style={styles.tbody}>
                   {section.items.map((item, index) => (
                     <tr key={item.id || index} style={{ ...styles.tbodyTr, ...(index % 2 === 0 && styles.tbodyTrAlt) }}>
-                      {(quote.columns || defaultColumns).map(col => {
+                      {filterColumns(quote.columns || defaultColumns).map(col => {
                         let displayValue: string | number = '';
                         if (col.type === 'number' && col.rowFormula) {
                           displayValue = safeCalculateRowValue(item, col, quote.columns || defaultColumns);

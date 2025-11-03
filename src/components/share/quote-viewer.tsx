@@ -14,6 +14,7 @@ type Props = {
   calculationResults?: Array<{ id: string; name: string; calculation: string; result: number | string }>;
   grandTotal?: number;
   showHeader?: boolean;
+  hiddenColumnIds?: string[];
 };
 
 function calcRowValue(item: QuoteItem, column: QuoteColumn, allColumns: QuoteColumn[]) {
@@ -38,10 +39,11 @@ function calcRowValue(item: QuoteItem, column: QuoteColumn, allColumns: QuoteCol
 }
 
 export default function QuoteViewer(props: Props) {
-  const { quote, task, settings, clients, categories, clientName, categoryName, defaultColumns = [], calculationResults = [], grandTotal, showHeader = true } = props;
+  const { quote, task, settings, clients, categories, clientName, categoryName, defaultColumns = [], calculationResults = [], grandTotal, showHeader = true, hiddenColumnIds = [] } = props;
   const T = { ...(i18n[settings.language] || {}), unitPrice: (i18n[settings.language] as any)?.unitPrice || 'Unit Price', grandTotal: (i18n[settings.language] as any)?.grandTotal || 'Grand Total' } as any;
 
-  const cols = quote.columns && quote.columns.length > 0 ? quote.columns : defaultColumns;
+  const baseCols = quote.columns && quote.columns.length > 0 ? quote.columns : defaultColumns;
+  const cols = baseCols.filter(c => !(hiddenColumnIds || []).includes(c.id));
   const sections = (quote.sections || []).map((s, idx) => ({
     id: s.id || `section-${idx}`,
     name: s.name || `Section ${idx + 1}`,

@@ -39,7 +39,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { getContrastingTextColor } from "@/lib/colors";
 import { i18n } from "@/lib/i18n";
-import { FileText, Pencil, Link as LinkIcon, Folder, Copy, Trash2, Building2, Calendar, Briefcase, Flag, FlagOff, CopyPlus, Image } from "lucide-react";
+import { FileText, Pencil, Link as LinkIcon, Folder, Copy, Trash2, Building2, Calendar, Briefcase, Flag, FlagOff, CopyPlus, Image, Settings2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import exportQuoteImageToClipboard from '@/lib/exports/exportImageToClipboard';
 import { RichTextViewer } from "@/components/ui/RichTextViewer";
@@ -50,6 +50,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // IMPORT NEW COMPONENT
@@ -60,9 +61,10 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
 // Lightweight Share modal state
-function ShareConfirmModal({ open, onOpenChange, defaultIncludeQuote = true, defaultIncludeTimeline = true, onConfirm, t, isLoading }: { open: boolean; onOpenChange: (v: boolean) => void; defaultIncludeQuote?: boolean; defaultIncludeTimeline?: boolean; onConfirm: (opts: { includeQuote: boolean; includeTimeline: boolean }) => void; t: any; isLoading?: boolean }) {
+function ShareConfirmModal({ open, onOpenChange, defaultIncludeQuote = true, defaultIncludeTimeline = true, defaultHideTimelineColumn = false, onConfirm, t, isLoading }: { open: boolean; onOpenChange: (v: boolean) => void; defaultIncludeQuote?: boolean; defaultIncludeTimeline?: boolean; defaultHideTimelineColumn?: boolean; onConfirm: (opts: { includeQuote: boolean; includeTimeline: boolean; hideTimelineColumn: boolean }) => void; t: any; isLoading?: boolean }) {
   const [includeQuote, setIncludeQuote] = React.useState(defaultIncludeQuote);
   const [includeTimeline, setIncludeTimeline] = React.useState(defaultIncludeTimeline);
+  const [hideTimelineColumn, setHideTimelineColumn] = React.useState(defaultHideTimelineColumn);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -73,6 +75,7 @@ function ShareConfirmModal({ open, onOpenChange, defaultIncludeQuote = true, def
         <div className="space-y-3 pt-2">
           <label className="flex items-center gap-2"><input type="checkbox" checked={includeQuote} onChange={e=>setIncludeQuote(e.target.checked)} disabled={isLoading} /> {t.includeQuote || 'Include Quote'}</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={includeTimeline} onChange={e=>setIncludeTimeline(e.target.checked)} disabled={isLoading} /> {t.includeTimeline || 'Include Timeline'}</label>
+          <label className="flex items-center gap-2 opacity-100"><input type="checkbox" checked={hideTimelineColumn} onChange={e=>setHideTimelineColumn(e.target.checked)} disabled={isLoading || !includeQuote} /> {t.hideTimelineColumn || 'Hide timeline column in quote'}</label>
           {isLoading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
@@ -83,7 +86,7 @@ function ShareConfirmModal({ open, onOpenChange, defaultIncludeQuote = true, def
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={()=>onOpenChange(false)} disabled={isLoading}>{t.cancel || 'Cancel'}</Button>
-          <Button onClick={()=>onConfirm({ includeQuote, includeTimeline })} disabled={!includeQuote && !includeTimeline || isLoading}>
+          <Button onClick={()=>onConfirm({ includeQuote, includeTimeline, hideTimelineColumn })} disabled={!includeQuote && !includeTimeline || isLoading}>
             {isLoading ? 'Creating...' : (t.createLink || 'Create link')}
           </Button>
         </DialogFooter>
@@ -509,6 +512,9 @@ export function TaskDetailsDialog({
     }
   }, [isOpen]);
 
+  // Option: hide timeline column when exporting quote image or sharing link
+  const [hideTimelineForExport, setHideTimelineForExport] = useState(false);
+
   // Ensure T is always reactive to language changes
   const T = useMemo(() => {
     const lang = (i18n as any)[settings.language];
@@ -897,7 +903,7 @@ export function TaskDetailsDialog({
     return milestones;
   };
 
-  const onShareConfirm = async ({ includeQuote, includeTimeline }: { includeQuote: boolean; includeTimeline: boolean }) => {
+  const onShareConfirm = async ({ includeQuote, includeTimeline, hideTimelineColumn }: { includeQuote: boolean; includeTimeline: boolean; hideTimelineColumn: boolean }) => {
     setShareLoading(true);
     try {
       // Build snapshot(s)
@@ -913,6 +919,7 @@ export function TaskDetailsDialog({
           calculationResults,
           // provide a simple calc for server-side viewer
           grandTotal: displayedGrandTotal || 0,
+          hiddenColumnIds: hideTimelineColumn ? ['timeline'] : undefined,
         };
       }
       if (includeTimeline) {
@@ -1072,14 +1079,15 @@ export function TaskDetailsDialog({
         defaultColumns: quote.columns || defaultColumns, // Ensure to pass the actual columns
         calculationResults, // Pass calculated results
         calculateRowValue, // Pass the helper function
-  grandTotal: displayedGrandTotal // Pass the grand total
+        grandTotal: displayedGrandTotal, // Pass the grand total
+        hiddenColumnIds: hideTimelineForExport ? ['timeline'] : undefined
       });
       toast({ title: T.exportCopied || 'Image copied to clipboard', description: T.exportCopiedDesc || 'You can paste the image into an email or chat.' });
     } catch (err: any) {
       console.error('Export image failed', err);
       toast({ variant: 'destructive', title: T.exportFailed || 'Export failed', description: err?.message || String(err) });
     }
-  }, [task, settings, toast, T, clients, categories, defaultColumns, calculationResults, calculateRowValue, totalQuote, quote]);
+  }, [task, settings, toast, T, clients, categories, defaultColumns, calculationResults, calculateRowValue, totalQuote, quote, hideTimelineForExport]);
 
   // Local: open Edit Quote dialog (edit-only mode) from Price tab
   const [isPriceEditOpen, setIsPriceEditOpen] = useState(false);
@@ -1109,6 +1117,19 @@ export function TaskDetailsDialog({
               <Image className="w-4 h-4" />
               <span className="sr-only">Copy image of {title}</span>
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" title={T.options || 'Options'}>
+                  <Settings2 className="w-4 h-4" />
+                  <span className="sr-only">Options</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuCheckboxItem checked={hideTimelineForExport} onCheckedChange={(v)=>setHideTimelineForExport(Boolean(v))}>
+                  {T.hideTimelineColumn || 'Hide timeline column (export/share)'}
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
       </div>
@@ -1817,7 +1838,7 @@ export function TaskDetailsDialog({
             </AlertDialog>
           </div>
         </div>
-  <ShareConfirmModal open={shareOpen} onOpenChange={setShareOpen} onConfirm={onShareConfirm} t={T} isLoading={shareLoading} />
+  <ShareConfirmModal open={shareOpen} onOpenChange={setShareOpen} onConfirm={onShareConfirm} t={T} isLoading={shareLoading} defaultHideTimelineColumn={hideTimelineForExport} />
         <ShareResultDialog
           open={shareResultOpen}
           onOpenChange={setShareResultOpen}
