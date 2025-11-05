@@ -1,6 +1,7 @@
 import QuoteViewer from '@/components/share/quote-viewer';
 import TimelineViewer from '@/components/share/timeline-viewer';
 import { i18n } from '@/lib/i18n';
+import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
 async function getOrigin() {
@@ -47,6 +48,28 @@ async function loadShare(id: string) {
   }
 }
 
+function resolveTask(snapshot: any) {
+  if (!snapshot) return undefined;
+  if (snapshot.kind === 'combined') {
+    return snapshot.timeline?.task || snapshot.quote?.task;
+  }
+  return snapshot.task;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const data = await loadShare(id);
+  const snapshot: any = data?.data;
+  const task = resolveTask(snapshot);
+  const title = typeof task?.name === 'string' && task.name.trim().length > 0 ? task.name : (data ? 'Freelance Flow Share' : 'Share Not Found');
+
+  return {
+    title,
+    openGraph: { title },
+    twitter: { title },
+  };
+}
+
 export default async function ShareViewerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   console.log('ShareViewerPage rendering for id:', id);
@@ -74,7 +97,7 @@ export default async function ShareViewerPage({ params }: { params: Promise<{ id
     cache: 'no-store',
   }).catch(() => {});
   // Unified landing-style page
-  const task = (snapshot.kind === 'combined' ? snapshot.timeline?.task || snapshot.quote?.task : (snapshot as any).task) as any;
+  const task = resolveTask(snapshot) as any;
   const settings = (snapshot as any).settings || (snapshot.kind === 'combined' ? (snapshot.timeline?.settings || snapshot.quote?.settings) : undefined);
   const T: any = (settings?.language && (i18n as any)[settings.language]) || {};
   const clients = (snapshot as any).clients || (snapshot.kind === 'combined' ? (snapshot.timeline?.clients || snapshot.quote?.clients) : undefined);

@@ -42,8 +42,19 @@ export default function QuoteViewer(props: Props) {
   const { quote, task, settings, clients, categories, clientName, categoryName, defaultColumns = [], calculationResults = [], grandTotal, showHeader = true, hiddenColumnIds = [] } = props;
   const T = { ...(i18n[settings.language] || {}), unitPrice: (i18n[settings.language] as any)?.unitPrice || 'Unit Price', grandTotal: (i18n[settings.language] as any)?.grandTotal || 'Grand Total' } as any;
 
+  const mergedHiddenColumnIds = React.useMemo(() => {
+    const fromQuote = Array.isArray((quote as any)?.hiddenColumnIds) ? (quote as any).hiddenColumnIds as string[] : [];
+    return Array.from(new Set([...(hiddenColumnIds || []), ...fromQuote]));
+  }, [hiddenColumnIds, quote]);
+
+  const filterColumns = React.useCallback((columns: QuoteColumn[] = []) => {
+    if (!columns.length) return columns;
+    if (!mergedHiddenColumnIds.length) return columns;
+    return columns.filter(col => !mergedHiddenColumnIds.includes(col.id));
+  }, [mergedHiddenColumnIds]);
+
   const baseCols = quote.columns && quote.columns.length > 0 ? quote.columns : defaultColumns;
-  const cols = baseCols.filter(c => !(hiddenColumnIds || []).includes(c.id));
+  const cols = filterColumns(baseCols);
   const sections = (quote.sections || []).map((s, idx) => ({
     id: s.id || `section-${idx}`,
     name: s.name || `Section ${idx + 1}`,
