@@ -276,6 +276,9 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
   const { formState: { isDirty }, getValues, setValue, control, register } = form;
   const briefLinks = useWatch({ control, name: "briefLink" });
   const driveLinks = useWatch({ control, name: "driveLink" });
+  const watchedDates = useWatch({ control, name: "dates" }) || { from: undefined, to: undefined };
+  const currentStartDate = watchedDates?.from instanceof Date ? watchedDates.from : undefined;
+  const currentEndDate = watchedDates?.to instanceof Date ? watchedDates.to : undefined;
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -291,13 +294,14 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
     // debug trace - POST to server so we can observe ordering in node logs
     try { void fetch('/api/_trace-saving', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ source: 'CreateTaskForm', event: 'onStartSaving', ts: Date.now() }) }); } catch (e) {}
     // Convert dates from form format to task format
+    const safeDates = data?.dates || { from: undefined, to: undefined };
     const cleanedData: any = {
       ...data,
       briefLink: (data.briefLink || []).filter((link: string) => link && link.trim() !== ''),
       driveLink: (data.driveLink || []).filter((link: string) => link && link.trim() !== ''),
       collaboratorIds: data.collaboratorQuotes?.map((q: any) => q.collaboratorId || "").filter((id: string) => id) || [],
-      startDate: data.dates.from,
-      deadline: data.dates.to,
+      startDate: safeDates.from,
+      deadline: safeDates.to,
     };
     
     // Remove the dates object since backend expects individual fields
@@ -318,12 +322,13 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
       const values = getValues();
   onStartSaving?.();
   try { void fetch('/api/_trace-saving', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ source: 'CreateTaskForm', event: 'onStartSaving-draft', ts: Date.now() }) }); } catch (e) {}
+      const safeDates = values?.dates || { from: undefined, to: undefined };
       const draftData: any = {
         ...values,
         name: `[Draft] ${values.name || T.untitledTask}`,
         status: 'archived' as const,
-        startDate: values.dates.from,
-        deadline: values.dates.to,
+        startDate: safeDates.from,
+        deadline: safeDates.to,
       };
       
       // Remove the dates object since backend expects individual fields
@@ -374,12 +379,14 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
 
   const handleApplySuggestion = useCallback((items: SuggestQuoteOutput['suggestedItems']) => {
     const currentDates = getValues('dates');
+    const rangeStart = currentDates?.from instanceof Date ? currentDates.from : currentStartDate;
+    const rangeEnd = currentDates?.to instanceof Date ? currentDates.to : currentEndDate;
     const newItems = items.map((item: SuggestQuoteOutput['suggestedItems'][number], index) => ({
       description: item.description,
       unitPrice: item.unitPrice,
       id: `item-sugg-${Date.now()}-${Math.random()}`,
       customFields: {
-        timeline: createInitialTimelineData(currentDates.from, currentDates.to, index, items.length)
+        timeline: createInitialTimelineData(rangeStart, rangeEnd, index, items.length)
       },
     }));
     setValue('sections', [{ id: 'section-ai-1', name: T.untitledSection, items: newItems }]);
@@ -388,7 +395,7 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
       title: T.suggestionApplied, 
       description: T.suggestionAppliedDesc?.replace('{count}', String(items.length)) 
     });
-  }, [getValues, setValue, setColumns, defaultColumns, T, toast]);
+  }, [getValues, setValue, setColumns, defaultColumns, T, toast, currentStartDate, currentEndDate]);
   
   const handleCopyFromQuote = useCallback((targetCollaboratorIndex: number) => {
     const currentSections = getValues('sections');
@@ -864,8 +871,8 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
                   taskDescription={getValues('description') || ''}
                   taskCategory={categoryName}
                   onApplySuggestion={handleApplySuggestion}
-                  taskStartDate={getValues('dates').from}
-                  taskEndDate={getValues('dates').to}
+                  taskStartDate={currentStartDate}
+                  taskEndDate={currentEndDate}
                   grandTotalFormula={form.watch('grandTotalFormula') as any}
                   onGrandTotalFormulaChange={(v) => form.setValue('grandTotalFormula', v, { shouldDirty: true })}
                 />
@@ -895,6 +902,8 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
                       size="sm"
                       onClick={() => {
                         const currentDates = getValues('dates');
+                        const rangeStart = currentDates?.from instanceof Date ? currentDates.from : currentStartDate;
+                        const rangeEnd = currentDates?.to instanceof Date ? currentDates.to : currentEndDate;
                         const newQuote = {
                           collaboratorId: '',
                           grandTotalFormula: "",
@@ -905,7 +914,7 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
                               description: "", 
                               unitPrice: 0, 
                               customFields: { 
-                                timeline: createInitialTimelineData(currentDates.from, currentDates.to, 0, 1)
+                                timeline: createInitialTimelineData(rangeStart, rangeEnd, 0, 1)
                               } 
                             }]
                           }]
@@ -972,8 +981,8 @@ export const CreateTaskForm = forwardRef<CreateTaskFormRef, CreateTaskFormProps>
                         settings={settings}
                         onCopyFromQuote={() => handleCopyFromQuote(index)}
                         showCopyFromQuote={true}
-                        taskStartDate={getValues('dates').from}
-                        taskEndDate={getValues('dates').to}
+                        taskStartDate={currentStartDate}
+                        taskEndDate={currentEndDate}
                         grandTotalFormula={form.watch(`collaboratorQuotes.${index}.grandTotalFormula`) as any}
                         onGrandTotalFormulaChange={(v) => form.setValue(`collaboratorQuotes.${index}.grandTotalFormula`, v, { shouldDirty: true })}
                       />

@@ -166,15 +166,19 @@ function LinkPreview({ url, maxLength = 30, fallback }: { url: string; maxLength
   const [error, setError] = React.useState(false);
   const { toast } = useToast();
 
-  // Check if it's a web URL
-  const isWebUrl = React.useMemo(() => {
+  const parsedUrl = React.useMemo(() => {
     try {
-      const urlObj = new URL(url);
-      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+      return new URL(url);
     } catch {
-      return false;
+      return null;
     }
   }, [url]);
+
+  // Check if it's a web URL
+  const isWebUrl = React.useMemo(() => {
+    if (!parsedUrl) return false;
+    return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+  }, [parsedUrl]);
 
   // Check if it's a local path (Windows or Unix style)
   const isLocalPath = React.useMemo(() => {
@@ -185,28 +189,35 @@ function LinkPreview({ url, maxLength = 30, fallback }: { url: string; maxLength
   }, [url, isWebUrl]);
 
   React.useEffect(() => {
-    // Only fetch metadata for web URLs
-    if (!isWebUrl) {
+    if (!isWebUrl || !parsedUrl) {
       setLoading(false);
       setError(false);
+      setTitle('');
+      setFavicon('');
       return;
     }
 
     let cancelled = false;
-    setLoading(true);
+    setTitle('');
     setError(false);
-    
-    fetch(`https://www.google.com/s2/favicons?domain=${url}`)
-      .then(response => {
-        if (!cancelled && response.ok) {
-          setFavicon(response.url);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      });
 
-    fetch(url)
+    const fallbackFavicon = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(parsedUrl.hostname)}`;
+    setFavicon(fallbackFavicon);
+
+    const canFetchMetadata = typeof window !== 'undefined' && parsedUrl.origin === window.location.origin;
+
+    if (!canFetchMetadata) {
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoading(true);
+
+    const controller = new AbortController();
+
+    fetch(parsedUrl.toString(), { signal: controller.signal })
       .then(response => {
         if (!cancelled && response.ok) {
           return response.text();
@@ -216,7 +227,7 @@ function LinkPreview({ url, maxLength = 30, fallback }: { url: string; maxLength
       .then(html => {
         if (!cancelled) {
           const match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-          const extractedTitle = match?.[1]?.trim(); 
+          const extractedTitle = match?.[1]?.trim();
           if (extractedTitle && extractedTitle.length <= maxLength) {
             setTitle(extractedTitle);
           }
@@ -229,8 +240,12 @@ function LinkPreview({ url, maxLength = 30, fallback }: { url: string; maxLength
           setLoading(false);
         }
       });
-    return () => { cancelled = true; };
-  }, [url, maxLength, isWebUrl]);
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [isWebUrl, parsedUrl, maxLength]);
 
   const domain = React.useMemo(() => {
     if (isLocalPath) {
@@ -308,9 +323,7 @@ function LinkPreview({ url, maxLength = 30, fallback }: { url: string; maxLength
               src={favicon} 
               alt="favicon" 
               className="w-4 h-4 rounded" 
-              onError={e => { 
-                (e.target as HTMLImageElement).src = `https://www.google.com/s2/favicons?domain=${url}`; 
-              }} 
+              onError={() => { setFavicon(''); }} 
             />
           ) : (
             <div className="w-4 h-4 rounded bg-muted flex items-center justify-center">
