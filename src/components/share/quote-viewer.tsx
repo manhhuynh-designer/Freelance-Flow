@@ -15,6 +15,7 @@ type Props = {
   grandTotal?: number;
   showHeader?: boolean;
   hiddenColumnIds?: string[];
+  showValidityNote?: boolean;
 };
 
 function calcRowValue(item: QuoteItem, column: QuoteColumn, allColumns: QuoteColumn[]) {
@@ -39,7 +40,7 @@ function calcRowValue(item: QuoteItem, column: QuoteColumn, allColumns: QuoteCol
 }
 
 export default function QuoteViewer(props: Props) {
-  const { quote, task, settings, clients, categories, clientName, categoryName, defaultColumns = [], calculationResults = [], grandTotal, showHeader = true, hiddenColumnIds = [] } = props;
+  const { quote, task, settings, clients, categories, clientName, categoryName, defaultColumns = [], calculationResults = [], grandTotal, showHeader = true, hiddenColumnIds = [], showValidityNote = true } = props;
   const T = { ...(i18n[settings.language] || {}), unitPrice: (i18n[settings.language] as any)?.unitPrice || 'Unit Price', grandTotal: (i18n[settings.language] as any)?.grandTotal || 'Grand Total' } as any;
 
   const mergedHiddenColumnIds = React.useMemo(() => {
@@ -76,11 +77,11 @@ export default function QuoteViewer(props: Props) {
   }, 0);
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 py-6">
+    <div className="container mx-auto max-w-5xl px-2 sm:px-4 py-4 sm:py-6">
       {showHeader && (
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 break-words">{task.name || 'Quote'}</h1>
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-gray-600">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">{task.name || 'Quote'}</h1>
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600">
             <div><span className="text-gray-500">{(T as any).quoteCode || 'Quote ID'}:</span> <span className="font-medium">{quote.id || '—'}</span></div>
             <div><span className="text-gray-500">{(T as any).startDate || 'Start'}:</span> <span className="font-medium">{task.startDate ? new Date(task.startDate).toLocaleDateString() : '—'}</span></div>
             <div><span className="text-gray-500">{(T as any).deadline || 'Deadline'}:</span> <span className="font-medium">{task.deadline ? new Date(task.deadline).toLocaleDateString() : '—'}</span></div>
@@ -89,12 +90,12 @@ export default function QuoteViewer(props: Props) {
       )}
 
       {sections.some(s => s.items.length > 0) && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto mb-4 sm:mb-6">
           <table className="min-w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 {cols.map(col => (
-                  <th key={col.id} className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 ${col.type === 'number' ? 'text-right' : ''}`}>
+                  <th key={col.id} className={`px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 whitespace-nowrap ${col.type === 'number' ? 'text-right' : ''}`}>
                     {col.id === 'unitPrice' ? `${T.unitPrice} (${currency})` : col.name}
                   </th>
                 ))}
@@ -104,13 +105,13 @@ export default function QuoteViewer(props: Props) {
               {sections.map((section, sIdx) => (
                 <React.Fragment key={section.id}>
                   <tr>
-                    <td colSpan={cols.length} className="px-6 py-2 bg-gray-50 text-sm font-semibold text-gray-700">
+                    <td colSpan={cols.length} className="px-3 sm:px-6 py-2 bg-gray-50 text-xs sm:text-sm font-semibold text-gray-700">
                       {section.name}
                     </td>
                   </tr>
                   {section.items.length === 0 && (
                     <tr>
-                      <td colSpan={cols.length} className="px-6 py-3 text-sm text-gray-500">{(T as any).noItemsInSection || 'No items in this section.'}</td>
+                      <td colSpan={cols.length} className="px-3 sm:px-6 py-3 text-xs sm:text-sm text-gray-500">{(T as any).noItemsInSection || 'No items in this section.'}</td>
                     </tr>
                   )}
                   {section.items.map((item, index) => (
@@ -166,7 +167,7 @@ export default function QuoteViewer(props: Props) {
                     }
                     
                         return (
-                          <td key={col.id} className={`px-6 py-4 text-sm text-gray-900 ${col.type === 'number' ? 'text-right font-medium' : ''}`}>
+                          <td key={col.id} className={`px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900 ${col.type === 'number' ? 'text-right font-medium' : ''}`}>
                             {displayValue}
                           </td>
                         );
@@ -181,36 +182,45 @@ export default function QuoteViewer(props: Props) {
       )}
 
   {!sections.some(s => s.items.length > 0) && (
-        <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-500 mb-6">
+        <div className="rounded-lg border border-gray-200 bg-white p-6 sm:p-8 text-center text-gray-500 mb-4 sm:mb-6">
           <div className="text-gray-400 mb-2">
-            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-10 h-10 sm:w-12 sm:h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-600 mb-1">{(T as any).noQuoteItems || 'No Quote Items'}</h3>
-          <p className="text-gray-500">{(T as any).noQuoteItemsDesc || 'No items have been added to this quote yet.'}</p>
+          <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-1">{(T as any).noQuoteItems || 'No Quote Items'}</h3>
+          <p className="text-sm text-gray-500">{(T as any).noQuoteItemsDesc || 'No items have been added to this quote yet.'}</p>
         </div>
       )}
 
       {(calculationResults && calculationResults.length > 0) && (
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {calculationResults.filter(c => c.id !== 'unitPrice' && !c.name.toLowerCase().includes('price')).map(c => (
-            <div key={c.id} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="text-sm text-gray-500 font-medium">{c.name}</div>
-              <div className="text-lg font-semibold text-gray-900 mt-1">{typeof c.result === 'number' ? c.result.toLocaleString() : c.result}</div>
+            <div key={c.id} className="rounded-lg border border-gray-200 bg-white p-3 sm:p-4 shadow-sm">
+              <div className="text-xs sm:text-sm text-gray-500 font-medium">{c.name}</div>
+              <div className="text-base sm:text-lg font-semibold text-gray-900 mt-1">{typeof c.result === 'number' ? c.result.toLocaleString() : c.result}</div>
             </div>
           ))}
         </div>
       )}
 
-      <div className="mt-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-6 text-white">
+      <div className="mt-6 sm:mt-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-4 sm:p-6 text-white">
         <div className="text-center">
-          <div className="text-lg font-medium mb-2">{T.grandTotal}</div>
-          <div className="text-3xl font-bold">
+          <div className="text-base sm:text-lg font-medium mb-2">{T.grandTotal}</div>
+          <div className="text-2xl sm:text-3xl font-bold break-words">
             {calculatedGrandTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency}
           </div>
         </div>
       </div>
+
+      {/* Validity Note - conditionally shown based on snapshot flag */}
+      {showValidityNote !== false && (settings.quoteValidityNote || (T as any).quoteValidityNote) && (
+        <div className="mt-6 sm:mt-8 text-center">
+          <p className="text-xs sm:text-sm text-gray-500 italic px-4">
+            {settings.quoteValidityNote || (T as any).quoteValidityNote}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

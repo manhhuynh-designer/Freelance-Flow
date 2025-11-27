@@ -371,7 +371,8 @@ export const initialAppData: AppData = {
             { id: 'onhold', label: 'On Hold', subStatuses: [] },
             { id: 'archived', label: 'Archived', subStatuses: [] },
         ],
-        widgets: []
+        widgets: [],
+        showValidityNoteByDefault: true
     }
 };
 

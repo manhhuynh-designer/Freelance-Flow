@@ -316,6 +316,8 @@ export type AppSettings = {
   kanbanSubStatusMode?: 'grouped' | 'separate';
   eisenhowerColorScheme?: 'colorScheme1' | 'colorScheme2' | 'colorScheme3'; // Color scheme for Eisenhower matrix
   filterSettings?: FilterSettings; // Add filter settings to app settings
+  quoteValidityNote?: string; // Customizable validity note text for quotes
+  showValidityNoteByDefault?: boolean; // Whether to show validity note by default when sharing
 };
 
 export type FilterPreset = {

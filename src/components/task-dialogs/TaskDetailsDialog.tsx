@@ -61,10 +61,11 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
 // Lightweight Share modal state
-function ShareConfirmModal({ open, onOpenChange, defaultIncludeQuote = true, defaultIncludeTimeline = true, defaultHideTimelineColumn = false, onConfirm, t, isLoading }: { open: boolean; onOpenChange: (v: boolean) => void; defaultIncludeQuote?: boolean; defaultIncludeTimeline?: boolean; defaultHideTimelineColumn?: boolean; onConfirm: (opts: { includeQuote: boolean; includeTimeline: boolean; hideTimelineColumn: boolean }) => void; t: any; isLoading?: boolean }) {
+function ShareConfirmModal({ open, onOpenChange, defaultIncludeQuote = true, defaultIncludeTimeline = true, defaultHideTimelineColumn = false, defaultShowValidityNote = true, onConfirm, t, isLoading }: { open: boolean; onOpenChange: (v: boolean) => void; defaultIncludeQuote?: boolean; defaultIncludeTimeline?: boolean; defaultHideTimelineColumn?: boolean; defaultShowValidityNote?: boolean; onConfirm: (opts: { includeQuote: boolean; includeTimeline: boolean; hideTimelineColumn: boolean; showValidityNote: boolean }) => void; t: any; isLoading?: boolean }) {
   const [includeQuote, setIncludeQuote] = React.useState(defaultIncludeQuote);
   const [includeTimeline, setIncludeTimeline] = React.useState(defaultIncludeTimeline);
   const [hideTimelineColumn, setHideTimelineColumn] = React.useState(defaultHideTimelineColumn);
+  const [showValidityNote, setShowValidityNote] = React.useState(defaultShowValidityNote);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -76,6 +77,7 @@ function ShareConfirmModal({ open, onOpenChange, defaultIncludeQuote = true, def
           <label className="flex items-center gap-2"><input type="checkbox" checked={includeQuote} onChange={e=>setIncludeQuote(e.target.checked)} disabled={isLoading} /> {t.includeQuote || 'Include Quote'}</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={includeTimeline} onChange={e=>setIncludeTimeline(e.target.checked)} disabled={isLoading} /> {t.includeTimeline || 'Include Timeline'}</label>
           <label className="flex items-center gap-2 opacity-100"><input type="checkbox" checked={hideTimelineColumn} onChange={e=>setHideTimelineColumn(e.target.checked)} disabled={isLoading || !includeQuote} /> {t.hideTimelineColumn || 'Hide timeline column in quote'}</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={showValidityNote} onChange={e=>setShowValidityNote(e.target.checked)} disabled={isLoading || !includeQuote} /> {t.showValidityNote || 'Show validity note'}</label>
           {isLoading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
@@ -86,7 +88,7 @@ function ShareConfirmModal({ open, onOpenChange, defaultIncludeQuote = true, def
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={()=>onOpenChange(false)} disabled={isLoading}>{t.cancel || 'Cancel'}</Button>
-          <Button onClick={()=>onConfirm({ includeQuote, includeTimeline, hideTimelineColumn })} disabled={!includeQuote && !includeTimeline || isLoading}>
+          <Button onClick={()=>onConfirm({ includeQuote, includeTimeline, hideTimelineColumn, showValidityNote })} disabled={!includeQuote && !includeTimeline || isLoading}>
             {isLoading ? 'Creating...' : (t.createLink || 'Create link')}
           </Button>
         </DialogFooter>
@@ -916,7 +918,7 @@ export function TaskDetailsDialog({
     return milestones;
   };
 
-  const onShareConfirm = async ({ includeQuote, includeTimeline, hideTimelineColumn }: { includeQuote: boolean; includeTimeline: boolean; hideTimelineColumn: boolean }) => {
+  const onShareConfirm = async ({ includeQuote, includeTimeline, hideTimelineColumn, showValidityNote }: { includeQuote: boolean; includeTimeline: boolean; hideTimelineColumn: boolean; showValidityNote: boolean }) => {
     setShareLoading(true);
     try {
       // Build snapshot(s)
@@ -933,6 +935,7 @@ export function TaskDetailsDialog({
           // provide a simple calc for server-side viewer
           grandTotal: displayedGrandTotal || 0,
           hiddenColumnIds: hideTimelineColumn ? ['timeline'] : undefined,
+          showValidityNote,
         };
       }
       if (includeTimeline) {
@@ -1851,7 +1854,7 @@ export function TaskDetailsDialog({
             </AlertDialog>
           </div>
         </div>
-  <ShareConfirmModal open={shareOpen} onOpenChange={setShareOpen} onConfirm={onShareConfirm} t={T} isLoading={shareLoading} defaultHideTimelineColumn={hideTimelineForExport} />
+  <ShareConfirmModal open={shareOpen} onOpenChange={setShareOpen} onConfirm={onShareConfirm} t={T} isLoading={shareLoading} defaultHideTimelineColumn={hideTimelineForExport} defaultShowValidityNote={settings.showValidityNoteByDefault ?? true} />
         <ShareResultDialog
           open={shareResultOpen}
           onOpenChange={setShareResultOpen}

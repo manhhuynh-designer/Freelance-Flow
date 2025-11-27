@@ -23,6 +23,25 @@ if (process.env.NODE_ENV !== 'production') {
       },
       async authorize(credentials) {
         if (!credentials || !credentials.username) return null;
+        
+        // Test account validation
+        const TEST_ACCOUNT = {
+          username: process.env.TEST_USER_USERNAME || 'admin',
+          password: process.env.TEST_USER_PASSWORD || '123456',
+          email: process.env.TEST_USER_EMAIL || 'admin@freelanceflow.local'
+        };
+        
+        // Validate credentials
+        if (credentials.username === TEST_ACCOUNT.username && 
+            credentials.password === TEST_ACCOUNT.password) {
+          return { 
+            id: TEST_ACCOUNT.username, 
+            email: TEST_ACCOUNT.email,
+            name: TEST_ACCOUNT.username 
+          };
+        }
+        
+        // Fallback: any username/password for development
         return { id: credentials.username, email: `${credentials.username}@local` };
       },
     })

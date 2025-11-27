@@ -399,6 +399,57 @@ function SettingsPageContent() {
                                     )} />
                                 </div>
                                 <Separator />
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="validity-note">{T.quoteValidityNote || 'Quote Validity Note'}</Label>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <QuestionMarkIcon className="h-4 w-4 text-muted-foreground" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p className="max-w-xs">{T.quoteValidityNoteDesc || 'Customize the validity note text shown on quotes and share pages'}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <textarea
+                                            id="validity-note"
+                                            className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                            value={appSettings.quoteValidityNote || ((T as any).quoteValidityNote || '')}
+                                            onChange={(e) => onSettingsChange(
+                                                s => ({ ...s, quoteValidityNote: e.target.value }),
+                                                'Updated quote validity note text'
+                                            )}
+                                            placeholder={(T as any).quoteValidityNote || 'Enter custom validity note text...'}
+                                        />
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id="show-validity-default"
+                                                checked={appSettings.showValidityNoteByDefault ?? true}
+                                                onCheckedChange={(checked) => onSettingsChange(
+                                                    s => ({ ...s, showValidityNoteByDefault: !!checked }),
+                                                    `${checked ? 'Enabled' : 'Disabled'} validity note by default when sharing`
+                                                )}
+                                            />
+                                            <label htmlFor="show-validity-default" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                                {T.showValidityNoteByDefault || 'Show by default when sharing'}
+                                            </label>
+                                        </div>
+                                        {appSettings.quoteValidityNote && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => onSettingsChange(
+                                                    s => ({ ...s, quoteValidityNote: undefined }),
+                                                    'Reset quote validity note to default'
+                                                )}
+                                            >
+                                                {T.resetToDefault || 'Reset to Default'}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                                <Separator />
                                 <div className="space-y-2">
                                     <Label htmlFor="eisenhower-max-tasks">{T.eisenhowerMaxTasks}: {appSettings.eisenhowerMaxTasksPerQuadrant || 10}</Label>
                                     <Slider id="eisenhower-max-tasks" min={3} max={20} step={1} value={[appSettings.eisenhowerMaxTasksPerQuadrant || 10]} onValueChange={(value) => onSettingsChange(

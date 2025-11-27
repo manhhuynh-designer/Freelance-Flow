@@ -112,38 +112,38 @@ export default async function ShareViewerPage({ params }: { params: Promise<{ id
       <meta name="robots" content="noindex,nofollow" />
       {/* Unified Header */}
       <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{task?.name || 'Project'}</h1>
-          <p className="text-gray-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 break-words">{task?.name || 'Project'}</h1>
+          <p className="text-sm sm:text-base text-gray-600 break-words">
             {currentClient?.name && currentCategory?.name ? `${currentClient.name} • ${currentCategory.name}` : (currentClient?.name || currentCategory?.name || '')}
           </p>
         </div>
       </header>
 
       {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex gap-2">
+      <nav className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex gap-2 overflow-x-auto">
             {quotePart && (
-              <a href="#quote" className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-700 hover:bg-blue-50 rounded-md">{T.priceQuote || 'Quote'}</a>
+              <a href="#quote" className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-700 hover:bg-blue-50 rounded-md whitespace-nowrap">{T.priceQuote || 'Quote'}</a>
             )}
             {timelinePart && (
-              <a href="#timeline" className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-700 hover:bg-blue-50 rounded-md">{(T as any).timeline || 'Timeline'}</a>
+              <a href="#timeline" className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-700 hover:bg-blue-50 rounded-md whitespace-nowrap">{(T as any).timeline || 'Timeline'}</a>
             )}
           </div>
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8 sm:space-y-12">
         {quotePart && (
-          <section id="quote">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">{T.priceQuote || 'Quote'}</h2>
+          <section id="quote" className="scroll-mt-16">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">{T.priceQuote || 'Quote'}</h2>
             <QuoteViewer {...(quotePart as any)} showHeader={false} />
           </section>
         )}
         {timelinePart && (
-          <section id="timeline">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">{(T as any).timeline || 'Timeline'}</h2>
+          <section id="timeline" className="scroll-mt-16">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">{(T as any).timeline || 'Timeline'}</h2>
             <TimelineViewer {...(timelinePart as any)} showHeader={false} embedded />
           </section>
         )}
