@@ -518,7 +518,7 @@
   border: 1px solid #e2e8f0;
 }
 .milestoneContainer {
-  overflow: hidden;
+  overflow: visible; /* Changed from hidden - allow milestone bars to render beyond viewport */
   flex: 1;
   min-height: 0;
   /* Remove border, margin, background to eliminate the red frame */

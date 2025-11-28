@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { Task, Quote, AppSettings, Milestone, QuoteSection, QuoteItem, Client, Category } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { i18n } from "@/lib/i18n";
-import { DndContext, DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragMoveEvent, DragStartEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { format, addDays, parseISO, isValid } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
@@ -102,7 +102,7 @@ const MilestoneDateEditor = ({
     const newStartDate = isStart ? newDate.toISOString().slice(0, 10) : (typeof milestone.startDate === 'string' ? milestone.startDate : milestone.startDate.toISOString().slice(0, 10));
     const newEndDate = isStart ? (typeof milestone.endDate === 'string' ? milestone.endDate : milestone.endDate.toISOString().slice(0, 10)) : newDate.toISOString().slice(0, 10);
     
-    // Debounce updates to prevent conflicts during drag
+    // Enhanced debounce with longer delay to prevent conflicts during rapid drag
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current);
     }
@@ -116,7 +116,7 @@ const MilestoneDateEditor = ({
       } finally {
         setIsUpdating(false);
       }
-    }, 100); // 100ms debounce
+    }, 300); // Increased to 300ms debounce for better stability
   };
 
   // Cleanup timeout on unmount
@@ -145,8 +145,8 @@ const MilestoneDateEditor = ({
         e.stopPropagation(); // Prevent DndContext interference
         
         const now = Date.now();
-        // Throttle updates to max 10 times per second to prevent conflicts
-        if (now - lastUpdateRef.current < 100) {
+        // Enhanced throttle to max 5 times per second to prevent conflicts and improve performance
+        if (now - lastUpdateRef.current < 200) {
           return;
         }
         lastUpdateRef.current = now;
@@ -247,6 +247,15 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
 }) => {
   const { toast } = useToast();
   const T = i18n[settings.language] || i18n.vi;
+  
+  // Configure DndKit sensors to track mouse beyond container bounds
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 0, // Start drag immediately
+      },
+    })
+  );
 
   // Debug: reduce per-render logging of quote structure
 
@@ -358,7 +367,7 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
             color: timelineData.color || `hsl(${(sectionIndex * 137.5 + itemIndex * 60) % 360}, 60%, 55%)`,
             content: `Section: ${section.name || 'Unnamed Section'}`
           };
-          
+          // debug removed
           milestones.push(milestone);
         } else {
           // console.log(`❌ Invalid timeline data for section ${sectionIndex}, item ${itemIndex}:`, {
@@ -532,32 +541,41 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
     });
   }, []);
 
-  // Initialize milestones state on first render and when timeline column changes
+  // Consolidated milestone sync effect - only update when quote structure actually changes
+  // and not during active updates to prevent overwriting user changes
+  const quoteSectionsRef = useRef<string>('');
   useEffect(() => {
-    // console.log('🔄 useEffect - Initializing milestones', { 
-    //   hasQuote: !!quote, 
-    //   hasTimelineColumn, 
-    //   sectionsCount: quote?.sections?.length || 0 
-    // });
-    
-    const initialMilestones = getMilestonesFromQuote();
-    // console.log('📊 Initial milestones found:', initialMilestones.length);
-    setMilestonesState(initialMilestones);
-  }, [quote?.id, hasTimelineColumn, quote?.sections, quote?.columns]); // More specific dependencies
-
-  
-
-  // Additional effect to sync milestones when quote changes (for create timeline case)
-  useEffect(() => {
-    if (quote?.columns?.some(col => col.id === 'timeline')) {
-      const syncedMilestones = getMilestonesFromQuote();
-      // console.log('🔄 Quote changed - syncing milestones:', syncedMilestones.length);
-      setMilestonesState(syncedMilestones);
+    // Skip if we're in the middle of updating milestones to prevent overwriting
+    if (isUpdatingMilestone.size > 0) {
+      return; // skip while updating
     }
-  }, [quote, getMilestonesFromQuote]);
+
+    // Skip sync for 2 seconds after save to prevent feedback loop
+    const timeSinceLastSave = Date.now() - lastSaveTime;
+    if (lastSaveTime > 0 && timeSinceLastSave < 2000) {
+      return; // recently saved guard
+    }
+
+    // Only sync if timeline column exists
+    if (!hasTimelineColumn) {
+      setMilestonesState([]);
+      return;
+    }
+
+    // Check if quote sections actually changed using deep comparison
+    const currentSections = JSON.stringify(quote?.sections || []);
+    if (quoteSectionsRef.current === currentSections) {
+      return; // no structural change
+    }
+    quoteSectionsRef.current = currentSections;
+
+    const syncedMilestones = getMilestonesFromQuote();
+    setMilestonesState(syncedMilestones);
+  }, [quote?.id, hasTimelineColumn, getMilestonesFromQuote, isUpdatingMilestone, lastSaveTime]);
 
   // Ref to track timeline container for auto-scaling
   const timelineContainerRef = useRef<HTMLDivElement>(null);
+  const timelineScrollerRef = useRef<HTMLDivElement>(null);
   // Remove old auto-save logic since we now save directly to quote
   // Track mount to allow saving the first change (including initial quote sync)
   const mountedRef = useRef(false);
@@ -715,6 +733,7 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
     
     try {
       // Chỉ cập nhật columns và sections, giữ nguyên các thuộc tính khác của quote
+      // onUpdateQuote sẽ merge partial update vào quote hiện tại
       onUpdateQuote(quote.id, {
         columns: updatedColumns,
         sections: updatedSections
@@ -841,18 +860,13 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
         setLastSaveTime(Date.now());
         
         // Call the update function - chỉ cập nhật sections, giữ nguyên các thuộc tính khác
+        // onUpdateQuote sẽ merge partial update vào quote hiện tại
         onUpdateQuote(quote.id, { sections: updatedQuote.sections });
         
-        // Update local milestone state immediately for better UX
-        setMilestonesState(prevMilestones => 
-          prevMilestones.map(m => 
-            m.id === milestone.id 
-              ? { ...m, startDate: newStartDate, endDate: newEndDate }
-              : m
-          )
-        );
+        // Don't update local state here - let useEffect sync from quote after time guard
+        // This prevents feedback loop: save → setState → re-render → effect → save again
         
-  console.debug(`✅ Milestone ${milestone.id} saved successfully`);
+  // debug removed
       } else {
         console.warn(`❌ Milestone ${milestone.id} not found in quote sections`);
       }
@@ -901,6 +915,18 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
       });
     }
   }, [milestonesState, saveMilestoneToQuote, toast]);
+
+  const scrollToMilestone = useCallback((milestoneId: string) => {
+    const scroller = timelineScrollerRef.current;
+    if (!scroller) return;
+    const bar = scroller.querySelector(`.milestone-bar[data-mid="${milestoneId}"]`) as HTMLElement | null;
+    if (!bar) return;
+    const barLeft = bar.offsetLeft;
+    const barWidth = bar.offsetWidth;
+    const target = barLeft - (scroller.clientWidth / 2) + (barWidth / 2);
+    const clamped = Math.max(0, Math.min(target, scroller.scrollWidth - scroller.clientWidth));
+    scroller.scrollTo({ left: clamped, behavior: 'smooth' });
+  }, []);
 
   // Define predefined colors for consistency
   const MILESTONE_COLORS = [
@@ -982,6 +1008,8 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
     if (timelineStartDay !== null) candidates.push(timelineStartDay);
     if (candidates.length === 0) return null;
     const result = Math.max(...candidates);
+    // Add 50-day buffer to allow milestone extension during drag without clipping
+    const bufferedResult = result + 50;
     // console.log('📊 Timeline range calculation (single view):', {
     //   taskStartDay,
     //   taskEndDay,
@@ -989,14 +1017,15 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
     //   milestoneMaxEnd: milestoneRange.maxEnd,
     //   timelineStartDay,
     //   timelineEndDay: result,
+    //   bufferedTimelineEndDay: bufferedResult,
     //   taskEndFormatted: taskEndDay !== null ? dayNumToFormat(taskEndDay) : 'null',
     //   timelineEndFormatted: dayNumToFormat(result)
     // });
-    return result;
+    return bufferedResult;
   }, [taskEndDay, milestoneRange.maxEnd, timelineStartDay, taskStartDay]);
 
   const getTimelineWidth = useMemo(() => {
-    // Calculate actual timeline width based on timeline range for proper milestone display
+    // Calculate timeline width with buffer to allow milestone bars to extend during drag
     if (timelineStartDay === null || timelineEndDay === null) return Math.round(30 * FIXED_DAY_WIDTH); // Fallback
     const actualTimelineDays = timelineEndDay - timelineStartDay + 1;
     // console.log('🔧 getTimelineWidth calculation:', {
@@ -1004,7 +1033,8 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
     //   timelineEndDay,
     //   actualTimelineDays,
     //   FIXED_DAY_WIDTH,
-    //   'width': actualTimelineDays * FIXED_DAY_WIDTH
+    //   'width': actualTimelineDays * FIXED_DAY_WIDTH,
+    //   'note': 'timelineEndDay already includes 50-day buffer'
     // });
     return Math.round(actualTimelineDays * FIXED_DAY_WIDTH);
   }, [timelineStartDay, timelineEndDay]);
@@ -1020,11 +1050,6 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
     // Use fixed day width for today marker position
     return Math.round(offsetDays * FIXED_DAY_WIDTH);
   }, [timelineStartDay]);
-
-  // Load milestones from quote when it changes
-  useEffect(() => {
-    setMilestonesState(getMilestonesFromQuote());
-  }, [quote, getMilestonesFromQuote]);
 
   // Timeline controls handlers
   // View mode controls removed; single day-based view
@@ -1224,6 +1249,7 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
       
       if (foundSection) {
         // console.log('💾 Saving color change to quote...');
+        // onUpdateQuote sẽ merge partial update vào quote hiện tại
         onUpdateQuote(quote.id, { sections: updatedSections });
         
         toast({
@@ -1274,7 +1300,7 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
   const dynamicCss = useMemo(() => {
     if (timelineStartDay === null) return '';
     const lines = [
-      ` .${safeTaskClass} .${stylesModule.dateHeader} { min-width: ${getTimelineWidth}px; }`, 
+      ` .${safeTaskClass} .${stylesModule.dateHeader}, .${safeTaskClass} .${stylesModule.milestoneBarsContainer} { min-width: ${getTimelineWidth}px; }`, 
   `.${safeTaskClass} .${stylesModule.dayCell} { width: ${FIXED_DAY_WIDTH}px; }`,
   // Synchronize grid background with dayCell width and total timeline width
   `.${safeTaskClass} .${stylesModule.timelineScroller}::before { --day-width: ${FIXED_DAY_WIDTH}px; --timeline-width: ${getTimelineWidth}px; }`
@@ -1307,33 +1333,24 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
           const endsOnDeadline = msEndDay === taskEndDay;
           const endsOnTimelineEnd = msEndDay === timelineEndDay;
           
-          // console.log('🎨 CSS milestone render (unclamped):', {
-          //   milestoneId: ms.id,
-          //   msStartDay,
-          //   msEndDay,
-          //   timelineStartDay,
-          //   taskEndDay,
-          //   timelineEndDay,
-          //   offsetDays,
-          //   durationDays,
-          //   left,
-          //   width,
-          //   scale,
-          //   endsOnDeadline,
-          //   endsOnTimelineEnd,
-          //   getTimelineWidth,
-          //   'msEndDate': ms.endDate,
-          //   'taskDeadline': taskEndDay ? dayNumToFormat(taskEndDay) : 'null',
-          //   'timelineEnd': timelineEndDay ? dayNumToFormat(timelineEndDay) : 'null',
-          //   'milestoneEnd': dayNumToFormat(msEndDay),
-          //   'barRightEdge': left + width,
-          //   'timelineWidth': getTimelineWidth,
-          //   'reachesEnd': (left + width) >= getTimelineWidth,
-          //   'pixelsShort': getTimelineWidth - (left + width)
-          // });
+          console.debug('🎨 CSS milestone render:', {
+            milestoneName: ms.name,
+            milestoneId: ms.id,
+            'rawStartDate': ms.startDate,
+            'rawEndDate': ms.endDate,
+            msStartDay,
+            msEndDay,
+            timelineStartDay,
+            offsetDays,
+            durationDays,
+            left,
+            width,
+            'startFormatted': dayNumToFormat(msStartDay),
+            'endFormatted': dayNumToFormat(msEndDay)
+          });
           
           // Only set horizontal position and width, let vertical position flow naturally
-          lines.push(`.${safeTaskClass} .milestone-bar[data-mid="${ms.id}"] { --left: ${left}px; --width: ${width}px; --ms-bg: ${ms.color || primaryColor}; }`);
+          lines.push(`.${safeTaskClass} .milestone-bar[data-mid="${ms.id}"] { --left: ${left}px; --width: ${width}px; --ms-bg: ${ms.color || primaryColor}; }`); // debug removed
           // Dynamic color for milestone color buttons in left column with higher specificity
           const milestoneColor = ms.color || primaryColor;
           const safeMsClass = `milestone-color-${cssSafe(ms.id)}`;
@@ -1442,21 +1459,18 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
       //   'distanceFromTimelineEnd': endDay - timelineEndDay
       // });
       
+      // Allow extending beyond current timeline - timeline will auto-expand
+      // Only prevent going before timeline start
       if (startDay < timelineStartDay) startDay = timelineStartDay;
-      if (endDay > timelineEndDay) {
-        // console.log('🚫 Constraining endDay from', endDay, 'to', timelineEndDay);
-        endDay = timelineEndDay;
-      }
       
-      // Ensure valid date range
+      // DON'T clamp endDay to timelineEndDay - let milestone extend freely
+      // Timeline will automatically expand as timelineEndDay depends on milestoneRange.maxEnd
+      
+      // Ensure valid date range (start must be before end)
       if (startDay >= endDay) {
         if (type === 'resize-start') startDay = endDay - 1;
         else endDay = startDay + 1;
       }
-      
-      // Final bounds check
-      if (startDay < timelineStartDay) startDay = timelineStartDay;
-      if (endDay > timelineEndDay) endDay = timelineEndDay;
     }
 
     // Update tooltip with new date information
@@ -1511,11 +1525,17 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
     const type = active.data.current?.type as string;
 
     if (milestone && timelineStartDay !== null && timelineEndDay !== null) {
+      // Guard: Skip if this milestone is already being saved
+      if (isUpdatingMilestone.has(milestone.id)) {
+        console.warn(`⏭️ BLOCKED: Skipping drag end - milestone ${milestone.id} is already being saved`);
+        return;
+      }
+      
       let startDay = dateToDayNum(milestone.startDate)!;
       let endDay = dateToDayNum(milestone.endDate)!;
-  const originalDuration = inclusiveDuration(startDay, endDay); // Include both start and end day
+      const originalDuration = inclusiveDuration(startDay, endDay); // Include both start and end day
 
-    // Drag end - compute new start/end and apply constraints
+      // Drag end - compute new start/end and apply constraints
 
       if (type === 'move') {
         startDay += dayDelta;
@@ -1524,13 +1544,13 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
         startDay += dayDelta;
       } else if (type === 'resize-end') {
         endDay += dayDelta;
-        // console.log('🔧 End resize - after delta:', { endDay, taskEndDay, timelineEndDay, willBeConstrained: endDay > timelineEndDay });
       }
 
-      // Apply timeline bounds constraints (use full timeline range, not just task window)
+      // Apply timeline bounds constraints
+      // Allow extending beyond current timelineEndDay - timeline will auto-expand
       if (type === 'move') {
-        // For move operations, preserve original duration and constrain entire milestone within timeline bounds
-        // Use the same duration calculation as defined at the beginning
+        // For move operations, preserve original duration and only constrain start
+        // Timeline will expand if milestone moves beyond current end
         
         if (startDay < timelineStartDay) {
           const diff = timelineStartDay - startDay;
@@ -1538,25 +1558,11 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
           endDay += diff;
           // console.log('🔧 Move: adjusted for startDay constraint', { diff, newStart: startDay, newEnd: endDay });
         }
-        if (endDay > timelineEndDay) {
-          const diff = endDay - timelineEndDay;
-          startDay -= diff;
-          endDay -= diff;
-          // console.log('🔧 Move: adjusted for endDay constraint', { diff, newStart: startDay, newEnd: endDay });
-        }
-        // Final check after adjustment - preserve duration using consistent calculation
-        if (startDay < timelineStartDay) {
-          startDay = timelineStartDay;
-          endDay = startDay + (originalDuration - 1); // Preserve duration (convert back to exclusive end)
-          // console.log('🔧 Move: final startDay constraint with duration preserved', { startDay, endDay, originalDuration });
-        }
-        if (endDay > timelineEndDay) {
-          endDay = timelineEndDay;
-          startDay = endDay - (originalDuration - 1); // Preserve duration (convert back to exclusive end)
-          // console.log('🔧 Move: final endDay constraint with duration preserved', { startDay, endDay, originalDuration });
-        }
+        // Don't clamp endDay - let it extend freely
+        // Timeline will automatically expand
       } else {
-        // For resize operations, constrain individual boundaries
+        // For resize operations, only constrain startDay
+        // Allow endDay to extend beyond current timeline
         // console.log('🔧 Resize constraint check:', {
         //   type,
         //   originalStartDay: dateToDayNum(milestone.startDate),
@@ -1568,8 +1574,7 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
         //   dayDelta
         // });
         if (startDay < timelineStartDay) startDay = timelineStartDay;
-        if (endDay > timelineEndDay) endDay = timelineEndDay;
-        // console.log('🔧 After constraint:', { startDay, endDay });
+        // DON'T clamp endDay - allow extending beyond current timeline
       }
 
       // Ensure minimum duration and valid range
@@ -1612,14 +1617,20 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
       
       // Ensure minimum 1 day duration without clamping to task boundaries
       if (startDay > endDay) {
-        // console.log('⚠️ Invalid range detected, fixing duration...');
+        console.warn('⚠️ Invalid range detected (startDay > endDay)!', { 
+          type, 
+          startDay, 
+          endDay, 
+          originalDuration,
+          message: 'This should NOT happen - investigate!'
+        });
         if (type === 'move') {
           // For move, try to preserve duration without clamping
           const midPoint = Math.floor((startDay + endDay) / 2);
           const halfDuration = Math.floor((originalDuration - 1) / 2);
           startDay = midPoint - halfDuration;
           endDay = startDay + (originalDuration - 1);
-          // console.log('🔧 Move: preserved duration without clamping', { startDay, endDay, originalDuration });
+          console.log('🔧 Move: preserved duration without clamping', { startDay, endDay, originalDuration });
         } else {
           // For resize, just ensure minimum 1 day
           endDay = startDay;
@@ -1656,6 +1667,14 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
 
       // Calculate final duration to check for unwanted changes
       const finalDuration = finalSaveEndDay - finalSaveStartDay + 1;
+      console.log('💾 Final save dates:', {
+        milestone: milestone.name,
+        originalDates: { start: originalStartDateStr, end: originalEndDateStr },
+        newDates: { start: newStartDate, end: newEndDate },
+        originalDuration,
+        finalDuration,
+        durationChanged: finalDuration !== originalDuration
+      });
       const durationChanged = finalDuration !== originalDuration;
 
   // (debug) drag end result omitted to reduce console noise
@@ -1689,7 +1708,7 @@ export const TimelineCreatorTab: React.FC<TimelineCreatorTabProps> = ({
 
   // No manual drop animation here; CSS variables control final layout for exact grid alignment
     }
-  }, [containerRef, timelineStartDay, timelineEndDay, milestonesState]);
+  }, [containerRef, timelineStartDay, timelineEndDay, milestonesState, isUpdatingMilestone, saveMilestoneToQuote]);
 
 // MilestoneBar component definition - moved outside main component
 interface MilestoneBarProps {
@@ -1901,8 +1920,8 @@ const MilestoneBar: React.FC<MilestoneBarProps> = ({ milestone, taskStartDay, ta
                             }
                           }}
                         >
-                          <div className={stylesModule.milestoneInfo}>
-                            <div className={stylesModule.milestoneName}>{ms.name}</div>
+                            <div className={stylesModule.milestoneInfo}>
+                            <div className={stylesModule.milestoneName} onClick={() => scrollToMilestone(ms.id)} title="Scroll to bar">{ms.name}</div>
                             <div className={stylesModule.milestoneDates}>
                               <MilestoneDateEditor
                                 milestone={ms}
@@ -1915,11 +1934,9 @@ const MilestoneBar: React.FC<MilestoneBarProps> = ({ milestone, taskStartDay, ta
                           </div>
                           <button
                             onClick={() => {
-                              console.debug('🖱️ Color button clicked for milestone:', ms.id);
                               cycleColor(ms.id);
                             }}
                             onMouseDown={(e) => {
-                              console.debug('🖱️ Color button mouse down for milestone:', ms.id);
                               e.stopPropagation();
                             }}
                             className={`${stylesModule.colorBtn} milestone-color-${cssSafe(ms.id)}`}
@@ -1937,11 +1954,11 @@ const MilestoneBar: React.FC<MilestoneBarProps> = ({ milestone, taskStartDay, ta
 
           {/* Column 2: Timeline Area */}
           <div className={stylesModule.rightColumn}>
-            <DndContext onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
+            <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
               <div id="printable-timeline-container" ref={containerRef} className={safeTaskClass}>
                 <div className={stylesModule.milestoneContainer}>
                   <div className={stylesModule.timelineArea}>
-                    <div className={stylesModule.timelineScroller} onMouseEnter={() => isHoveringTimelineRef.current = true} onMouseLeave={() => isHoveringTimelineRef.current = false}>
+                    <div ref={timelineScrollerRef} className={stylesModule.timelineScroller} onMouseEnter={() => isHoveringTimelineRef.current = true} onMouseLeave={() => isHoveringTimelineRef.current = false}>
                       {/* Today marker */}
                       {todayMarkerPosition >= 0 && todayMarkerPosition < getTimelineWidth && (
                         <div 
@@ -1950,18 +1967,18 @@ const MilestoneBar: React.FC<MilestoneBarProps> = ({ milestone, taskStartDay, ta
                         />
                       )}
                       <div className={stylesModule.dateHeader}>{renderDateHeaders()}</div>
-                      <div>
-                        {/* Check if we have any section groups */}
-                        {getSectionGroups().length === 0 && hasTimelineColumn && (
-                          <div className={stylesModule.noMilestonesMessage}>
-                            <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p>No timeline milestones found</p>
-                            <p>Add timeline data to your quote items to see them here</p>
-                          </div>
-                        )}
-                        
-                        {/* Milestone bars with section alignment */}
-                        <div className={stylesModule.milestoneBarsContainer}>
+                      
+                      {/* Check if we have any section groups */}
+                      {getSectionGroups().length === 0 && hasTimelineColumn && (
+                        <div className={stylesModule.noMilestonesMessage}>
+                          <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p>No timeline milestones found</p>
+                          <p>Add timeline data to your quote items to see them here</p>
+                        </div>
+                      )}
+                      
+                      {/* Milestone bars with section alignment */}
+                      <div className={stylesModule.milestoneBarsContainer}>
                           {getSectionGroups().map((sectionGroup) => (
                             <div key={`timeline-section-${sectionGroup.sectionId}`}>
                               {/* Section header spacer to align with left column */}
@@ -1986,7 +2003,6 @@ const MilestoneBar: React.FC<MilestoneBarProps> = ({ milestone, taskStartDay, ta
                     </div>
                   </div>
                 </div>
-              </div>
             </DndContext>
           </div>
         </div>
