@@ -61,11 +61,13 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
 // Lightweight Share modal state
-function ShareConfirmModal({ open, onOpenChange, defaultIncludeQuote = true, defaultIncludeTimeline = true, defaultHideTimelineColumn = false, defaultShowValidityNote = true, onConfirm, t, isLoading }: { open: boolean; onOpenChange: (v: boolean) => void; defaultIncludeQuote?: boolean; defaultIncludeTimeline?: boolean; defaultHideTimelineColumn?: boolean; defaultShowValidityNote?: boolean; onConfirm: (opts: { includeQuote: boolean; includeTimeline: boolean; hideTimelineColumn: boolean; showValidityNote: boolean }) => void; t: any; isLoading?: boolean }) {
+function ShareConfirmModal({ open, onOpenChange, defaultIncludeQuote = true, defaultIncludeTimeline = true, defaultHideTimelineColumn = false, defaultShowValidityNote = true, defaultShowBriefLinks = true, defaultShowDriveLinks = true, onConfirm, t, isLoading }: { open: boolean; onOpenChange: (v: boolean) => void; defaultIncludeQuote?: boolean; defaultIncludeTimeline?: boolean; defaultHideTimelineColumn?: boolean; defaultShowValidityNote?: boolean; defaultShowBriefLinks?: boolean; defaultShowDriveLinks?: boolean; onConfirm: (opts: { includeQuote: boolean; includeTimeline: boolean; hideTimelineColumn: boolean; showValidityNote: boolean; showBriefLinks: boolean; showDriveLinks: boolean }) => void; t: any; isLoading?: boolean }) {
   const [includeQuote, setIncludeQuote] = React.useState(defaultIncludeQuote);
   const [includeTimeline, setIncludeTimeline] = React.useState(defaultIncludeTimeline);
   const [hideTimelineColumn, setHideTimelineColumn] = React.useState(defaultHideTimelineColumn);
   const [showValidityNote, setShowValidityNote] = React.useState(defaultShowValidityNote);
+  const [showBriefLinks, setShowBriefLinks] = React.useState(defaultShowBriefLinks);
+  const [showDriveLinks, setShowDriveLinks] = React.useState(defaultShowDriveLinks);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -78,6 +80,11 @@ function ShareConfirmModal({ open, onOpenChange, defaultIncludeQuote = true, def
           <label className="flex items-center gap-2"><input type="checkbox" checked={includeTimeline} onChange={e=>setIncludeTimeline(e.target.checked)} disabled={isLoading} /> {t.includeTimeline || 'Include Timeline'}</label>
           <label className="flex items-center gap-2 opacity-100"><input type="checkbox" checked={hideTimelineColumn} onChange={e=>setHideTimelineColumn(e.target.checked)} disabled={isLoading || !includeQuote} /> {t.hideTimelineColumn || 'Hide timeline column in quote'}</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={showValidityNote} onChange={e=>setShowValidityNote(e.target.checked)} disabled={isLoading || !includeQuote} /> {t.showValidityNote || 'Show validity note'}</label>
+          <div className="border-t pt-2 mt-2">
+            <div className="text-xs font-medium text-muted-foreground mb-2">{t.linksDisplay || 'Links Display'}</div>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={showBriefLinks} onChange={e=>setShowBriefLinks(e.target.checked)} disabled={isLoading} /> {t.showBriefLinks || 'Show Brief Links'}</label>
+            <label className="flex items-center gap-2 mt-2"><input type="checkbox" checked={showDriveLinks} onChange={e=>setShowDriveLinks(e.target.checked)} disabled={isLoading} /> {t.showDriveLinks || 'Show Drive Links'}</label>
+          </div>
           {isLoading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
@@ -88,7 +95,7 @@ function ShareConfirmModal({ open, onOpenChange, defaultIncludeQuote = true, def
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={()=>onOpenChange(false)} disabled={isLoading}>{t.cancel || 'Cancel'}</Button>
-          <Button onClick={()=>onConfirm({ includeQuote, includeTimeline, hideTimelineColumn, showValidityNote })} disabled={!includeQuote && !includeTimeline || isLoading}>
+          <Button onClick={()=>onConfirm({ includeQuote, includeTimeline, hideTimelineColumn, showValidityNote, showBriefLinks, showDriveLinks })} disabled={!includeQuote && !includeTimeline || isLoading}>
             {isLoading ? 'Creating...' : (t.createLink || 'Create link')}
           </Button>
         </DialogFooter>
@@ -918,7 +925,7 @@ export function TaskDetailsDialog({
     return milestones;
   };
 
-  const onShareConfirm = async ({ includeQuote, includeTimeline, hideTimelineColumn, showValidityNote }: { includeQuote: boolean; includeTimeline: boolean; hideTimelineColumn: boolean; showValidityNote: boolean }) => {
+  const onShareConfirm = async ({ includeQuote, includeTimeline, hideTimelineColumn, showValidityNote, showBriefLinks, showDriveLinks }: { includeQuote: boolean; includeTimeline: boolean; hideTimelineColumn: boolean; showValidityNote: boolean; showBriefLinks: boolean; showDriveLinks: boolean }) => {
     setShareLoading(true);
     try {
       // Build snapshot(s)
@@ -936,6 +943,8 @@ export function TaskDetailsDialog({
           grandTotal: displayedGrandTotal || 0,
           hiddenColumnIds: hideTimelineColumn ? ['timeline'] : undefined,
           showValidityNote,
+          showBriefLinks,
+          showDriveLinks,
         };
       }
       if (includeTimeline) {
@@ -950,6 +959,8 @@ export function TaskDetailsDialog({
           viewMode: 'week',
           timelineScale: 1,
           displayDate: new Date(),
+          showBriefLinks,
+          showDriveLinks,
         };
       }
       const data = (includeQuote && includeTimeline)

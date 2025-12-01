@@ -18,6 +18,8 @@ export const QuoteSnapshotSchema = z.object({
   grandTotal: z.number(),
   hiddenColumnIds: z.array(z.string()).optional(),
   showValidityNote: z.boolean().optional(),
+  showBriefLinks: z.boolean().optional(),
+  showDriveLinks: z.boolean().optional(),
 });
 
 // Timeline payload mirrors PrintableTimeline props subset
@@ -33,6 +35,8 @@ export const TimelineSnapshotSchema = z.object({
   viewMode: z.enum(['day', 'week', 'month']),
   timelineScale: z.number(),
   displayDate: z.any(),
+  showBriefLinks: z.boolean().optional(),
+  showDriveLinks: z.boolean().optional(),
 });
 
 export const CombinedSnapshotSchema = z.object({

@@ -107,6 +107,13 @@ export default async function ShareViewerPage({ params }: { params: Promise<{ id
   const currentClient = clients?.find((c: any) => c.id === task?.clientId);
   const currentCategory = categories?.find((cat: any) => cat.id === task?.categoryId);
 
+  // Determine which links to show based on snapshot settings
+  const showBriefLinks = quotePart?.showBriefLinks !== false || timelinePart?.showBriefLinks !== false;
+  const showDriveLinks = quotePart?.showDriveLinks !== false || timelinePart?.showDriveLinks !== false;
+  const hasBriefLinks = task?.briefLink && task.briefLink.length > 0;
+  const hasDriveLinks = task?.driveLink && task.driveLink.length > 0;
+  const shouldShowLinks = (showBriefLinks && hasBriefLinks) || (showDriveLinks && hasDriveLinks);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <meta name="robots" content="noindex,nofollow" />
@@ -119,6 +126,70 @@ export default async function ShareViewerPage({ params }: { params: Promise<{ id
           </p>
         </div>
       </header>
+
+      {/* Links Section - Right after header */}
+      {shouldShowLinks && (
+        <div className="bg-gradient-to-b from-gray-50 to-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {showBriefLinks && hasBriefLinks && (
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-2 mb-3">
+                    <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <h3 className="text-sm font-semibold text-gray-900">{T.briefLink || 'Brief'}</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {task.briefLink.map((link: string, idx: number) => (
+                      <a
+                        key={idx}
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 group"
+                        title={link}
+                      >
+                        <svg className="w-4 h-4 flex-shrink-0 opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        <span className="truncate font-medium">{link}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {showDriveLinks && hasDriveLinks && (
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-2 mb-3">
+                    <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    <h3 className="text-sm font-semibold text-gray-900">{T.driveLink || 'Storage'}</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {task.driveLink.map((link: string, idx: number) => (
+                      <a
+                        key={idx}
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-green-600 hover:text-green-800 group"
+                        title={link}
+                      >
+                        <svg className="w-4 h-4 flex-shrink-0 opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        <span className="truncate font-medium">{link}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -138,13 +209,13 @@ export default async function ShareViewerPage({ params }: { params: Promise<{ id
         {quotePart && (
           <section id="quote" className="scroll-mt-16">
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">{T.priceQuote || 'Quote'}</h2>
-            <QuoteViewer {...(quotePart as any)} showHeader={false} />
+            <QuoteViewer {...(quotePart as any)} showHeader={false} showBriefLinks={false} showDriveLinks={false} />
           </section>
         )}
         {timelinePart && (
           <section id="timeline" className="scroll-mt-16">
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">{(T as any).timeline || 'Timeline'}</h2>
-            <TimelineViewer {...(timelinePart as any)} showHeader={false} embedded />
+            <TimelineViewer {...(timelinePart as any)} showHeader={false} embedded showBriefLinks={false} showDriveLinks={false} />
           </section>
         )}
       </main>

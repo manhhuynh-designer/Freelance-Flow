@@ -14,9 +14,11 @@ type Props = {
   categories: Category[];
   showHeader?: boolean;
   embedded?: boolean;
+  showBriefLinks?: boolean;
+  showDriveLinks?: boolean;
 };
 
-export default function TimelineViewer({ task, quote, milestones = [], settings, clients, categories, showHeader = true, embedded = false }: Props) {
+export default function TimelineViewer({ task, quote, milestones = [], settings, clients, categories, showHeader = true, embedded = false, showBriefLinks = true, showDriveLinks = true }: Props) {
   // Scroll container ref for custom wheel handling
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const timelineAreaRef = React.useRef<HTMLDivElement | null>(null);
@@ -499,6 +501,54 @@ export default function TimelineViewer({ task, quote, milestones = [], settings,
             </div>
 
             {/* Bottom status summary removed per request */}
+          </div>
+        )}
+
+        {/* Links Section */}
+        {((showBriefLinks && task.briefLink && task.briefLink.length > 0) || (showDriveLinks && task.driveLink && task.driveLink.length > 0)) && (
+          <div className="mt-6 sm:mt-8 space-y-4">
+            {showBriefLinks && task.briefLink && task.briefLink.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+                <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">Brief Links</h3>
+                <div className="space-y-2">
+                  {task.briefLink.map((link, idx) => (
+                    <a 
+                      key={idx} 
+                      href={link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline break-all"
+                    >
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      {link}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+            {showDriveLinks && task.driveLink && task.driveLink.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+                <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">Drive Links</h3>
+                <div className="space-y-2">
+                  {task.driveLink.map((link, idx) => (
+                    <a 
+                      key={idx} 
+                      href={link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline break-all"
+                    >
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      {link}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

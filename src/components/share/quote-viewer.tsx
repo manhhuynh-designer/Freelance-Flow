@@ -16,6 +16,8 @@ type Props = {
   showHeader?: boolean;
   hiddenColumnIds?: string[];
   showValidityNote?: boolean;
+  showBriefLinks?: boolean;
+  showDriveLinks?: boolean;
 };
 
 function calcRowValue(item: QuoteItem, column: QuoteColumn, allColumns: QuoteColumn[]) {
@@ -40,7 +42,7 @@ function calcRowValue(item: QuoteItem, column: QuoteColumn, allColumns: QuoteCol
 }
 
 export default function QuoteViewer(props: Props) {
-  const { quote, task, settings, clients, categories, clientName, categoryName, defaultColumns = [], calculationResults = [], grandTotal, showHeader = true, hiddenColumnIds = [], showValidityNote = true } = props;
+  const { quote, task, settings, clients, categories, clientName, categoryName, defaultColumns = [], calculationResults = [], grandTotal, showHeader = true, hiddenColumnIds = [], showValidityNote = true, showBriefLinks = true, showDriveLinks = true } = props;
   const T = { ...(i18n[settings.language] || {}), unitPrice: (i18n[settings.language] as any)?.unitPrice || 'Unit Price', grandTotal: (i18n[settings.language] as any)?.grandTotal || 'Grand Total' } as any;
 
   const mergedHiddenColumnIds = React.useMemo(() => {
@@ -212,6 +214,54 @@ export default function QuoteViewer(props: Props) {
           </div>
         </div>
       </div>
+
+      {/* Links Section */}
+      {((showBriefLinks && task.briefLink && task.briefLink.length > 0) || (showDriveLinks && task.driveLink && task.driveLink.length > 0)) && (
+        <div className="mt-6 sm:mt-8 space-y-4">
+          {showBriefLinks && task.briefLink && task.briefLink.length > 0 && (
+            <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">{T.briefLink || 'Brief Links'}</h3>
+              <div className="space-y-2">
+                {task.briefLink.map((link, idx) => (
+                  <a 
+                    key={idx} 
+                    href={link} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline break-all"
+                  >
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    {link}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+          {showDriveLinks && task.driveLink && task.driveLink.length > 0 && (
+            <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">{T.driveLink || 'Drive Links'}</h3>
+              <div className="space-y-2">
+                {task.driveLink.map((link, idx) => (
+                  <a 
+                    key={idx} 
+                    href={link} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline break-all"
+                  >
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    {link}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Validity Note - conditionally shown based on snapshot flag */}
       {showValidityNote !== false && (settings.quoteValidityNote || (T as any).quoteValidityNote) && (
