@@ -1,5 +1,7 @@
 import QuoteViewer from '@/components/share/quote-viewer';
 import TimelineViewer from '@/components/share/timeline-viewer';
+import SharePageClientWrapper from '@/components/share/SharePageClientWrapper';
+import LinkPreview from '@/components/share/LinkPreview';
 import { i18n } from '@/lib/i18n';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
@@ -114,6 +116,9 @@ export default async function ShareViewerPage({ params }: { params: Promise<{ id
   const hasDriveLinks = task?.driveLink && task.driveLink.length > 0;
   const shouldShowLinks = (showBriefLinks && hasBriefLinks) || (showDriveLinks && hasDriveLinks);
 
+  // Extract quote data for export
+  const quote = quotePart?.quote;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <meta name="robots" content="noindex,nofollow" />
@@ -142,19 +147,7 @@ export default async function ShareViewerPage({ params }: { params: Promise<{ id
                   </div>
                   <div className="space-y-2">
                     {task.briefLink.map((link: string, idx: number) => (
-                      <a
-                        key={idx}
-                        href={link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 group"
-                        title={link}
-                      >
-                        <svg className="w-4 h-4 flex-shrink-0 opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                        <span className="truncate font-medium">{link}</span>
-                      </a>
+                      <LinkPreview key={idx} url={link} color="blue" />
                     ))}
                   </div>
                 </div>
@@ -169,19 +162,7 @@ export default async function ShareViewerPage({ params }: { params: Promise<{ id
                   </div>
                   <div className="space-y-2">
                     {task.driveLink.map((link: string, idx: number) => (
-                      <a
-                        key={idx}
-                        href={link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-green-600 hover:text-green-800 group"
-                        title={link}
-                      >
-                        <svg className="w-4 h-4 flex-shrink-0 opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                        <span className="truncate font-medium">{link}</span>
-                      </a>
+                      <LinkPreview key={idx} url={link} color="green" />
                     ))}
                   </div>
                 </div>
@@ -208,13 +189,39 @@ export default async function ShareViewerPage({ params }: { params: Promise<{ id
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8 sm:space-y-12">
         {quotePart && (
           <section id="quote" className="scroll-mt-16">
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">{T.priceQuote || 'Quote'}</h2>
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">{T.priceQuote || 'Quote'}</h2>
+              <SharePageClientWrapper
+                task={task}
+                quote={quote}
+                settings={settings}
+                clients={clients}
+                categories={categories}
+                quotePart={quotePart}
+                timelinePart={timelinePart}
+                type="quote"
+                T={T}
+              />
+            </div>
             <QuoteViewer {...(quotePart as any)} showHeader={false} showBriefLinks={false} showDriveLinks={false} />
           </section>
         )}
         {timelinePart && (
           <section id="timeline" className="scroll-mt-16">
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">{(T as any).timeline || 'Timeline'}</h2>
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">{(T as any).timeline || 'Timeline'}</h2>
+              <SharePageClientWrapper
+                task={task}
+                quote={quote}
+                settings={settings}
+                clients={clients}
+                categories={categories}
+                quotePart={quotePart}
+                timelinePart={timelinePart}
+                type="timeline"
+                T={T}
+              />
+            </div>
             <TimelineViewer {...(timelinePart as any)} showHeader={false} embedded showBriefLinks={false} showDriveLinks={false} />
           </section>
         )}

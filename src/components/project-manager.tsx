@@ -188,32 +188,32 @@ export function ProjectManager({ projects, tasks, onAddProject, onEditProject, o
       </div>
 
       <div className="space-y-2">
-  <h4 className="font-medium">{TL.existingProjects || 'Existing Projects'}</h4>
-        <div className="rounded-lg border max-h-80 overflow-y-auto">
+  <h4 className="font-medium text-sm">{TL.existingProjects || 'Existing Projects'}</h4>
+        <div className="rounded-lg border max-h-[50vh] overflow-y-auto">
           {projects.map(p => {
             const count = tasks.filter(t => (t as any).projectId === p.id).length;
             return (
-              <div key={p.id} className={cn("flex items-start justify-between p-3 border-b last:border-b-0 hover:bg-muted/50 odd:bg-muted/50")} onClick={()=>setEditing(p)}>
-                <div className="flex-1 pr-2 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium flex items-center gap-1"><Briefcase className="h-3 w-3" /> {p.name}</p>
-                    {count > 0 && <Badge variant="outline">{count}</Badge>}
+              <div key={p.id} className={cn("flex items-start justify-between gap-3 p-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors cursor-pointer")}>
+                <div className="flex-1 min-w-0 space-y-1" onClick={()=>setEditing(p)}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-sm flex items-center gap-1.5"><Briefcase className="h-3.5 w-3.5 shrink-0" /> {p.name}</p>
+                    {count > 0 && <Badge variant="secondary" className="text-xs">{count}</Badge>}
                     {Array.isArray(p.links) && p.links[0] && (
-                      <a href={p.links[0]} target="_blank" rel="noopener noreferrer" onClick={(e)=>e.stopPropagation()} className="text-muted-foreground hover:text-primary" title={p.links[0]}>
-                        <LinkIcon className="h-3 w-3" />
+                      <a href={p.links[0]} target="_blank" rel="noopener noreferrer" onClick={(e)=>e.stopPropagation()} className="text-muted-foreground hover:text-primary transition-colors" title={p.links[0]}>
+                        <LinkIcon className="h-3.5 w-3.5" />
                       </a>
                     )}
                   </div>
-                  {(p as any).description && <p className="text-xs text-muted-foreground truncate">{(p as any).description}</p>}
+                  {(p as any).description && <p className="text-xs text-muted-foreground line-clamp-2">{(p as any).description}</p>}
                 </div>
-                <div className="flex gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e)=>{ e.stopPropagation(); setEditing(p); }}>
-                    <Pencil className="h-4 w-4" />
+                <div className="flex gap-1 shrink-0 items-start">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent" onClick={(e)=>{ e.stopPropagation(); setEditing(p); }}>
+                    <Pencil className="h-3.5 w-3.5" />
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e)=>e.stopPropagation()}>
-                        <Trash2 className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={(e)=>e.stopPropagation()}>
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -233,7 +233,7 @@ export function ProjectManager({ projects, tasks, onAddProject, onEditProject, o
               </div>
             );
           })}
-          {projects.length === 0 && <p className="p-4 text-sm text-muted-foreground text-center">{TL.noProjectsFound || 'No projects found'}</p>}
+          {projects.length === 0 && <p className="p-6 text-sm text-muted-foreground text-center">{TL.noProjectsFound || 'No projects found'}</p>}
         </div>
       </div>
 

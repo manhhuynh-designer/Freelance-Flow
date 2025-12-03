@@ -210,35 +210,28 @@ function LinkPreview({ url, maxLength = 30, fallback }: { url: string; maxLength
     setTitle('');
     setError(false);
 
-    const fallbackFavicon = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(parsedUrl.hostname)}`;
+    const fallbackFavicon = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(parsedUrl.hostname)}&sz=32`;
     setFavicon(fallbackFavicon);
-
-    const canFetchMetadata = typeof window !== 'undefined' && parsedUrl.origin === window.location.origin;
-
-    if (!canFetchMetadata) {
-      setLoading(false);
-      return () => {
-        cancelled = true;
-      };
-    }
 
     setLoading(true);
 
     const controller = new AbortController();
 
-    fetch(parsedUrl.toString(), { signal: controller.signal })
+    // Use the new API endpoint to fetch metadata
+    fetch(`/api/link-preview?url=${encodeURIComponent(url)}`, { signal: controller.signal })
       .then(response => {
         if (!cancelled && response.ok) {
-          return response.text();
+          return response.json();
         }
         throw new Error('Failed to fetch');
       })
-      .then(html => {
+      .then(data => {
         if (!cancelled) {
-          const match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-          const extractedTitle = match?.[1]?.trim();
-          if (extractedTitle && extractedTitle.length <= maxLength) {
-            setTitle(extractedTitle);
+          if (data.title) {
+            setTitle(data.title);
+          }
+          if (data.favicon) {
+            setFavicon(data.favicon);
           }
           setLoading(false);
         }
@@ -254,7 +247,7 @@ function LinkPreview({ url, maxLength = 30, fallback }: { url: string; maxLength
       cancelled = true;
       controller.abort();
     };
-  }, [isWebUrl, parsedUrl, maxLength]);
+  }, [isWebUrl, parsedUrl, url]);
 
   const domain = React.useMemo(() => {
     if (isLocalPath) {
@@ -1056,14 +1049,51 @@ export function TaskDetailsDialog({
 
         const itemRows = section.items.map(item => {
             return (quoteToCopy.columns || defaultColumns).map(col => {
-                const value = ['description', 'quantity', 'unitPrice'].includes(col.id)
-                    ? item[col.id as keyof typeof item]
-                    : item.customFields?.[col.id];
+                let value: any;
+                
+                // Get the value based on column type
+                if (['description', 'quantity', 'unitPrice'].includes(col.id)) {
+                    value = item[col.id as keyof typeof item];
+                } else if (col.id === 'timeline') {
+                    // Special handling for timeline column
+                    const timelineData = item.customFields?.[col.id];
+                    if (timelineData) {
+                        try {
+                            // Parse if it's a JSON string
+                            const parsed = typeof timelineData === 'string' ? JSON.parse(timelineData) : timelineData;
+                            
+                            if (parsed && typeof parsed === 'object' && parsed.start && parsed.end) {
+                                // Format dates
+                                const startDate = new Date(parsed.start);
+                                const endDate = new Date(parsed.end);
+                                
+                                const formatDate = (date: Date) => {
+                                    const day = String(date.getDate()).padStart(2, '0');
+                                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                                    const year = date.getFullYear();
+                                    return settings.language === 'vi' ? `${day}/${month}/${year}` : `${month}/${day}/${year}`;
+                                };
+                                
+                                value = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+                            } else {
+                                value = '';
+                            }
+                        } catch (e) {
+                            // If parsing fails, just use empty string
+                            value = '';
+                        }
+                    } else {
+                        value = '';
+                    }
+                } else {
+                    value = item.customFields?.[col.id];
+                }
+                
                 const rawValue = value ?? '';
                 if (typeof rawValue === 'number') {
                     return rawValue.toLocaleString(settings.language === 'vi' ? 'vi-VN' : 'en-US');
                 }
-                return String(rawValue).replace(/\n/g, ' ');
+                return String(rawValue).replace(/\n/g, ' ').replace(/\t/g, ' ');
             }).join('\t');
         });
         fullClipboardString += `${itemRows.join('\n')}\n\n`;
