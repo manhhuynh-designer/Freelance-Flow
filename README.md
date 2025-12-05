@@ -39,12 +39,14 @@ Quản lý công việc của bạn theo cách phù hợp nhất với quy trìn
 *   **Quản lý Khách hàng & Cộng tác viên:** Lưu trữ thông tin liên hệ, lịch sử dự án và các ghi chú quan trọng.
 *   **Tạo & Quản lý Báo giá:** Tạo các báo giá chuyên nghiệp từ các mẫu có sẵn, dán dữ liệu từ bảng tính và liên kết chúng trực tiếp với các công việc.
 *   **Widgets & Tiện ích:** Sử dụng các widget hữu ích như **Ghi chú nhanh (Sticky Notes)**, **Máy tính** và **Đồng hồ Pomodoro** ngay trên dashboard để tăng năng suất.
-*   **Backup & Restore an toàn:** Dễ dàng sao lưu toàn bộ dữ liệu ứng dụng ra file JSON và khôi phục lại bất cứ lúc nào, đảm bảo bạn không bao giờ mất dữ liệu.
+*   **Backup & Restore an toàn:**
+    *   **Local Backup:** Dễ dàng sao lưu toàn bộ dữ liệu ứng dụng ra file JSON và khôi phục lại bất cứ lúc nào.
+    *   **Cloud Backup (Mới):** Hỗ trợ sao lưu lên đám mây (Vercel Blob) với mã hóa an toàn (client-side encryption) để bảo vệ dữ liệu riêng tư của bạn.
 *   **Tìm kiếm ngữ nghĩa (Semantic Search):** Lập chỉ mục (index) công việc và tìm kiếm theo ngữ nghĩa khi bạn cung cấp API key AI. Vectors được lưu cục bộ để dùng offline.
 
 ### Trợ lý AI thông minh (Gemini)
 
-Tích hợp Google Gemini (ưu tiên) và hỗ trợ OpenAI (tùy chọn). Trợ lý AI có thể:
+Tích hợp Google Gemini (ưu tiên) và hỗ trợ OpenAI (tùy chọn) với cơ chế **Model Fallback** thông minh để đảm bảo độ ổn định. Trợ lý AI có thể:
 
 *   **Tạo và cập nhật công việc:** Chỉ cần ra lệnh bằng ngôn ngữ tự nhiên (ví dụ: `Tạo task "Thiết kế logo" cho khách hàng A, deadline cuối tuần`).
 *   **Tạo báo giá tự động:** `Tạo báo giá gồm 5 banner và 1 landing page.`
